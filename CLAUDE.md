@@ -174,7 +174,7 @@ Debug: DevTools console filtered by `SponsorSkipper`; server terminal for segmen
 
 ## Progress
 
-- [ ] 1. Extension skeleton + video detection
+- [x] 1. Extension skeleton + video detection
 - [ ] 2. Caption fetch + parse
 - [ ] 3. Server skeleton + relay
 - [ ] 4. Qwen classification
