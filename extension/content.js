@@ -1,6 +1,7 @@
 // Sponsor Skipper — content.js (isolated world)
 // Stage 1: detect the current video and react to YouTube's in-app navigation.
 // Stage 2: ask page.js (MAIN world) for the caption lines and log what came back.
+// Stage 3: send the lines to the local server via background.js and poll for segments.
 
 (() => {
   const TAG = '[SponsorSkipper]';
@@ -44,15 +45,77 @@
       const d = ev.data;
       if (!d || d.source !== 'ss-page' || d.type !== 'captions' || d.videoId !== videoId) return;
       window.removeEventListener('message', onMessage);
-      if (d.error) { log('captions:', d.error); return; }
+      if (d.error) { log('captions:', String(d.error).slice(0, 80)); return; }
+      // Any page script can post a message shaped like this one, so validate before trusting it.
+      if (!validLines(d.lines) || typeof d.lang !== 'string' || typeof d.kind !== 'string' || typeof d.path !== 'string') {
+        log('captions: ignored malformed reply');
+        return;
+      }
       log(`captions: ${d.lines.length} lines, lang=${d.lang}, kind=${d.kind}, path=${d.path}`);
       for (const l of d.lines.slice(0, 5)) log(`  [${fmtTime(l.start)}-${fmtTime(l.end)}] ${l.text}`);
       current.lines = d.lines;
       current.lang = d.lang;
+      analyze(videoId, d.lang, d.lines);
     };
     window.addEventListener('message', onMessage);
     current.cleanups.push(() => window.removeEventListener('message', onMessage));
     window.postMessage({ source: 'ss-content', type: 'getCaptions', videoId }, '*');
+  }
+
+  // Stage 3: server relay. POST once, then poll every 2s until done/error.
+  const POLL_MS = 2000;
+
+  function send(msg) {
+    return new Promise((resolve) => {
+      try {
+        chrome.runtime.sendMessage(msg, (res) => {
+          if (chrome.runtime.lastError) resolve({ ok: false, error: chrome.runtime.lastError.message });
+          else resolve(res || { ok: false, error: 'no response' });
+        });
+      } catch (e) { resolve({ ok: false, error: String(e) }); }
+    });
+  }
+
+  async function analyze(videoId, lang, lines) {
+    const state = current;
+    const alive = () => current === state && state.videoId === videoId;
+    const res = await send({ type: 'analyze', videoId, lang, lines });
+    if (!alive()) return;
+    if (!res.ok) { log('server:', res.error); return; }
+    handleJob(videoId, res);
+    if (res.status === 'done' || res.status === 'error') return;
+
+    let timer = null;
+    const stop = () => { if (timer) { clearInterval(timer); timer = null; } };
+    state.cleanups.push(stop);
+    timer = setInterval(async () => {
+      const r = await send({ type: 'poll', videoId });
+      if (!alive()) { stop(); return; }
+      if (!r.ok) { log('server:', r.error); stop(); return; }
+      handleJob(videoId, r);
+      if (r.status === 'done' || r.status === 'error') stop();
+    }, POLL_MS);
+  }
+
+  function handleJob(videoId, job) {
+    const state = current;
+    const prev = state.lastStatus;
+    state.lastStatus = job.status;
+    state.segments = job.segments || [];
+    if (job.status !== prev) log(`analysis ${job.status} (${state.segments.length} segment(s))`);
+    if (job.status === 'done') {
+      for (const s of state.segments) {
+        log(`  ${s.action.toUpperCase()} [${fmtTime(s.start)}-${fmtTime(s.end)}] ${s.category}/${s.style} ${s.brand} conf=${s.confidence} — ${s.reason}`);
+      }
+    }
+  }
+
+  const MAX_LINES = 20000;
+  function validLines(lines) {
+    if (!Array.isArray(lines) || lines.length === 0 || lines.length > MAX_LINES) return false;
+    return lines.every((l) => l && typeof l === 'object' &&
+      Number.isFinite(l.start) && Number.isFinite(l.end) && l.start >= 0 && l.end >= l.start &&
+      typeof l.text === 'string' && l.text.length > 0 && l.text.length <= 2000);
   }
 
   function fmtTime(s) {

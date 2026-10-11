@@ -153,8 +153,7 @@ Each stage ends with a "done when" check on a real video.
 7. **Tuning pass** — collect ~20 real videos (reads, integrations, mixed, non-English, no sponsor), log results,
    tune prompt and threshold until wrong skips are ~zero.
    *Open from stage 2 (not yet verified on a real video):*
-   - a video with no captions reports `no captions` and does nothing;
-   - a translated caption track selected with CC on still analyzes the spoken language (`tlang` stripped).
+   - a video with no captions reports `no captions` and does nothing.
 
 ## Open decisions (ask Atishay)
 
@@ -179,7 +178,7 @@ Debug: DevTools console filtered by `SponsorSkipper`; server terminal for segmen
 
 - [x] 1. Extension skeleton + video detection
 - [x] 2. Caption fetch + parse
-- [ ] 3. Server skeleton + relay
+- [x] 3. Server skeleton + relay
 - [ ] 4. Qwen classification
 - [ ] 5. Post-processing + cache
 - [ ] 6. Playback UI
