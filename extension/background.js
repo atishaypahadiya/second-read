@@ -1,0 +1,43 @@
+// Sponsor Skipper — background.js (service worker)
+// The only part of the extension that talks to the local server. Content scripts
+// can't reach localhost directly (cross-origin + private network access), so they
+// send messages here and we relay them over fetch. host_permissions covers this.
+
+const SERVER = 'http://127.0.0.1:8765';
+
+async function call(path, init) {
+  let res;
+  try {
+    res = await fetch(SERVER + path, init);
+  } catch (e) {
+    return { ok: false, error: 'server offline' };
+  }
+  let body = null;
+  try { body = await res.json(); } catch { body = null; }
+  if (!res.ok) return { ok: false, status: res.status, error: (body && body.error) || `http ${res.status}` };
+  return { ok: true, ...body };
+}
+
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (!msg || typeof msg.type !== 'string') return false;
+  let p;
+  switch (msg.type) {
+    case 'analyze':
+      p = call('/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoId: msg.videoId, lang: msg.lang, lines: msg.lines }),
+      });
+      break;
+    case 'poll':
+      p = call(`/analyze?v=${encodeURIComponent(msg.videoId)}`);
+      break;
+    case 'health':
+      p = call('/health');
+      break;
+    default:
+      return false;
+  }
+  p.then(sendResponse, (e) => sendResponse({ ok: false, error: String(e) }));
+  return true; // keep the message channel open for the async response
+});
