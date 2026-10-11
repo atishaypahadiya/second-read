@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "Sponsor Skipper",
+  "version": "0.2.0",
+  "description": "Skips scripted sponsor reads by reading the video's captions with a local Qwen model.",
+  "host_permissions": ["http://localhost:8765/*", "http://127.0.0.1:8765/*"],
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/*"],
+      "js": ["page.js"],
+      "world": "MAIN",
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["https://www.youtube.com/*"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}
