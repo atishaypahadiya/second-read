@@ -135,6 +135,11 @@ Status values: `queued → classifying → classifying_rest → done` (or `error
   - Drop any segment whose lines fall outside the window it was given (hallucinated indices).
   - start = start of the first ad word; end = end of the last ad word − 0.3s (round inward). If the word
     pick is invalid, fall back to the boundary lines' start/end.
+  - **Snap to natural pauses** (word ends are capped at their cue end, so pauses between cues show as gaps):
+    start moves forward to the nearest sentence start, else the largest gap ≥ 0.25s, within 5s and inside the
+    ad lines; otherwise backward to the start of the sentence containing the pick if that sentence starts in the
+    ad's first line. End moves to the start of the largest gap ≥ 0.25s that begins within 1s after the last ad
+    word. Original and snapped times are logged.
   - Action: sponsor+read with confidence ≥ `SKIP_THRESHOLD` (0.85) → `skip`; sponsor+integration → `keep`;
     low-confidence reads, selfpromo, interaction → `show`.
   - **Evidence gate:** a `skip` must carry an `evidence` field that quotes a sponsor cue verbatim from the
@@ -145,8 +150,8 @@ Status values: `queued → classifying → classifying_rest → done` (or `error
     last ad line; if < 3s remains, downgrade to `show`. Never fall back outward to a line end.
   - Merge overlapping or touching (gap ≤ 1s) segments with the same action and brand.
   - **Post-filter** (keep/show only; skips are never dropped here, only logged): drop if evidence/reason reads like
-    a sponsor disclaimer; drop if the brand appears in the video title (it's the subject); drop `show` below
-    `SHOW_THRESHOLD` (0.7).
+    a sponsor disclaimer; drop if the brand appears in the video title or is mentioned in ≥ 3 transcript lines
+    outside the segment (it's the subject); drop `show` below `SHOW_THRESHOLD` (0.7). Logged once, at the end.
   - Each segment also carries `line_start`/`line_end` (pre-refinement times) for the log and tooltip.
 - Log every final segment to the terminal: action, refined time range, line-level range, category/style, brand,
   confidence, reason. Also log each detect/refine/words call with its timing.

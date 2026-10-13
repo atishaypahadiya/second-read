@@ -261,7 +261,7 @@
         let pos = 0;
         for (const w of parts) {
           const frac = totalChars > 0 ? pos / totalChars : 0;
-          words.push({ start: segStart + (segEnd - segStart) * frac, text: w });
+          words.push({ start: segStart + (segEnd - segStart) * frac, text: w, cueEnd: end });
           pos += w.length + 1;
         }
       }
@@ -270,7 +270,10 @@
     cues.sort((a, b) => a.start - b.start);
     // Auto captions often overlap the next cue; clamp so lines don't bleed into each other.
     for (let i = 0; i < cues.length - 1; i++) {
-      if (cues[i].end > cues[i + 1].start) cues[i].end = Math.max(cues[i].start, cues[i + 1].start);
+      if (cues[i].end > cues[i + 1].start) {
+        cues[i].end = Math.max(cues[i].start, cues[i + 1].start);
+        for (const w of cues[i].words) w.cueEnd = cues[i].end;
+      }
     }
     return cues;
   }
@@ -290,13 +293,14 @@
       if (/[.!?…][)"'”’]*$/.test(cur.text)) flush();
     }
     flush();
-    // Word end = next word's start (across lines too), capped at the line end. Emit compact triples.
+    // Word end = next word's start, capped at the word's own cue end so a pause between cues
+    // shows up as a gap between words (the server snaps boundaries to such gaps). Emit compact triples.
     for (let i = 0; i < lines.length; i++) {
       const ws = lines[i].words;
       const nextStart = i + 1 < lines.length && lines[i + 1].words.length ? lines[i + 1].words[0].start : Infinity;
       lines[i].words = ws.map((w, j) => {
-        const rawEnd = j + 1 < ws.length ? ws[j + 1].start : Math.min(lines[i].end, nextStart);
-        const end = Math.max(w.start, Math.min(rawEnd, lines[i].end));
+        const rawEnd = j + 1 < ws.length ? ws[j + 1].start : nextStart;
+        const end = Math.max(w.start, Math.min(rawEnd, w.cueEnd, lines[i].end));
         return [round(w.start), round(end), w.text];
       });
     }
