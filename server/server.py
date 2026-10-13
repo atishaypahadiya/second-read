@@ -37,7 +37,7 @@ OLLAMA = "http://localhost:11434"
 MODEL = "qwen3:14b"
 # Bump whenever the prompt, schema, threshold or post-processing changes: cached results from an
 # older pipeline are then ignored and the video is re-analyzed.
-PIPELINE_VERSION = 5
+PIPELINE_VERSION = 6
 NUM_CTX = 8192
 LLM_TIMEOUT_S = 600
 MAX_BODY_BYTES = 8 * 1024 * 1024
@@ -146,9 +146,20 @@ SYSTEM_PROMPT = """You label sponsorship in YouTube video transcripts. You recei
 ("L12 [3:05] text") and return JSON segments with global line indices.
 
 Categories:
-- sponsor: a paid third-party brand promotion.
-- selfpromo: the creator promoting their own merch, Patreon, courses, other videos or channel.
+- sponsor: a paid promotion of a THIRD-PARTY product or service (any company the creator does not own).
+  A creator-specific discount code ("code FERN20"), a creator-branded link ("fern.deals/x", "link in the
+  description") or the creator saying they use the product does NOT make it selfpromo: that is the standard
+  sponsor pattern. If the brand is not something the creator owns, it is sponsor.
+- selfpromo: ONLY things the creator owns: their own merch, Patreon/membership, their own course, app,
+  newsletter, podcast, other videos or channel.
 - interaction: asking to like, subscribe, comment, hit the bell.
+
+Never label (return no segment for):
+- disclosures or disclaimers about sponsors ("VPN providers sometimes sponsor the channel but aren't
+  involved in this video", "this video is not sponsored"): a disclaimer is not a promotion.
+- the product, company or app that is the SUBJECT of the video or of the current discussion (a video
+  about Facebook's Onavo app discussing Onavo; a review; a news story about a company). Discussing a
+  product is not promoting it, even at length and even if the creator likes it.
 
 Style (for every segment):
 - read: a scripted sponsor read. Signals: "this video is sponsored by", "thanks to X for sponsoring",
@@ -668,10 +679,10 @@ def run_job(video_id):
             job["status"] = "error"
             job["error"] = "ollama offline"
     except Exception as e:  # noqa: BLE001
-        log(f"[{video_id}] error: {e!r}")
+        log(f"[{video_id}] error: {e!r}")  # full detail stays in the terminal only
         with jobs_lock:
             job["status"] = "error"
-            job["error"] = repr(e)
+            job["error"] = "model error" if isinstance(e, (json.JSONDecodeError, KeyError, TypeError, ValueError)) else "internal error"
 
 
 def start_or_get_job(video_id, lang, lines):
