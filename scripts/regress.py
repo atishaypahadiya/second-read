@@ -40,7 +40,7 @@ def run_video(entry, allow_model):
     cached = server.load_cache(vid)
     if not cached or not cached.get("transcript"):
         return None, "no cached transcript (watch it once with the extension)"
-    lines = cached["transcript"]
+    lines = server.clean_lines(cached["transcript"])  # exactly what POST /analyze does with the client's lines
     if not allow_model:
         # Refuse to touch Ollama: any call not served from the cache raises and the video is reported as not run.
         def no_model(*a, **k):
