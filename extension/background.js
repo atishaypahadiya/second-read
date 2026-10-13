@@ -27,7 +27,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ videoId: msg.videoId, lang: msg.lang, lines: msg.lines, title: msg.title || '',
-                               kind: msg.kind || '', creator: msg.creator || '' }),
+                               kind: msg.kind || '', creator: msg.creator || '', description: msg.description || '',
+                               position: msg.position || 0, analysisLines: msg.analysisLines || null,
+                               analysisLang: msg.analysisLang || '' }),
       });
       break;
     case 'poll':

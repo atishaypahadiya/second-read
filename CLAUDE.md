@@ -9,7 +9,9 @@ everything runs on Atishay's M4 Pro MacBook.
 - **Text only.** The transcript comes from YouTube's own caption track, read inside the page.
   No audio download, no Whisper, no yt-dlp.
 - **No external datasets.** No SponsorBlock, no third-party APIs.
-- **Local LLM only.** Qwen 14B (`qwen3:14b`) via Ollama at `http://localhost:11434`. No API keys.
+- **Local LLM only.** Qwen 14B (`qwen3:14b`) via Ollama at `http://localhost:11434` for everything. No API keys.
+  (`SS_DETECT_MODEL=qwen3:8b` can run pass-1 on a smaller model, but both models then stay loaded, ~18 GB, which
+  thrashed and timed out on this 24 GB Mac. Only for ≥ 32 GB machines.)
 - **Server is stdlib Python.** No pip dependencies unless asked.
 - **Extension is plain Manifest V3 JavaScript.** No bundler, no TypeScript, no npm for now.
 - **Bias toward playing.** A wrong skip (skipping real content) is the worst failure. When unsure, don't skip.
@@ -90,11 +92,12 @@ sponsor-skipper/
 API:
 | Method | Path | Body / query | Returns |
 | --- | --- | --- | --- |
-| POST | `/analyze` | `{videoId, lang, title, lines}` | job `{status, segments}`; starts it if new |
-| GET | `/analyze?v=ID` | — | job `{status, segments}` or 404 `unknown` |
-| GET | `/health` | — | `{ok, model}` |
+| POST | `/analyze` | `{videoId, lang, title, creator, kind, description, position, lines, analysisLines?, analysisLang?}` | job; starts/resumes it if new |
+| GET | `/analyze?v=ID` | — | job `{status, segments, paused?, progress?, cached?}` or 404 `unknown` |
+| GET | `/health` | — | `{ok, model, ollama}` |
 
-Status values: `queued → classifying → classifying_rest → done` (or `error`).
+Status values: `queued → classifying → done` (or `error`); `paused: true` while the video isn't being polled.
+Every GET/POST for a video counts as a poll.
 
 - Validate video ID (`^[A-Za-z0-9_-]{11}$`), clean lines, sort by start.
 - Cache key: videoId + short SHA-1 of `start|text` lines. Cache file `cache/<videoId>.json` holds hash, lang,
@@ -110,8 +113,23 @@ Status values: `queued → classifying → classifying_rest → done` (or `error
   thread's result is discarded.
 - Access: Host must be localhost/127.0.0.1 (DNS rebinding), http(s) Origins are refused, and
   `SS_EXTENSION_ID=<id>` optionally restricts to one extension's origin.
-- Run in a background thread. One LLM call at a time (lock).
-- **Windows:** 240s with 30s overlap. Classify 0–240s first, then the rest.
+- **Scheduler:** one worker thread, one Ollama call at a time, always for the most recently polled job. A job
+  not polled for 10s is paused between calls (partial model outputs are on disk; it resumes when polled again).
+  At most 4 unfinished jobs in memory; beyond that the least-recently-polled one is evicted, never the newest.
+- **Windows:** 240s with 30s overlap. **Prefilter:** a window is sent to the model only if its text contains a
+  sponsor cue (sponsor, brought to you, thanks to, use code, promo code, discount, % off, link in the description,
+  .com/, check out, sign up, free trial, …) or a description hint. Skipped windows could never yield a skip (the
+  evidence gate needs a verbatim cue). Log: `prefilter: X of Y windows sent`.
+- **Order:** the window containing the playhead first, then later windows, then earlier ones; within each group,
+  windows matching description hints first. Segments are published after every window.
+- **Description hints:** brands (capitalized words on "(ad)"/sponsor lines), promo codes, domains and chapter titles
+  are extracted from the description, added to the cue list, used for ordering, and shown to the model in the prompt
+  header (so a misheard "Udo" can be matched to Odoo).
+- **Two tracks for non-English videos:** page.js also fetches the English auto-translation (`tlang=en` on the token
+  URL). Prefilter, detect, refine, evidence and topic filter run on the English `analysisLines`; the result is mapped
+  to the original track by time overlap and the word pass + snapping run on the original for exact cuts. No
+  translation available → analyze the original. English videos: single track.
+- Ollama `keep_alive: -1`; the model is warmed at server start.
 - **Prompt input:** `Transcript language: xx`, `Video title: …` (from `videoDetails.title`), then lines formatted
   `L{i} [m:ss] text` (global line indices).
 - **Ollama call:** `/api/chat`, `stream: false`, `format: <JSON schema>`, `temperature: 0`, `num_ctx: 8192`,
@@ -148,8 +166,8 @@ Status values: `queued → classifying → classifying_rest → done` (or `error
   - Action: sponsor+read with confidence ≥ `SKIP_THRESHOLD` (0.85) → `skip`; sponsor+integration → `keep`;
     low-confidence reads, selfpromo, interaction → `show`.
   - **Evidence gate:** a `skip` must carry an `evidence` field that quotes a sponsor cue verbatim from the
-    segment's lines (±1 line): "sponsored by"/"thanks to X for sponsoring", promo code, link/URL call-to-action,
-    scripted pitch with an offer. Line labels/timestamps, quotes and ellipses are stripped from the evidence
+    segment's lines (±1 line) **and** the quote must itself contain a cue (same cue list as the prefilter, plus
+    description hints). Line labels/timestamps, quotes and ellipses are stripped from the evidence
     first; a full match (≥3 words) or any verbatim run of ≥6 words passes. Otherwise → downgraded to `show`.
   - Word pass fallback is inward only: invalid pick → retry once → start = end of first ad line, end = start of
     last ad line; if < 3s remains, downgrade to `show`. Never fall back outward to a line end.
@@ -159,7 +177,9 @@ Status values: `queued → classifying → classifying_rest → done` (or `error
     outside the segment (it's the subject); drop `show` below `SHOW_THRESHOLD` (0.7). Logged once, at the end.
   - Each segment also carries `line_start`/`line_end` (pre-refinement times) for the log and tooltip.
 - Log every final segment to the terminal: action, refined time range, line-level range, category/style, brand,
-  confidence, reason. Also log each detect/refine/words call with its timing.
+  confidence, reason. Also log each detect/refine/words call with its timing, the prefilter summary, pause/resume/
+  evict events, and per job: wall time, working time, Ollama calls, time-to-first-skip. Each finished job appends
+  a row to `results.md` (verdict column left blank for a human).
 
 ### [8]–[9] Playback (content.js + content.css)
 - After POST, poll GET every 2s until `done`/`error`. Redraw markers on each update.

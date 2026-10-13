@@ -311,12 +311,14 @@
   // Path B: obtain a token-bearing timedtext URL for this video.
   // ---------------------------------------------------------------------------
   async function clickOnCaptureClickOff(videoId, label) {
+    const reqId = activeRequest;
     const btn = subtitlesButton();
     if (!btn) { dbg(`${label}: no CC button`); return null; }
     const t0 = performance.now();
     btn.click();
     dbg(`${label}: CC click on done`);
     const entry = await waitForCapture(videoId, CLICK_CAPTURE_WAIT_MS);
+    if (reqId !== activeRequest) dbg(`${label}: navigated away mid-capture (request ${reqId} superseded); restoring CC anyway`);
     // Turn it back off immediately, before the response arrives, so nothing renders.
     if (subtitlesOn()) { const b = subtitlesButton(); if (b) b.click(); dbg(`${label}: CC clicked back off`); }
     if (entry) dbg(`${label}: URL captured ${Math.round(entry.at - t0)}ms after click`);
@@ -432,9 +434,11 @@
 
     // Path A: direct fetch of the track with fmt=json3. Cheap; works if YouTube stops requiring the token.
     let path = 'A';
+    let sourceUrl = null; // the URL that actually produced caption data (used again for the translation)
     const aUrl = new URL(track.baseUrl, location.href); aUrl.searchParams.set('fmt', 'json3');
     dbg('path A: fetching track baseUrl');
     let data = await fetchJson3(aUrl.href);
+    if (data) sourceUrl = aUrl.href;
     if (stale()) return;
 
     // Path B: capture the player's token-bearing URL, fetch it ourselves retargeted at our track.
@@ -450,11 +454,15 @@
         }
         dbg(`path B: captured params: ${describeUrl(entry.url)}`);
         dbg('path B: fetching captured URL retargeted at picked track');
-        data = await fetchJson3(buildFetchUrl(entry.url, track));
+        const retargeted = buildFetchUrl(entry.url, track);
+        data = await fetchJson3(retargeted);
+        if (data) sourceUrl = retargeted;
         if (stale()) return;
         if (!data) {
           dbg('path B: retargeted fetch empty; fetching captured URL as-is');
-          data = await fetchJson3(buildFallbackUrl(entry.url));
+          const asis = buildFallbackUrl(entry.url);
+          data = await fetchJson3(asis);
+          if (data) sourceUrl = asis;
           if (stale()) return;
         }
       }
@@ -470,7 +478,29 @@
     const vd = pr.videoDetails || {};
     const title = typeof vd.title === 'string' ? vd.title : '';
     const creator = typeof vd.author === 'string' ? vd.author : '';
-    reply({ lang, kind, path, lines, title, creator });
+    const description = typeof vd.shortDescription === 'string' ? vd.shortDescription.slice(0, 5000) : '';
+
+    // Non-English video: also fetch the English auto-translation of the same track. The server analyzes
+    // the English text and cuts on the original track's word timing. English videos: single track.
+    let analysisLines = null;
+    if (!/^en\b/i.test(lang) && sourceUrl) {
+      const tr = await fetchJson3(withTranslation(sourceUrl, 'en'));
+      if (stale()) return;
+      if (tr) {
+        analysisLines = mergeCues(eventsToCues(tr.events));
+        dbg(`analysis track: en translation, ${analysisLines.length} lines`);
+      } else {
+        dbg('analysis track: en translation unavailable; analyzing the original language');
+      }
+    }
+    reply({ lang, kind, path, lines, title, creator, description, analysisLines, analysisLang: analysisLines ? 'en' : lang });
+  }
+
+  function withTranslation(url, tlang) {
+    const u = new URL(url);
+    u.searchParams.set('tlang', tlang);
+    u.searchParams.set('fmt', 'json3');
+    return u.href;
   }
 
   window.addEventListener('message', (ev) => {
