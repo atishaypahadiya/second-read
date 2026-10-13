@@ -92,6 +92,7 @@ const KEEP2 = { ...KEEP, start: 500, end: 520 };
 // ---------------------------------------------------------------------------- sandbox
 let fetched = null;
 let storedUrl = null;   // GET /stored: the instant revisit asks by video id before the captions are read
+let storedHeaders = null;
 const posts = { '/feedback': [], '/event': [] };
 const bgListeners = [];
 // background.js clears a few leftover storage keys and the toolbar badge when it starts
@@ -107,7 +108,7 @@ const bgSandbox = {
     fetchedRoutes.add(route);
     if (route === '/analyze' && init && init.method === 'POST') fetched = { url, init };
     if (posts[route] && init && init.method === 'POST') posts[route].push(JSON.parse(init.body));
-    if (route === '/stored') storedUrl = url;
+    if (route === '/stored') { storedUrl = url; storedHeaders = (init && init.headers) || {}; }
     return { ok: true, status: 200, json: async () => (route === '/analyze' ? { status: 'done', segments: [SEG, KEEP, KEEP2] }
       : route === '/stored' ? { status: 'done', segments: [SEG], cached: true, instant: true } : { ok: true }) };
   },
@@ -198,6 +199,7 @@ setTimeout(() => {
   check(order.indexOf('stored') >= 0 && order.indexOf('stored') < order.indexOf('analyze'), `message order: ${order.slice(0, 4)}`);
   check(!!storedUrl && new RegExp(`[?&]v=${VIDEO_ID}(&|$)`).test(storedUrl) && new RegExp(`[?&]build=${builds.background}(&|$)`).test(storedUrl),
         `GET /stored url: ${storedUrl}`);
+  check(storedHeaders && storedHeaders['X-SR-Client'] === 'extension', `GET /stored headers: ${JSON.stringify(storedHeaders)} (the server refuses it without X-SR-Client)`);
   check(!!fetched, 'background.js never called fetch for /analyze');
   let body = {};
   if (fetched) {
@@ -323,6 +325,41 @@ setTimeout(() => {
     check(bgSandbox.badge === '', 'the toolbar badge was not cleared');
     check([...fetchedRoutes].every((r) => ['/analyze', '/event', '/feedback', '/stored'].includes(r)), `unexpected server routes: ${[...fetchedRoutes]}`);
 
+    // ---- fail closed: a stored result that cannot be validated must not skip. Two more, independent content.js
+    // instances: the server serves SEG by id, and the caption read fails (so nothing can ever validate it), once
+    // after the stored result arrived and once before it.
+    const failClosed = (storedDelayMs) => {
+      const video = { currentTime: 0, duration: 1012.4, seeking: false, handlers: {},
+                      addEventListener(type, fn) { this.handlers[type] = fn; }, removeEventListener() {} };
+      const listeners = [];
+      const w = { addEventListener: (t, fn) => { if (t === 'message') listeners.push(fn); }, removeEventListener() {},
+                  postMessage: (d) => { if (d && d.type === 'getCaptions') setTimeout(() => listeners.slice().forEach((fn) => fn({ source: w, data: { source: 'sr-page', type: 'captions', videoId: VIDEO_ID, error: 'caption fetch failed' } })), 5); } };
+      const asked = [];
+      vm.runInNewContext(src.content, { ...contentSandbox, window: w,
+        document: { ...contentSandbox.document, getElementById: () => makeEl(),
+                    querySelector: (sel) => (String(sel).includes('video.html5-main-video') ? video : null) },
+        chrome: { ...contentSandbox.chrome, runtime: { ...contentSandbox.chrome.runtime, onMessage: { addListener() {} },
+          sendMessage: (msg, cb) => { asked.push(msg.type); setTimeout(() => cb(msg.type === 'stored'
+            ? { ok: true, status: 'done', segments: [SEG], cached: true, instant: true } : { ok: true }), msg.type === 'stored' ? storedDelayMs : 0); } } } },
+        { filename: 'content.js (fail closed)' });
+      return { video, asked };
+    };
+    const early = failClosed(0), late = failClosed(15);
+    setTimeout(() => {
+      for (const [name, c] of [['stored result first, then the caption read fails', early], ['caption read fails first, stored result arrives after', late]]) {
+        check(c.asked.includes('stored') && !c.asked.includes('analyze'), `fail closed (${name}): messages ${c.asked}`);
+        c.video.currentTime = SEG.start + 5;
+        if (c.video.handlers.timeupdate) c.video.handlers.timeupdate();
+        check(c.video.currentTime === SEG.start + 5, `fail closed (${name}): an unvalidated stored result still skipped (currentTime ${c.video.currentTime})`);
+      }
+      finish(body);
+    }, 60);
+    return;
+  }, 50);
+}, 50);
+
+function finish(body) {
+  {
     if (failures.length) {
       console.log(`wiring: FAIL (${failures.length})`);
       for (const f of failures) console.log(`  - ${f}`);
@@ -332,5 +369,5 @@ setTimeout(() => {
                 `skip, Wrong skip and Missed-ad reports carry the segment and the real playhead; ` +
                 `nothing else is sent to the server`);
     process.exit(0);
-  }, 50);
-}, 50);
+  }
+}

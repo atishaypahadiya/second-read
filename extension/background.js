@@ -4,7 +4,7 @@
 // send messages here and we relay them over fetch. host_permissions covers this.
 
 const SERVER = 'http://127.0.0.1:8765';
-const BUILD = 19; // keep equal to page.js, content.js and server.py CLIENT_BUILD
+const BUILD = 20; // keep equal to page.js, content.js and server.py CLIENT_BUILD
 
 async function call(path, init) {
   let res;
@@ -46,7 +46,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       p = call(`/analyze?v=${encodeURIComponent(msg.videoId)}`);
       break;
     case 'stored':   // instant revisit: a finished result by video id, before the captions are read
-      p = call(`/stored?v=${encodeURIComponent(msg.videoId)}&build=${BUILD}`);
+      // the header marks the request as scripted: the server refuses /stored without it (a web page's <img> or
+      // <script> load cannot carry one, so a page cannot probe which videos have been analyzed)
+      p = call(`/stored?v=${encodeURIComponent(msg.videoId)}&build=${BUILD}`, { headers: { 'X-SR-Client': 'extension' } });
       break;
     case 'codes':
       p = call(`/codes.json?q=${encodeURIComponent(msg.q || '')}`);

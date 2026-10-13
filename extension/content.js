@@ -6,7 +6,7 @@
 // (DESIGN.md); this file only builds the markup those classes expect.
 
 (() => {
-  const BUILD = 19; // keep equal to page.js, background.js and server.py CLIENT_BUILD
+  const BUILD = 20; // keep equal to page.js, background.js and server.py CLIENT_BUILD
   const TAG = '[SecondRead]';
   // Dev mode gates ordinary logs; errors always print.
   const log = (...args) => { if (settings.devMode) console.log(TAG, ...args); };
@@ -46,6 +46,7 @@
     }
     if (a === 'label') a = 'show';
     if (a === 'skip' && current && current.channelId && settings.allowlist[current.channelId]) a = 'show';
+    if (a === 'skip' && seg.unvalidated) a = 'show';   // a stored result whose validation failed never skips
     return a;
   }
 
@@ -92,9 +93,26 @@
     const res = await send({ type: 'stored', videoId });
     if (current !== state || !res || !res.ok || !Array.isArray(res.segments)) return;
     if (state.lastStatus) return;   // the validated answer got here first
+    if (state.noInstant) { log(`cache: stored result not used (${state.noInstant})`); return; }
     state.instant = res.segments;
+    state.instantTimer = setTimeout(() => withdrawInstant(state, `not validated within ${INSTANT_TRUST_MS / 1000} s`), INSTANT_TRUST_MS);
+    state.cleanups.push(() => clearTimeout(state.instantTimer));
     log(`cache: instant (${res.segments.length} segment(s)), before the captions were read`);
     handleJob(videoId, { status: 'done', segments: res.segments, cached: true, instant: true });
+  }
+  // Fail closed. The stored result was drawn before anything checked it against this video's captions. If that
+  // check cannot be made (captions unreadable, server gone, analysis failed) or does not even start in time,
+  // its segments stay as labels and nothing skips by them: a wrong skip is the worst failure.
+  const INSTANT_TRUST_MS = 30000;
+  function withdrawInstant(state, why) {
+    if (!state) return;
+    state.noInstant = why;   // also for a stored result that has not arrived yet: it must not be used when it does
+    if (!state.instant) return;
+    state.instant = null;
+    clearTimeout(state.instantTimer);
+    state.segments = state.segments.map((s) => ({ ...s, unvalidated: true }));
+    log(`cache: instant result withdrawn (${why}); nothing skips until the server validates a result`);
+    if (current === state) drawMarkers();
   }
   const segmentsSignature = (segs) => (segs || []).map((s) => `${s.action}|${s.category}|${Number(s.start).toFixed(1)}|${Number(s.end).toFixed(1)}`).sort().join(',');
 
@@ -109,12 +127,14 @@
       if (d.error) {
         log('captions:', String(d.error).slice(0, 80));
         current.captionsNote = d.error === 'no captions' ? 'no captions' : 'captions unavailable';
-        if (!current.instant) setBadge(current.captionsNote, 'nocaptions');   // a stored result is already on screen
+        withdrawInstant(current, 'the captions could not be read, so it cannot be validated');
+        setBadge(current.captionsNote, 'nocaptions');
         return;
       }
       // Any page script can post a message shaped like this one, so validate before trusting it.
       if (!validLines(d.lines) || typeof d.lang !== 'string' || typeof d.kind !== 'string' || typeof d.path !== 'string') {
         log('captions: ignored malformed reply');
+        withdrawInstant(current, 'the caption read was malformed');
         return;
       }
       const timed = d.lines.filter((l) => l.timed).length;
@@ -189,7 +209,7 @@
     if (!state.instant) setBadge('analyzing', 'busy');
     const res = await send({ type: 'analyze', payload: analyzePayload(state) });
     if (!alive()) return;
-    if (!res.ok) { logErr('server:', res.error); serverErrorBadge(res.error); return; }
+    if (!res.ok) { logErr('server:', res.error); withdrawInstant(state, `server: ${res.error}`); serverErrorBadge(res.error); return; }
     handleJob(videoId, res);
     if (res.status === 'done' || res.status === 'error') return;
 
@@ -199,7 +219,7 @@
     timer = setInterval(async () => {
       const r = await send({ type: 'poll', videoId });
       if (!alive()) { stop(); return; }
-      if (!r.ok) { logErr('server:', r.error); serverErrorBadge(r.error); stop(); return; }
+      if (!r.ok) { logErr('server:', r.error); withdrawInstant(state, `server: ${r.error}`); serverErrorBadge(r.error); stop(); return; }
       handleJob(videoId, r);
       if (r.status === 'done' || r.status === 'error') stop();
     }, POLL_MS);
@@ -211,11 +231,15 @@
       // The stored result is on screen and the server is now checking it against the captions. An unfinished
       // re-analysis must not wipe it (its first updates carry few or no segments): it stands until the
       // validated answer is complete, and is then confirmed or replaced.
-      if (job.status !== 'done' && job.status !== 'error') return;
-      if (job.status === 'error') { state.instant = null; log('cache: instant result kept (it could not be validated: analysis failed)'); return; }
-      const same = segmentsSignature(state.instant) === segmentsSignature(job.segments);
-      log(same ? 'cache: confirmed' : `cache: replaced (${state.instant.length} -> ${(job.segments || []).length} segment(s))`);
-      state.instant = null;
+      // (The server has the captions now and is re-analyzing: the wait for a validated answer is no longer open-ended.)
+      if (job.status !== 'done' && job.status !== 'error') { clearTimeout(state.instantTimer); return; }
+      if (job.status === 'error') withdrawInstant(state, 'analysis failed');
+      else {
+        const same = segmentsSignature(state.instant) === segmentsSignature(job.segments);
+        log(same ? 'cache: confirmed' : `cache: replaced (${state.instant.length} -> ${(job.segments || []).length} segment(s))`);
+        state.instant = null;
+        clearTimeout(state.instantTimer);
+      }
     }
     const prev = state.lastStatus;
     state.lastStatus = job.status;
