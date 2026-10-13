@@ -37,9 +37,13 @@ sponsor-skipper/
 │   ├── content.js       isolated world: video detection, server calls, markers, skipping, toast
 │   ├── content.css      markers, toast, status badge
 │   └── background.js    service worker: the only thing that talks to localhost
+├── scripts/
+│   ├── com.sponsor-skipper.server.plist   LaunchAgent template (install.sh fills in paths)
+│   ├── install.sh / uninstall.sh          launchctl bootstrap / bootout
 └── server/
     ├── server.py        localhost:8765, runs Qwen on the transcript, returns segments
-    └── cache/           <videoId>.json results (gitignored)
+    ├── testset.md       curated test videos, expectations, verdicts
+    └── cache/           <videoId>.json results, results.local.md (gitignored)
 ```
 
 ## The pipeline
@@ -267,6 +271,8 @@ ollama serve &                 # or the Ollama app
 ollama pull qwen3:14b
 python3 server/server.py       # http://localhost:8765
 # optional: SS_EXTENSION_ID=<your unpacked extension's ID from chrome://extensions> python3 server/server.py
+# as a login item (KeepAlive, logs to ~/Library/Logs/sponsor-skipper.log):
+scripts/install.sh             # scripts/uninstall.sh to remove; launchctl kickstart -k gui/$(id -u)/com.sponsor-skipper.server to restart
 ```
 Chrome → `chrome://extensions` → Developer mode → Load unpacked → `extension/`.
 After editing extension files: hit reload on the extension card, then refresh the YouTube tab.
