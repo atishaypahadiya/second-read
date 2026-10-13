@@ -66,6 +66,10 @@
       current.title = typeof d.title === 'string' ? d.title.slice(0, 300) : '';
       current.creator = typeof d.creator === 'string' ? d.creator.slice(0, 100) : '';
       current.kind = d.kind;
+      current.description = typeof d.description === 'string' ? d.description.slice(0, 5000) : '';
+      current.analysisLines = validLines(d.analysisLines) ? d.analysisLines : null;
+      current.analysisLang = typeof d.analysisLang === 'string' ? d.analysisLang.slice(0, 12) : d.lang;
+      if (current.analysisLines) log(`analysis track: ${current.analysisLang}, ${current.analysisLines.length} lines`);
       analyze(videoId, d.lang, d.lines, current.title);
     };
     window.addEventListener('message', onMessage);
@@ -91,7 +95,11 @@
     const state = current;
     const alive = () => current === state && state.videoId === videoId;
     setBadge('analyzing', 'busy');
-    const res = await send({ type: 'analyze', videoId, lang, lines, title, kind: state.kind, creator: state.creator });
+    const v = videoEl();
+    const position = v && isFinite(v.currentTime) ? v.currentTime : 0;
+    const res = await send({ type: 'analyze', videoId, lang, lines, title, kind: state.kind, creator: state.creator,
+                             description: state.description, position,
+                             analysisLines: state.analysisLines, analysisLang: state.analysisLang });
     if (!alive()) return;
     if (!res.ok) { log('server:', res.error); setBadge(res.error === 'server offline' ? 'server offline' : `server: ${res.error}`, 'error'); return; }
     handleJob(videoId, res);
@@ -125,7 +133,8 @@
     } else if (job.status === 'error') {
       setBadge(`analysis error${job.error ? `: ${job.error}` : ''}`, 'error');
     } else {
-      setBadge(`analyzing${skips ? ` · ${skips} to skip so far` : ''}`, 'busy');
+      const prog = job.progress ? ` ${job.progress}` : '';
+      setBadge(`${job.paused ? 'paused' : 'analyzing'}${prog}${skips ? ` · ${skips} to skip so far` : ''}`, 'busy');
     }
     drawMarkers();
   }

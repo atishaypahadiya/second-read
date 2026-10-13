@@ -13,7 +13,7 @@ API
   GET  /analyze?v=ID                                              -> job or 404 {"error":"unknown"}
   GET  /health                                                    -> {ok, model}
 
-Status: queued -> classifying -> classifying_rest -> done | error
+Status: queued -> classifying -> done | error  (+ paused:true while the video isn't being polled)
 """
 
 import hashlib
@@ -39,7 +39,13 @@ ALLOWED_HOSTS = {f"127.0.0.1:{PORT}", f"localhost:{PORT}", "127.0.0.1", "localho
 #   SS_EXTENSION_ID=abcdefghijklmnopabcdefghijklmnop python3 server/server.py
 EXTENSION_ID = os.environ.get("SS_EXTENSION_ID", "").strip()
 OLLAMA = "http://localhost:11434"
-MODEL = "qwen3:14b"
+MODEL = "qwen3:14b"                                   # refine + word pass (and detect, by default)
+# Optional smaller model for pass-1 detection, e.g. SS_DETECT_MODEL=qwen3:8b. Both models then stay loaded
+# (keep_alive -1): 14b + 8b = ~18 GB of GPU memory, which thrashed and timed out on a 24 GB Mac. Only use it
+# with >= 32 GB. Default: one model for everything.
+DETECT_MODEL_PREF = os.environ.get("SS_DETECT_MODEL", "").strip() or MODEL
+DETECT_MODEL = MODEL                                  # resolved at startup
+KEEP_ALIVE = -1                                       # keep the model loaded between calls
 # Staged cache versions. Each model call's raw output is cached per video and keyed by its inputs, so a
 # change only re-runs what it affects:
 #   DETECT_VERSION  pass 1 (SYSTEM_PROMPT rubric, OUTPUT_SCHEMA, window size/overlap)
@@ -47,15 +53,16 @@ MODEL = "qwen3:14b"
 #   POST_VERSION    everything after the model: evidence gate, thresholds, snapping, merge, filters
 # A POST-only change re-processes a cached video from stored model outputs with zero Ollama calls.
 # Rubric changes in SYSTEM_PROMPT affect both passes: bump DETECT and REFINE.
-DETECT_VERSION = 1
+DETECT_VERSION = 2
 REFINE_VERSION = 1
 POST_VERSION = 1
 NUM_CTX = 8192
 LLM_TIMEOUT_S = 600
 MAX_BODY_BYTES = 8 * 1024 * 1024
 MAX_LINES = 20000
-MAX_ACTIVE_JOBS = 4          # queued/running jobs; more -> 429 (the extension retries on next poll/nav)
-MAX_JOBS_IN_MEMORY = 200     # oldest finished jobs are evicted (results stay on disk)
+MAX_ACTIVE_JOBS = 4          # unfinished jobs kept in memory; beyond this the least-recently-polled is evicted
+MAX_JOBS_IN_MEMORY = 200     # finished jobs kept in memory (results stay on disk)
+PAUSE_AFTER_S = 10.0         # a job not polled for this long is paused between Ollama calls
 SKIP_THRESHOLD = 0.85
 SHOW_THRESHOLD = 0.7        # drop 'show' segments below this: low-confidence noise
 WINDOW_S, OVERLAP_S = 240.0, 30.0
@@ -139,6 +146,102 @@ def transcript_hash(lines):
 def fmt_time(s):
     s = int(s)
     return f"{s // 60}:{s % 60:02d}"
+
+
+# Sponsor cues. A window with none of these (nor any description hint) is never sent to the model:
+# the evidence gate requires a verbatim cue, so such a window could never produce a skip anyway.
+CUE_PATTERNS = [
+    r"sponsor", r"brought to you", r"thanks? to \w+", r"use (?:the |my |promo |discount )?code", r"promo ?code",
+    r"discount", r"\d+ ?(?:%|percent) off", r"link(?:'s| is)? in the description", r"link below", r"\.com/",
+    r"\.com\b", r"check (?:them |it )?out", r"sign ?up", r"free trial", r"partner(?:ed|ing)? with",
+    r"go to \w+\.", r"head (?:over )?to", r"today'?s video", r"this video is", r"first \d+ (?:people|months)",
+]
+CUE_RE = re.compile("|".join(CUE_PATTERNS), re.I)
+
+
+def window_cues(text, hint_terms):
+    """Matched cue strings in a window's text (built-in cues + description hints)."""
+    found = [m.group(0) for m in CUE_RE.finditer(text)]
+    low = text.lower()
+    found += [h for h in hint_terms if h.lower() in low]
+    return found
+
+
+CODE_RE = re.compile(r"\bcode[:\s]+([A-Z0-9]{3,20})\b")
+DOMAIN_RE = re.compile(r"\b((?:[a-z0-9-]+\.)+(?:com|net|org|io|co|deals|gg|ai|app|tv|me|ly|fm|shop|store|xyz|dev|to)(?:/[\w.-]+)?)\b", re.I)
+AD_LINE_RE = re.compile(r"\(ad\)|\bsponsor|\bpartner|#ad\b|\bpaid promotion", re.I)
+CHAPTER_RE = re.compile(r"^\s*(?:\d+:)?\d{1,2}:\d{2}\s*[-–—:]?\s*(.+)$")
+STOPWORDS = {"the", "this", "video", "sponsored", "sponsor", "by", "thanks", "to", "for", "and", "with", "check", "out",
+             "get", "use", "code", "off", "free", "trial", "link", "description", "below", "today", "ad", "our", "my",
+             "try", "learn", "click", "visit", "download", "start", "join", "sign", "head", "watch", "subscribe", "thank"}
+
+
+def extract_hints(description):
+    """Brands, promo codes, domains and chapter titles from the video description."""
+    hints = {"brands": [], "codes": [], "domains": [], "chapters": []}
+    if not description:
+        return hints
+    for line in description.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        m = CHAPTER_RE.match(line)
+        if m:
+            hints["chapters"].append(m.group(1).strip()[:60])
+        for c in CODE_RE.findall(line):
+            hints["codes"].append(c)
+        for d in DOMAIN_RE.findall(line):
+            if not d.lower().startswith(("youtube.", "youtu.be", "instagram.", "twitter.", "x.com", "tiktok.", "facebook.",
+                                         "patreon.", "discord.", "twitch.", "reddit.", "spotify.", "apple.", "bit.ly", "linktr.ee")):
+                hints["domains"].append(d)
+        if AD_LINE_RE.search(line):
+            caps = re.findall(r"\b[A-Z][A-Za-z0-9]{2,}\b", line)
+            first_tok = line.split()[0].strip(".,:;!?()[]\"'") if line.split() else ""
+            for w in caps:
+                if w.lower() in STOPWORDS or w in hints["codes"]:
+                    continue
+                if w == first_tok and len(line.split()) > 3:
+                    continue  # sentence-initial capital ("Learn to code with...") is usually not a brand
+                hints["brands"].append(w)
+    for k in hints:
+        seen = []
+        for x in hints[k]:
+            if x not in seen:
+                seen.append(x)
+        hints[k] = seen[:12]
+    return hints
+
+
+def hint_terms(hints):
+    terms = list(hints["brands"]) + list(hints["codes"])
+    for d in hints["domains"]:
+        terms.append(d)
+        host = d.split("/")[0]
+        label = host.split(".")[-2] if host.count(".") >= 1 else host
+        if len(label) >= 4 and label.lower() not in STOPWORDS:
+            terms.append(label)
+        if "/" in d:
+            path = d.split("/", 1)[1].split("/")[0]
+            if len(path) >= 4:
+                terms.append(path)
+    out = []
+    for t in terms:
+        if t and t not in out:
+            out.append(t)
+    return out
+
+
+def hints_header(hints):
+    parts = []
+    if hints["brands"]:
+        parts.append("brands: " + ", ".join(hints["brands"]))
+    if hints["codes"]:
+        parts.append("codes: " + ", ".join(hints["codes"]))
+    if hints["domains"]:
+        parts.append("links: " + ", ".join(hints["domains"]))
+    if hints["chapters"]:
+        parts.append("chapters: " + " | ".join(hints["chapters"][:20]))
+    return "Sponsor hints from the video description (brand names may be misheard in the transcript): " + "; ".join(parts) if parts else ""
 
 
 def windows(lines):
@@ -235,22 +338,25 @@ OUTPUT_SCHEMA = {
 }
 
 
-def format_window(lines, first, last, lang, title=""):
+def format_window(lines, first, last, lang, title="", header=""):
     out = [f"Transcript language: {lang}"]
     if title:
         out.append(f"Video title: {title}")
+    if header:
+        out.append(header)
     for i in range(first, last + 1):
         out.append(f"L{i} [{fmt_time(lines[i]['start'])}] {lines[i]['text']}")
     return "\n".join(out)
 
 
-def ollama_chat(user_content, schema=None):
+def ollama_chat(user_content, schema=None, model=None):
     payload = {
-        "model": MODEL,
+        "model": model or MODEL,
         "messages": [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": user_content}],
         "stream": False,
         "format": schema or OUTPUT_SCHEMA,
         "think": False,
+        "keep_alive": KEEP_ALIVE,
         "options": {"temperature": 0, "num_ctx": NUM_CTX},
     }
     req = urllib.request.Request(f"{OLLAMA}/api/chat", data=json.dumps(payload).encode("utf-8"),
@@ -261,12 +367,27 @@ def ollama_chat(user_content, schema=None):
     return json.loads(content), data
 
 
-def ollama_chat_retry(user_content, schema=None, label=""):
+def ollama_chat_retry(user_content, schema=None, label="", model=None):
     try:
-        return ollama_chat(user_content, schema)
+        return ollama_chat(user_content, schema, model)
     except json.JSONDecodeError:
         log(f"  {label}: model returned non-JSON, retrying once")
-        return ollama_chat(user_content, schema)
+        return ollama_chat(user_content, schema, model)
+
+
+def warm_models():
+    """Load the models into memory at startup so the first real call doesn't pay for it."""
+    for m in sorted({DETECT_MODEL, MODEL}):
+        t0 = time.time()
+        try:
+            req = urllib.request.Request(f"{OLLAMA}/api/generate", data=json.dumps(
+                {"model": m, "prompt": "hi", "stream": False, "keep_alive": KEEP_ALIVE,
+                 "options": {"num_predict": 1}}).encode(), headers={"Content-Type": "application/json"})
+            with urllib.request.urlopen(req, timeout=300):
+                pass
+            log(f"warmed {m} in {time.time() - t0:.1f}s (keep_alive={KEEP_ALIVE})")
+        except (OSError, ValueError) as e:
+            log(f"warm-up of {m} failed: {e}")
 
 
 def segments_of(result):
@@ -274,17 +395,18 @@ def segments_of(result):
     return [x for x in (segs or []) if isinstance(x, dict)]
 
 
-def classify_window(lines, first, last, lang, title, calls):
+def classify_window(lines, first, last, lang, title, calls, header=""):
     """Pass 1: raw model segments (global line indices) for lines[first..last]."""
     t0 = time.time()
     rng = f"{fmt_time(lines[first]['start'])}-{fmt_time(lines[last]['end'])}"
 
     def compute():
         with llm_lock:
-            result, meta = ollama_chat_retry(format_window(lines, first, last, lang, title), label=f"window L{first}-L{last}")
+            result, meta = ollama_chat_retry(format_window(lines, first, last, lang, title, header),
+                                             label=f"window L{first}-L{last}", model=DETECT_MODEL)
         return {"segs": segments_of(result), "tokens": f"{meta.get('prompt_eval_count', '?')}+{meta.get('eval_count', '?')}"}
 
-    out, reused = calls.get(f"detect|{first}|{last}|{lang}|{title}", DETECT_VERSION, compute)
+    out, reused = calls.get(f"detect|{first}|{last}|{lang}|{title}|{header}", DETECT_VERSION, compute, model=DETECT_MODEL)
     segs = [x for x in out.get("segs", []) if isinstance(x, dict)]
     how = "REUSED from cache" if reused else f"in {time.time() - t0:.1f}s, {out.get('tokens', '?')} tokens"
     log(f"  detect  L{first}-L{last} ({rng}): {len(segs)} raw segment(s) {how}")
@@ -301,12 +423,12 @@ reflection this is not a promotion at all, return no segments. Do not label anyt
 this candidate."""
 
 
-def refine_candidate_lines(lines, cand, lang, title, calls):
+def refine_candidate_lines(lines, cand, lang, title, calls, header=""):
     """Pass 2a: re-ask with ~REFINE_CONTEXT_S of context either side. Returns raw segs + window bounds."""
     lo, hi = cand["start"] - REFINE_CONTEXT_S, cand["end"] + REFINE_CONTEXT_S
     idx = [i for i, l in enumerate(lines) if lo <= l["start"] <= hi]
     first, last = min(idx[0], cand["start_line"]), max(idx[-1], cand["end_line"])
-    prompt = format_window(lines, first, last, lang, title) + REFINE_INSTRUCTIONS.format(
+    prompt = format_window(lines, first, last, lang, title, header) + REFINE_INSTRUCTIONS.format(
         category=cand["category"], style=cand["style"], brand=cand["brand"],
         a=cand["start_line"], b=cand["end_line"])
     t0 = time.time()
@@ -316,7 +438,7 @@ def refine_candidate_lines(lines, cand, lang, title, calls):
             result, meta = ollama_chat_retry(prompt, label=f"refine L{cand['start_line']}-L{cand['end_line']}")
         return {"segs": segments_of(result), "tokens": f"{meta.get('prompt_eval_count', '?')}+{meta.get('eval_count', '?')}"}
 
-    key = f"refine|{first}|{last}|{cand['start_line']}|{cand['end_line']}|{cand['category']}|{cand['style']}|{cand['brand']}"
+    key = f"refine|{first}|{last}|{cand['start_line']}|{cand['end_line']}|{cand['category']}|{cand['style']}|{cand['brand']}|{header}"
     out, reused = calls.get(key, REFINE_VERSION, compute)
     segs = [x for x in out.get("segs", []) if isinstance(x, dict)]
     how = "REUSED from cache" if reused else f"in {time.time() - t0:.1f}s, {out.get('tokens', '?')} tokens"
@@ -503,7 +625,7 @@ def snap_end(lines, s_line, e_line, picked_end_t):
     if best is not None:
         extra = f", +{best - q} word(s)" if best > q else ""
         notes.append(f"pause {best_gap:.2f}s after {words[best][2]!r}{extra}")
-        return words[best][1], "; ".join(notes)
+        return words[best][1], "; ".join(notes) + "; no inset needed"
     if notes:  # extended but no pause: end at the sentence's last word, keep the inset
         return max(words[q][0], words[q][1] - END_INSET_S), "; ".join(notes) + "; no pause, inset applied"
     return None, "no pause found; keeping pick"
@@ -570,7 +692,7 @@ def refine_words(lines, s_line, e_line, seg, calls):
     if ok_e:
         snapped, note = snap_end(lines, s_line, e_line, e_words[lw][1])
         if snapped is not None:
-            log(f"    snap end:   {end:.2f} -> {snapped:.2f} ({note}; no inset needed)")
+            log(f"    snap end:   {end:.2f} -> {snapped:.2f} ({note})")
             end = snapped
         else:
             log(f"    snap end:   kept {end:.2f} ({note})")
@@ -688,10 +810,14 @@ def require_evidence(seg, lines):
     match = evidence_found(seg, lines)
     log(f"  evidence: raw={seg.get('evidence', '')!r}")
     log(f"            normalized={norm!r}")
-    if match:
-        log(f"            {match}")
+    cues = window_cues(seg.get("evidence", ""), seg.get("hint_terms", []))
+    if match and cues:
+        log(f"            {match}; cue(s): {cues[:4]}")
         return seg
-    why = "no evidence given" if not seg.get("evidence") else "evidence not found verbatim in segment lines"
+    if match and not cues:
+        why = "evidence contains no sponsor cue"
+    else:
+        why = "no evidence given" if not seg.get("evidence") else "evidence not found verbatim in segment lines"
     log(f"  refine: downgraded skip -> show ({why})")
     seg["action"] = "show"
     seg["reason"] = f"[downgraded: {why}] " + seg["reason"]
@@ -745,28 +871,51 @@ def public_segment(seg):
     return {k: seg[k] for k in keys if k in seg}
 
 
-def refine_candidate(lines, cand, lang, title, calls):
-    """Pass 2 for one sponsor candidate -> list of refined segments (possibly empty)."""
-    raw, first, last = refine_candidate_lines(lines, cand, lang, title, calls)
+def map_to_original(seg, alines, lines):
+    """Analysis-line indices -> original-line indices by time overlap (identity when same track)."""
+    if alines is lines:
+        return seg["start_line"], seg["end_line"]
+    a_start, a_end = alines[seg["start_line"]]["start"], alines[seg["end_line"]]["end"]
+    # lines whose midpoint falls in the analysis range (auto-translations keep the cue timing, so this is
+    # usually exact); fall back to any overlap, then to the nearest line.
+    idx = [i for i, l in enumerate(lines) if a_start <= (l["start"] + l["end"]) / 2 < a_end]
+    if not idx:
+        idx = [i for i, l in enumerate(lines) if l["end"] > a_start and l["start"] < a_end]
+    if not idx:
+        idx = [min(range(len(lines)), key=lambda i: abs(lines[i]["start"] - a_start))]
+    return idx[0], idx[-1]
+
+
+def refine_candidate(alines, lines, cand, lang, title, calls, header="", terms=()):
+    """Pass 2 for one sponsor candidate -> list of refined segments (possibly empty).
+    Detection/refinement/evidence run on the analysis track (alines); the word pass and snapping run on
+    the original track (lines) so cuts are exact in the spoken language."""
+    raw, first, last = refine_candidate_lines(alines, cand, lang, title, calls, header)
     refined = []
     for r in raw:
-        seg = to_segment(r, lines, first, last)
+        seg = to_segment(r, alines, first, last)
         if not seg:
             log("  refine: dropped segment with out-of-window line indices")
             continue
         if not overlaps(seg, cand, REFINE_CONTEXT_S / 2):
             log(f"  refine: dropped unrelated segment at {fmt_time(seg['start'])}-{fmt_time(seg['end'])}")
             continue
+        seg["hint_terms"] = list(terms)
         seg["line_start"], seg["line_end"] = seg["start"], seg["end"]
-        require_evidence(seg, lines)
+        require_evidence(seg, alines)
+        o_s, o_e = map_to_original(seg, alines, lines)
+        if alines is not lines:
+            log(f"  map: analysis L{seg['start_line']}-L{seg['end_line']} -> original L{o_s}-L{o_e} "
+                f"({fmt_time(lines[o_s]['start'])}-{fmt_time(lines[o_e]['end'])})")
         if seg["action"] == "skip":
-            start, end, sure = refine_words(lines, seg["start_line"], seg["end_line"], seg, calls)
+            start, end, sure = refine_words(lines, o_s, o_e, seg, calls)
             if not sure and end - start < MIN_SKIP_S:
                 log(f"  refine: boundaries uncertain and only {end - start:.1f}s left after inward fallback -> show")
                 seg["action"] = "show"
                 seg["reason"] = "[downgraded: uncertain boundaries] " + seg["reason"]
             else:
                 seg["start"], seg["end"] = start, end
+        seg.pop("hint_terms", None)
         refined.append(seg)
     if not refined:
         log(f"  refine: candidate {fmt_time(cand['start'])}-{fmt_time(cand['end'])} {cand['brand']!r} withdrawn by model")
@@ -879,14 +1028,17 @@ def save_cache(video_id, data):
 
 
 def md_cell(text):
-    return str(text).replace("|", "\\|").replace("\n", " ").strip()
+    """Plain text only: no table pipes, line breaks, HTML or code spans (values come from the page)."""
+    t = re.sub(r"[<>`\r\n]", " ", str(text)).replace("|", "\\|")
+    return re.sub(r"\s+", " ", t).strip()[:400]
 
 
 def append_result(job, segments, job_time, calls, ttfs):
     """One row per finished job in results.md (verdict left blank for a human)."""
     segs = "; ".join(f"{s['action'].upper()} {fmt_time(s['start'])}-{fmt_time(s['end'])} {s['brand'] or '?'} ({s['confidence']:.2f})"
                      for s in segments) or "none"
-    notes = f"v{DETECT_VERSION}/{REFINE_VERSION}/{POST_VERSION} {MODEL}; {calls.reused} reused"
+    notes = (f"{job.get('tag', '')} v{DETECT_VERSION}/{REFINE_VERSION}/{POST_VERSION} detect={DETECT_MODEL} refine={MODEL}; "
+             f"windows {job.get('n_sent', '?')}/{job.get('n_windows', '?')}; {calls.reused} reused").strip()
     row = "| " + " | ".join(md_cell(x) for x in [
         job["video_id"], job.get("creator", ""), job["lang"], job.get("kind", ""), "", segs, "", notes,
         f"{job_time:.0f}s", calls.computed, f"{ttfs:.0f}s" if ttfs is not None else "-",
@@ -904,6 +1056,10 @@ def public_job(job):
         out["cached"] = True
     if job.get("error"):
         out["error"] = job["error"]
+    if job.get("paused"):
+        out["paused"] = True
+    if job.get("progress"):
+        out["progress"] = job["progress"]
     return out
 
 
@@ -925,113 +1081,201 @@ class CallCache:
         self.reused = 0
         self.computed = 0
 
-    def get(self, key, version, compute):
+    def get(self, key, version, compute, model=None):
+        model = model or MODEL
         hit = self.calls.get(key)
-        if hit and hit.get("v") == version and hit.get("model") == MODEL:
+        if hit and hit.get("v") == version and hit.get("model") == model:
             self.reused += 1
             return hit["out"], True
         out = compute()
-        self.calls[key] = {"v": version, "model": MODEL, "out": out}
+        self.calls[key] = {"v": version, "model": model, "out": out}
         self.computed += 1
         return out, False
 
 
-def run_job(video_id):
+def order_windows(wins, alines, position, terms):
+    """Playhead first: the window containing the playhead, then later windows, then earlier ones;
+    within each group, windows with description hints first."""
+    def key(w):
+        first, last = w
+        w_start, w_end = alines[first]["start"], alines[last]["end"]
+        contains = w_start <= position < w_end
+        after = w_end >= position
+        text = " ".join(alines[i]["text"] for i in range(first, last + 1)).lower()
+        hinted = any(t.lower() in text for t in terms)
+        return (0 if contains else (1 if after else 2), 0 if hinted else 1, w_start)
+    return sorted(wins, key=key)
+
+
+def plan_job(job):
+    """Build the ordered list of windows to run (prefiltered), done once per job."""
+    alines, position, terms = job["alines"], job.get("position", 0.0), job["terms"]
+    wins = windows(alines)
+    sent = []
+    for first, last in wins:
+        text = " ".join(alines[i]["text"] for i in range(first, last + 1))
+        if window_cues(text, terms):
+            sent.append((first, last))
+    job["pending"] = order_windows(sent, alines, position, terms)
+    job["n_windows"] = len(wins)
+    job["n_sent"] = len(sent)
+    log(f"[{job['video_id']}] prefilter: {len(sent)} of {len(wins)} windows sent"
+        f"{'; hints: ' + ', '.join(terms[:8]) if terms else ''}; playhead {fmt_time(position)}; "
+        f"order: {[fmt_time(alines[f]['start']) for f, _ in job['pending']]}")
+
+
+def run_window(job, first, last):
+    """One unit of work: detect one window, refine its sponsor candidates."""
+    alines, lines, lang, title, calls = job["alines"], job["lines"], job["alang"], job["title"], job["calls"]
+    header, terms, final = job["header"], job["terms"], job["final"]
+    cands = []
+    for r in classify_window(alines, first, last, lang, title, calls, header):
+        seg = to_segment(r, alines, first, last)
+        if seg:
+            cands.append(seg)
+        else:
+            log("  detect: dropped segment with out-of-window line indices")
+    for cand in merge_candidates(cands):
+        if any(overlaps(cand, f) for f in final):
+            continue  # already covered by another window
+        if cand["category"] != "sponsor":
+            final.append(cand)  # selfpromo/interaction are 'show'; boundaries don't matter
+            continue
+        final.extend(refine_candidate(alines, lines, cand, lang, title, calls, header, terms))
+
+
+def finalize(job, verbose):
+    return [public_segment(x) for x in post_filter(merge_segments(job["final"]), job["title"], job["alines"], verbose)]
+
+
+def publish(job):
     with jobs_lock:
-        job = jobs[video_id]
-        lines, lang, thash, title = job["lines"], job["lang"], job["hash"], job.get("title", "")
-    t_job = time.time()
-    try:
-        prior = load_cache(video_id)
-        calls = CallCache(prior.get("calls") if prior and prior.get("hash") == thash and prior.get("model") == MODEL else None)
-        if calls.calls:
-            log(f"[{video_id}] {len(calls.calls)} cached model call(s) available (versions {prior.get('versions')}; now {versions()})")
-        wins = windows(lines)
-        final = []
-
-        def finalize(verbose):
-            return [public_segment(x) for x in post_filter(merge_segments(final), title, lines, verbose)]
-
-        ttfs = [None]  # time to first published skip
-
-        def publish():
-            with jobs_lock:
-                if jobs.get(video_id) is job:
-                    job["segments"] = finalize(verbose=False)  # the final call logs the filter decisions once
-                    if ttfs[0] is None and any(x["action"] == "skip" for x in job["segments"]):
-                        ttfs[0] = time.time() - t_job
-                        log(f"[{video_id}] first skip published after {ttfs[0]:.1f}s")
-
-        def phase(win_slice, status):
-            with jobs_lock:
-                job["status"] = status
-            cands = []
-            for first, last in win_slice:
-                raw = classify_window(lines, first, last, lang, title, calls)
-                for r in raw:
-                    seg = to_segment(r, lines, first, last)
-                    if seg:
-                        cands.append(seg)
-                    else:
-                        log("  detect: dropped segment with out-of-window line indices")
-            for cand in merge_candidates(cands):
-                if any(overlaps(cand, f) for f in final):
-                    continue  # already covered by an earlier phase
-                if cand["category"] != "sponsor":
-                    final.append(cand)  # selfpromo/interaction are 'show'; boundaries don't matter
-                    continue
-                final.extend(refine_candidate(lines, cand, lang, title, calls))
-            publish()
-
-        phase(wins[:1], "classifying")
-        if len(wins) > 1:
-            phase(wins[1:], "classifying_rest")
-
-        segments = finalize(verbose=True)
-        with jobs_lock:
-            superseded = jobs.get(video_id) is not job
-        if superseded:
-            log(f"[{video_id}] job superseded by a newer transcript; discarding result")
+        if jobs.get(job["video_id"]) is not job:
             return
-        log_segments(video_id, segments)
-        save_cache(video_id, {"videoId": video_id, "versions": versions(), "hash": thash, "lang": lang,
-                              "title": title, "model": MODEL, "segments": segments,
-                              "calls": calls.calls, "transcript": lines})
-        with jobs_lock:
-            job["segments"] = segments
-            job["status"] = "done"
-        job_time = time.time() - t_job
-        if ttfs[0] is None and any(x["action"] == "skip" for x in segments):
-            ttfs[0] = job_time
-        log(f"[{video_id}] done: {len(segments)} segment(s), {len(wins)} window(s), "
-            f"model calls: {calls.reused} reused / {calls.computed} computed, {job_time:.1f}s, "
-            f"first skip at {'%.1fs' % ttfs[0] if ttfs[0] is not None else '-'}, cached")
-        append_result(job, segments, job_time, calls, ttfs[0])
-    except urllib.error.URLError as e:
+        job["segments"] = finalize(job, verbose=False)
+        job["progress"] = f"{job['n_sent'] - len(job['pending'])}/{job['n_sent']}"
+        if job["ttfs"] is None and any(x["action"] == "skip" for x in job["segments"]):
+            job["ttfs"] = time.time() - job["t_start"]
+            log(f"[{job['video_id']}] first skip published after {job['ttfs']:.1f}s")
+
+
+def save_partial(job):
+    """Persist model outputs so a paused/evicted job resumes without repeating Ollama calls."""
+    save_cache(job["video_id"], {"videoId": job["video_id"], "versions": None, "hash": job["hash"], "lang": job["lang"],
+                                 "title": job["title"], "model": MODEL, "segments": job["segments"],
+                                 "calls": job["calls"].calls, "transcript": job["lines"], "partial": True})
+
+
+def finish_job(job):
+    video_id = job["video_id"]
+    segments = finalize(job, verbose=True)
+    with jobs_lock:
+        if jobs.get(video_id) is not job:
+            log(f"[{video_id}] job superseded; discarding result")
+            return
+    log_segments(video_id, segments)
+    save_cache(video_id, {"videoId": video_id, "versions": versions(), "hash": job["hash"], "lang": job["lang"],
+                          "title": job["title"], "model": MODEL, "segments": segments,
+                          "calls": job["calls"].calls, "transcript": job["lines"]})
+    job_time = time.time() - job["t_start"]
+    if job["ttfs"] is None and any(x["action"] == "skip" for x in segments):
+        job["ttfs"] = job_time
+    with jobs_lock:
+        job["segments"] = segments
+        job["status"] = "done"
+        job["paused"] = False
+    calls = job["calls"]
+    log(f"[{video_id}] done: {len(segments)} segment(s), {job['n_sent']}/{job['n_windows']} window(s) sent, "
+        f"model calls: {calls.reused} reused / {calls.computed} computed, {job_time:.1f}s wall "
+        f"({job['work_s']:.1f}s working), first skip at {'%.1fs' % job['ttfs'] if job['ttfs'] is not None else '-'}, cached")
+    append_result(job, segments, job_time, calls, job["ttfs"])
+
+
+def fail_job(job, e):
+    video_id = job["video_id"]
+    if isinstance(e, urllib.error.URLError):
         log(f"[{video_id}] error: cannot reach Ollama at {OLLAMA}: {e.reason}")
-        with jobs_lock:
-            job["status"] = "error"
-            job["error"] = "ollama offline"
-    except Exception as e:  # noqa: BLE001
+        err = "ollama offline"
+    else:
         log(f"[{video_id}] error: {e!r}")  # full detail stays in the terminal only
-        with jobs_lock:
-            job["status"] = "error"
-            job["error"] = "model error" if isinstance(e, (json.JSONDecodeError, KeyError, TypeError, ValueError)) else "internal error"
+        err = "model error" if isinstance(e, (json.JSONDecodeError, KeyError, TypeError, ValueError)) else "internal error"
+    with jobs_lock:
+        job["status"] = "error"
+        job["error"] = err
+        job["paused"] = False
 
 
-def start_or_get_job(video_id, lang, lines, title="", meta=None):
+work_available = threading.Condition(jobs_lock)
+
+
+def pick_job():
+    """Most recently polled unfinished job that is still being watched. Marks others paused."""
+    now = time.time()
+    best = None
+    for job in jobs.values():
+        if job["status"] in ("done", "error"):
+            continue
+        watched = now - job["last_poll"] <= PAUSE_AFTER_S
+        if not watched:
+            if not job.get("paused"):
+                job["paused"] = True
+                left = f"{len(job['pending'])} window(s) left" if job["pending"] is not None else "not started"
+                log(f"[{job['video_id']}] paused (not polled for {PAUSE_AFTER_S:.0f}s); {left}, partial results cached")
+            continue
+        if best is None or job["last_poll"] > best["last_poll"]:
+            best = job
+    return best
+
+
+def worker():
+    """Single worker: one Ollama call at a time, always for the video being watched right now."""
+    while True:
+        with work_available:
+            job = pick_job()
+            if job is None:
+                work_available.wait(timeout=1.0)
+                continue
+            if job.get("paused"):
+                job["paused"] = False
+                log(f"[{job['video_id']}] resumed")
+            job["status"] = "classifying"
+            if job["pending"] is None:
+                plan_job(job)
+            unit = job["pending"].pop(0) if job["pending"] else None
+        try:
+            if unit is None:
+                finish_job(job)
+                continue
+            t0 = time.time()
+            run_window(job, *unit)
+            job["work_s"] += time.time() - t0
+            publish(job)
+            save_partial(job)
+        except Exception as e:  # noqa: BLE001
+            fail_job(job, e)
+
+
+def touch(job):
+    job["last_poll"] = time.time()
+
+
+def start_or_get_job(video_id, lang, lines, title="", meta=None, alines=None, alang=None, position=0.0, description=""):
     meta = meta or {}
     thash = transcript_hash(lines)
-    with jobs_lock:
+    with work_available:
         job = jobs.get(video_id)
         if job and job["hash"] == thash and job["status"] != "error":
+            touch(job)
             if job["status"] == "done":
                 job["cached"] = True  # reused, not computed for this request
+            else:
+                job["position"] = position
+            work_available.notify()
             return job
         cached = load_cache(video_id)
         if cache_valid(cached, thash):
-            job = {"status": "done", "segments": cached.get("segments", []),
-                   "hash": thash, "lang": lang, "lines": lines, "cached": True}
+            job = {"status": "done", "segments": cached.get("segments", []), "hash": thash, "lang": lang,
+                   "lines": lines, "cached": True, "video_id": video_id, "last_poll": time.time()}
             jobs[video_id] = job
             log(f"[{video_id}] cache hit ({len(job['segments'])} segment(s))")
             return job
@@ -1042,18 +1286,37 @@ def start_or_get_job(video_id, lang, lines, title="", meta=None):
             why = (" (cache versions %s/%s; now %s/%s: re-processing, reusing model calls where valid)"
                    % (cached.get("versions"), cached.get("model"), versions(), MODEL)
                    if cached.get("hash") == thash else " (cached transcript hash differs)")
-        active = sum(1 for j in jobs.values() if j["status"] not in ("done", "error"))
-        if active >= MAX_ACTIVE_JOBS and not (job and job["status"] not in ("done", "error")):
-            log(f"[{video_id}] rejected: {active} jobs already active")
-            return None
-        if len(jobs) >= MAX_JOBS_IN_MEMORY:
-            for vid in [v for v, j in jobs.items() if j["status"] in ("done", "error")][: len(jobs) - MAX_JOBS_IN_MEMORY + 1]:
-                del jobs[vid]
+        # Admission: never refuse the video being watched; evict the least-recently-polled unfinished job.
+        active = [j for v, j in jobs.items() if j["status"] not in ("done", "error") and v != video_id]
+        while len(active) >= MAX_ACTIVE_JOBS:
+            victim = min(active, key=lambda j: j["last_poll"])
+            active.remove(victim)
+            log(f"[{victim['video_id']}] evicted (least recently polled, {time.time() - victim['last_poll']:.0f}s ago); "
+                f"partial results stay on disk")
+            del jobs[victim["video_id"]]
+        finished = [v for v, j in jobs.items() if j["status"] in ("done", "error")]
+        if len(finished) >= MAX_JOBS_IN_MEMORY:
+            for v in finished[: len(finished) - MAX_JOBS_IN_MEMORY + 1]:
+                del jobs[v]
+        prior_calls = cached.get("calls") if cached and cached.get("hash") == thash and cached.get("model") == MODEL else None
+        hints = extract_hints(description)
+        terms = hint_terms(hints)
+        same = alines is None
         job = {"status": "queued", "segments": [], "hash": thash, "lang": lang, "lines": lines, "title": title,
-               "video_id": video_id, "kind": meta.get("kind", ""), "creator": meta.get("creator", "")}
+               "alines": lines if same else alines, "alang": lang if same else (alang or "en"),
+               "video_id": video_id, "kind": meta.get("kind", ""), "creator": meta.get("creator", ""),
+               "tag": meta.get("tag", ""), "position": position, "hints": hints, "terms": terms,
+               "header": hints_header(hints), "calls": CallCache(prior_calls), "final": [], "pending": None,
+               "n_windows": 0, "n_sent": 0, "ttfs": None, "t_start": time.time(), "work_s": 0.0,
+               "last_poll": time.time(), "paused": False}
         jobs[video_id] = job
-    log(f"[{video_id}] new job: {len(lines)} lines, lang={lang}, kind={job['kind']}, hash={thash}, title={title!r}{why}")
-    threading.Thread(target=run_job, args=(video_id,), daemon=True).start()
+        work_available.notify()
+    log(f"[{video_id}] new job: {len(lines)} lines{'' if same else f' + {len(alines)} analysis lines ({alang})'}, "
+        f"lang={lang}, kind={job['kind']}, hash={thash}, title={title!r}{why}")
+    if prior_calls:
+        log(f"[{video_id}] {len(prior_calls)} cached model call(s) available")
+    if any(hints.values()):
+        log(f"[{video_id}] hints: brands={hints['brands']} codes={hints['codes']} domains={hints['domains']} chapters={len(hints['chapters'])}")
     return job
 
 
@@ -1105,6 +1368,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json(400, {"error": "bad video id"})
             with jobs_lock:
                 job = jobs.get(vid)
+                if job:
+                    touch(job)
             if not job:
                 cached = load_cache(vid)
                 if cached and cached.get("versions") == versions() and cached.get("model") == MODEL:
@@ -1136,19 +1401,48 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(413, {"error": "too many lines"})
         lang = str(data.get("lang") or "und")[:12]
         title = re.sub(r"\s+", " ", str(data.get("title") or "")).strip()[:300]
-        meta = {"kind": str(data.get("kind") or "")[:10], "creator": str(data.get("creator") or "")[:100]}
-        job = start_or_get_job(vid, lang, lines, title, meta)
-        if job is None:
-            return self.send_json(429, {"error": "busy"})
+        meta = {"kind": str(data.get("kind") or "")[:10], "creator": str(data.get("creator") or "")[:100],
+                "tag": str(data.get("tag") or "")[:40]}  # free-text note for results.md (e.g. BASELINE)
+        description = str(data.get("description") or "")[:5000]
+        try:
+            position = max(0.0, float(data.get("position") or 0.0))
+        except (TypeError, ValueError):
+            position = 0.0
+        alines = clean_lines(data.get("analysisLines")) if data.get("analysisLines") else None
+        if alines is not None and (len(alines) == 0 or len(alines) > MAX_LINES):
+            alines = None
+        alang = str(data.get("analysisLang") or "en")[:12]
+        job = start_or_get_job(vid, lang, lines, title, meta, alines, alang, position, description)
         with jobs_lock:
             return self.send_json(200, public_job(job))
 
 
+def model_present(name):
+    try:
+        with urllib.request.urlopen(f"{OLLAMA}/api/tags", timeout=2) as resp:
+            tags = json.loads(resp.read().decode("utf-8"))
+        return any(m.get("name") == name for m in tags.get("models", []))
+    except (OSError, ValueError):
+        return False
+
+
 def main():
+    global DETECT_MODEL
     os.makedirs(CACHE_DIR, exist_ok=True)
     srv = ThreadingHTTPServer((HOST, PORT), Handler)
-    log(f"Sponsor Skipper server on http://{HOST}:{PORT}  model={MODEL}  cache={CACHE_DIR}")
-    log(f"classifier: {MODEL} via Ollama ({'reachable, model present' if ollama_available() else 'NOT available'})")
+    DETECT_MODEL = DETECT_MODEL_PREF if model_present(DETECT_MODEL_PREF) else MODEL
+    if DETECT_MODEL != MODEL:
+        try:
+            gb = os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES") / 1024 ** 3
+        except (ValueError, OSError, AttributeError):
+            gb = 0
+        log(f"WARNING: two models ({DETECT_MODEL} + {MODEL}) will stay loaded; needs >= 32 GB"
+            f"{f', this machine has {gb:.0f} GB' if gb else ''}")
+    log(f"Sponsor Skipper server on http://{HOST}:{PORT}  cache={CACHE_DIR}")
+    log(f"models: detect={DETECT_MODEL} refine/words={MODEL} via Ollama "
+        f"({'reachable' if ollama_available() else 'NOT available'}); versions {versions()}")
+    threading.Thread(target=warm_models, daemon=True).start()
+    threading.Thread(target=worker, daemon=True).start()
     try:
         srv.serve_forever()
     except KeyboardInterrupt:
