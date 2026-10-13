@@ -55,3 +55,5 @@ body.disabled .card, body.disabled .status, body.disabled .video { opacity: .45;
 .list li span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .list .remove { all: unset; cursor: pointer; color: var(--muted); font-size: 12px; padding: 0 4px; }
 .list .remove:hover { color: var(--accent); }
+.link { color: var(--muted); text-decoration: none; font-size: 12px; margin-right: 6px; }
+.link:hover { color: var(--fg); }

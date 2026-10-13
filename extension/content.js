@@ -134,6 +134,7 @@
     const v = videoEl();
     const position = v && isFinite(v.currentTime) ? v.currentTime : 0;
     const res = await send({ type: 'analyze', videoId, lang, lines, title, kind: state.kind, creator: state.creator,
+                             channelId: state.channelId, duration: v && isFinite(v.duration) ? v.duration : null,
                              description: state.description, position,
                              analysisLines: state.analysisLines, analysisLang: state.analysisLang });
     if (!alive()) return;
@@ -250,6 +251,16 @@
     state.markers = box;
   }
 
+  // --- stats events (skip / undo / seek_into / allowlisted) -> background -> POST /event. Fire and forget.
+  function sendEvent(kind, seg, extra) {
+    const state = current;
+    if (!state) return;
+    send({ type: 'event', payload: { kind, videoId: state.videoId, channelId: state.channelId || '',
+      channelName: state.creator || '', title: state.title || '',
+      segment: seg ? { start: seg.start, end: seg.end, brand: seg.brand, category: seg.category, style: seg.style } : null,
+      ...(extra || {}) } });
+  }
+
   // --- feedback: wrong skip (toast) and missed ad (popup) -> background -> POST /feedback
   function sendFeedback(fb) {
     const state = current;
@@ -323,7 +334,14 @@
       if (!video || adShowing() || video.seeking) return;
       const t = video.currentTime;
       for (const s of state.segments) {
-        if (effectiveAction(s) !== 'skip') continue;
+        if (effectiveAction(s) !== 'skip') {
+          if (s.action === 'skip' && state.channelId && settings.allowlist[state.channelId] &&
+              t >= s.start && t < s.end && !state.handled.has('allow:' + segKey(s))) {
+            state.handled.add('allow:' + segKey(s));
+            sendEvent('allowlisted', s, { playhead: t });
+          }
+          continue;
+        }
         const key = segKey(s);
         if (state.handled.has(key)) continue;
         if (t >= s.start && t < s.end - SKIP_GUARD_S) {
@@ -334,6 +352,7 @@
           video.currentTime = s.end;
           log(`skipped ${s.brand || 'sponsor'} ${s.category === 'sponsor' ? 'read' : s.category} ${fmtTime(s.start)}-${fmtTime(s.end)} (from ${fmtTime(from)})`);
           recordSkip(saved);
+          sendEvent('skip', s, { playhead: from, saved });
           const what = s.category === 'sponsor' ? `${s.brand ? `${s.brand} ` : ''}read` : (s.category === 'selfpromo' ? 'self-promo' : 'like & subscribe');
           const undo = () => {
             const v = videoEl();
@@ -341,6 +360,7 @@
             ourSeek = true;
             v.currentTime = from;
             recordSkip(-saved);
+            sendEvent('undo', s, { playhead: from, saved });
             log(`undo: back to ${fmtTime(from)}; segment stays handled`);
           };
           showToast(`Skipped ${what} (${fmtTime(saved)})`, undo, () => {
@@ -359,6 +379,7 @@
       for (const s of state.segments) {
         if (effectiveAction(s) === 'skip' && t >= s.start && t < s.end && !state.handled.has(segKey(s))) {
           state.handled.add(segKey(s));
+          sendEvent('seek_into', s, { playhead: t });
           log(`manual seek into ${fmtTime(s.start)}-${fmtTime(s.end)}; letting it play`);
         }
       }
