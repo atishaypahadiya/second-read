@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Second Read design gallery</title>
+<link rel="stylesheet" href="../extension/ui/fonts.css">
 <link rel="stylesheet" href="../extension/ui/tokens.css">
 <link rel="stylesheet" href="../extension/ui/components.css">
 <style>
@@ -458,15 +459,15 @@ Start learning with Coddy Tech now. Use code fern20 for 20% off.</div>
   <!-- ============================== CONTRAST ============================== -->
   <section class="g-sec">
     <h2>contrast</h2>
-    <p>WCAG ratios for text on every surface. White at o1 passes across the whole deep gradient. White at o2 passes in the upper half of a deep card and drops to 3.4 at the bottom, so o2 captions sit high on the card and anything low is o1.</p>
+    <p>WCAG ratios for text on every surface. White at o1 and at o2 pass across the whole deep gradient: the bottom stop is #5A5A5A, the lightest grey where o2 still reads 4.5:1 (it was #717171, where o2 dropped to 3.4). 0.6 and o3 are not used for text on a deep card.</p>
     <div class="ss-sheet ss-theme-light g-contrast" style="padding:16px 8px;border-radius:32px">
       <table class="ss-table">
         <thead><tr><th>surface</th><th>text</th><th class="ss-num">o1</th><th class="ss-num">o2</th><th class="ss-num">0.6</th><th class="ss-num">o3</th><th>verdict</th></tr></thead>
         <tbody>
           <tr><td>sheet #F0F0F0</td><td>ink</td><td class="ss-num">18.4</td><td class="ss-num">8.7</td><td class="ss-num">5.5</td><td class="ss-num">4.6</td><td class="ok">passes through o3</td></tr>
           <tr><td>deep card #555555 (top)</td><td>white</td><td class="ss-num">7.5</td><td class="ss-num">4.8</td><td class="ss-num">3.9</td><td class="ss-num">3.5</td><td class="ok">o1, o2 pass</td></tr>
-          <tr><td>deep card #636363 (middle)</td><td>white</td><td class="ss-num">6.0</td><td class="ss-num">4.0</td><td class="ss-num">3.3</td><td class="ss-num">3.1</td><td class="no">o2 below 4.5 from here down</td></tr>
-          <tr><td>deep card #717171 (bottom)</td><td>white</td><td class="ss-num">4.9</td><td class="ss-num">3.4</td><td class="ss-num">2.9</td><td class="ss-num">2.7</td><td class="ok">o1 passes; o2 is large text or chips only</td></tr>
+          <tr><td>deep card #585858 (middle)</td><td>white</td><td class="ss-num">7.1</td><td class="ss-num">4.6</td><td class="ss-num">3.8</td><td class="ss-num">3.4</td><td class="ok">o1, o2 pass</td></tr>
+          <tr><td>deep card #5A5A5A (bottom)</td><td>white</td><td class="ss-num">6.9</td><td class="ss-num">4.5</td><td class="ss-num">3.7</td><td class="ss-num">3.4</td><td class="ok">o1, o2 pass across the whole card</td></tr>
           <tr><td>light card #8E8E8E → #B4B4B4</td><td>ink</td><td class="ss-num">6.4 – 10.1</td><td class="ss-num">4.5 – 6.2</td><td class="ss-num">3.5 – 4.4</td><td class="ss-num">3.2 – 3.8</td><td class="ok">o1, o2 pass</td></tr>
           <tr><td>dark sheet #111 / cards #2A → #3A</td><td>white</td><td class="ss-num">11.4 – 18.9</td><td class="ss-num">6.8 – 9.9</td><td class="ss-num">6.3</td><td class="ss-num">4.7 – 6.2</td><td class="ok">passes through o3</td></tr>
           <tr><td>glass / tooltip over #282828</td><td>white</td><td class="ss-num">14.7</td><td class="ss-num">8.4</td><td class="ss-num">6.3</td><td class="ss-num">5.5</td><td class="ok">passes (darker video = better)</td></tr>

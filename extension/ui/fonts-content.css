@@ -1,0 +1,33 @@
+/* Second Read — the same faces for the content script. CSS injected into a page resolves relative URLs against
+   the page (youtube.com), so these are absolute; Chrome substitutes __MSG_@@extension_id__. The files must be
+   listed under web_accessible_resources. If a face fails to load, the system stack in --ss-font-ui / --ss-font-mono
+   takes over. */
+@font-face {
+  font-family: "Geist";
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url("chrome-extension://__MSG_@@extension_id__/ui/fonts/Geist-Regular.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Geist";
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  src: url("chrome-extension://__MSG_@@extension_id__/ui/fonts/Geist-Medium.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Geist Mono";
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+  src: url("chrome-extension://__MSG_@@extension_id__/ui/fonts/GeistMono-Light.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Geist Mono";
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url("chrome-extension://__MSG_@@extension_id__/ui/fonts/GeistMono-Regular.woff2") format("woff2");
+}
+
