@@ -2,6 +2,7 @@
 // Stage 1: detect the current video and react to YouTube's in-app navigation.
 // Stage 2: ask page.js (MAIN world) for the caption lines and log what came back.
 // Stage 3: send the lines to the local server via background.js and poll for segments.
+// Stage 6: progress-bar markers, live skipping with Undo toast, status badge.
 
 (() => {
   const TAG = '[SponsorSkipper]';
@@ -32,8 +33,10 @@
   }
 
   function setup(videoId) {
-    current = { videoId, cleanups: [] };
+    current = { videoId, cleanups: [], segments: [], handled: new Set() };
     log('video', videoId);
+    setBadge('reading captions', 'busy');
+    attachPlayback();
     requestCaptions(videoId);
   }
 
@@ -45,7 +48,11 @@
       const d = ev.data;
       if (!d || d.source !== 'ss-page' || d.type !== 'captions' || d.videoId !== videoId) return;
       window.removeEventListener('message', onMessage);
-      if (d.error) { log('captions:', String(d.error).slice(0, 80)); return; }
+      if (d.error) {
+        log('captions:', String(d.error).slice(0, 80));
+        setBadge(d.error === 'no captions' ? 'no captions' : 'captions unavailable', 'off');
+        return;
+      }
       // Any page script can post a message shaped like this one, so validate before trusting it.
       if (!validLines(d.lines) || typeof d.lang !== 'string' || typeof d.kind !== 'string' || typeof d.path !== 'string') {
         log('captions: ignored malformed reply');
@@ -80,9 +87,10 @@
   async function analyze(videoId, lang, lines) {
     const state = current;
     const alive = () => current === state && state.videoId === videoId;
+    setBadge('analyzing', 'busy');
     const res = await send({ type: 'analyze', videoId, lang, lines });
     if (!alive()) return;
-    if (!res.ok) { log('server:', res.error); return; }
+    if (!res.ok) { log('server:', res.error); setBadge(res.error === 'server offline' ? 'server offline' : `server: ${res.error}`, 'error'); return; }
     handleJob(videoId, res);
     if (res.status === 'done' || res.status === 'error') return;
 
@@ -92,7 +100,7 @@
     timer = setInterval(async () => {
       const r = await send({ type: 'poll', videoId });
       if (!alive()) { stop(); return; }
-      if (!r.ok) { log('server:', r.error); stop(); return; }
+      if (!r.ok) { log('server:', r.error); setBadge(r.error === 'server offline' ? 'server offline' : `server: ${r.error}`, 'error'); stop(); return; }
       handleJob(videoId, r);
       if (r.status === 'done' || r.status === 'error') stop();
     }, POLL_MS);
@@ -103,12 +111,197 @@
     const prev = state.lastStatus;
     state.lastStatus = job.status;
     state.segments = job.segments || [];
-    if (job.status !== prev) log(`analysis ${job.status} (${state.segments.length} segment(s))`);
+    if (job.status !== prev) log(`analysis ${job.status} (${state.segments.length} segment(s))${job.cached ? ' [cached]' : ''}`);
+    const skips = state.segments.filter((s) => s.action === 'skip').length;
     if (job.status === 'done') {
       for (const s of state.segments) {
         log(`  ${s.action.toUpperCase()} [${fmtTime(s.start)}-${fmtTime(s.end)}] ${s.category}/${s.style} ${s.brand} conf=${s.confidence} — ${s.reason}`);
       }
+      setBadge(`ready · ${skips} to skip`, 'ready');
+      dimBadgeSoon();
+    } else if (job.status === 'error') {
+      setBadge(`analysis error${job.error ? `: ${job.error}` : ''}`, 'error');
+    } else {
+      setBadge(`analyzing${skips ? ` · ${skips} to skip so far` : ''}`, 'busy');
     }
+    drawMarkers();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Stage 6: playback UI
+  // ---------------------------------------------------------------------------
+  const SKIP_GUARD_S = 0.5;   // don't trigger inside the last 0.5s of a segment
+  const TOAST_MS = 6000;
+
+  const playerEl = () => document.getElementById('movie_player');
+  const videoEl = () => document.querySelector('#movie_player video.html5-main-video');
+  const adShowing = () => { const p = playerEl(); return !!p && p.classList.contains('ad-showing'); };
+  const segKey = (s) => `${s.start}-${s.end}`;
+
+  // --- status badge
+  function setBadge(text, kind) {
+    const state = current;
+    if (!state) return;
+    state.badgeText = text; state.badgeKind = kind; // remembered so the tick can (re)place it
+    const p = playerEl();
+    if (!p) return;
+    if (!state.badge || !state.badge.isConnected) {
+      if (state.badge) state.badge.remove();
+      state.badge = document.createElement('div');
+      state.badge.className = 'ss-badge';
+      p.appendChild(state.badge);
+      state.cleanups.push(() => { if (state.badge) state.badge.remove(); state.badge = null; });
+    }
+    state.badge.textContent = text;
+    state.badge.dataset.kind = kind;
+    state.badge.classList.remove('ss-dim');
+  }
+  function dimBadgeSoon() {
+    const state = current;
+    const t = setTimeout(() => { if (state.badge) state.badge.classList.add('ss-dim'); }, 4000);
+    state.cleanups.push(() => clearTimeout(t));
+  }
+
+  // --- markers
+  function drawMarkers() {
+    const state = current;
+    if (!state) return;
+    const bar = document.querySelector('#movie_player .ytp-progress-bar');
+    const video = videoEl();
+    if (!bar || !video || !isFinite(video.duration) || video.duration <= 0) return;
+    if (state.markers) state.markers.remove();
+    bar.querySelectorAll('.ss-markers').forEach((e) => e.remove());
+    const box = document.createElement('div');
+    box.className = 'ss-markers';
+    const dur = video.duration;
+    for (const s of state.segments) {
+      const el = document.createElement('div');
+      el.className = 'ss-marker';
+      el.dataset.action = s.action;
+      el.style.left = `${(Math.max(0, s.start) / dur) * 100}%`;
+      el.style.width = `${(Math.max(0, Math.min(dur, s.end) - Math.max(0, s.start)) / dur) * 100}%`;
+      el.title = [
+        `${s.action.toUpperCase()} ${fmtTime(s.start)}–${fmtTime(s.end)}`,
+        `${s.category}/${s.style}${s.brand ? ` · ${s.brand}` : ''} · conf ${Number(s.confidence).toFixed(2)}`,
+        s.evidence ? `evidence: ${s.evidence}` : '',
+        s.reason || '',
+      ].filter(Boolean).join('\n');
+      el.addEventListener('click', (ev) => {
+        ev.stopPropagation(); ev.preventDefault();
+        const r = bar.getBoundingClientRect();
+        const frac = Math.min(1, Math.max(0, (ev.clientX - r.left) / r.width));
+        const v = videoEl();
+        if (v) v.currentTime = frac * v.duration;
+      });
+      box.appendChild(el);
+    }
+    bar.appendChild(box);
+    state.markers = box;
+  }
+
+  // --- toast
+  function showToast(text, onUndo) {
+    const state = current;
+    const p = playerEl();
+    if (!state || !p) return;
+    hideToast();
+    const el = document.createElement('div');
+    el.className = 'ss-toast';
+    const span = document.createElement('span');
+    span.textContent = text;
+    const btn = document.createElement('button');
+    btn.textContent = 'Undo';
+    btn.addEventListener('click', (ev) => { ev.stopPropagation(); onUndo(); hideToast(); });
+    el.append(span, btn);
+    p.appendChild(el);
+    state.toast = el;
+    state.toastTimer = setTimeout(hideToast, TOAST_MS);
+  }
+  function hideToast() {
+    const state = current;
+    if (!state) return;
+    if (state.toastTimer) { clearTimeout(state.toastTimer); state.toastTimer = null; }
+    if (state.toast) { state.toast.remove(); state.toast = null; }
+  }
+
+  // --- skipping
+  function attachPlayback() {
+    const state = current;
+    let video = null;
+    let ourSeek = false;
+
+    const onTimeUpdate = () => {
+      if (!video || adShowing() || video.seeking) return;
+      const t = video.currentTime;
+      for (const s of state.segments) {
+        if (s.action !== 'skip') continue;
+        const key = segKey(s);
+        if (state.handled.has(key)) continue;
+        if (t >= s.start && t < s.end - SKIP_GUARD_S) {
+          state.handled.add(key);
+          const from = t;
+          ourSeek = true;
+          video.currentTime = s.end;
+          log(`skipped ${s.brand || 'sponsor'} read ${fmtTime(s.start)}-${fmtTime(s.end)} (from ${fmtTime(from)})`);
+          showToast(`Skipped ${s.brand ? `${s.brand} ` : ''}read (${fmtTime(s.end - s.start)})`, () => {
+            const v = videoEl();
+            if (!v) return;
+            ourSeek = true;
+            v.currentTime = from;
+            log(`undo: back to ${fmtTime(from)}; segment stays handled`);
+          });
+          return;
+        }
+      }
+    };
+
+    const onSeeking = () => {
+      if (!video) return;
+      if (ourSeek) { ourSeek = false; return; }
+      // The user seeked. If they landed inside a skip segment, they want to watch it.
+      const t = video.currentTime;
+      for (const s of state.segments) {
+        if (s.action === 'skip' && t >= s.start && t < s.end && !state.handled.has(segKey(s))) {
+          state.handled.add(segKey(s));
+          log(`manual seek into ${fmtTime(s.start)}-${fmtTime(s.end)}; letting it play`);
+        }
+      }
+    };
+
+    const onLoadedMetadata = () => drawMarkers();
+
+    const bind = (v) => {
+      if (video === v) return;
+      unbind();
+      video = v;
+      if (!video) return;
+      video.addEventListener('timeupdate', onTimeUpdate);
+      video.addEventListener('seeking', onSeeking);
+      video.addEventListener('loadedmetadata', onLoadedMetadata);
+    };
+    const unbind = () => {
+      if (!video) return;
+      video.removeEventListener('timeupdate', onTimeUpdate);
+      video.removeEventListener('seeking', onSeeking);
+      video.removeEventListener('loadedmetadata', onLoadedMetadata);
+      video = null;
+    };
+
+    // YouTube can swap the <video> and rebuild the progress bar; re-bind and redraw as needed.
+    const tick = setInterval(() => {
+      const v = videoEl();
+      if (v !== video) bind(v);
+      if (state.segments.length && (!state.markers || !state.markers.isConnected)) drawMarkers();
+      if ((!state.badge || !state.badge.isConnected) && state.badgeText) setBadge(state.badgeText, state.badgeKind);
+    }, 1000);
+
+    bind(videoEl());
+    state.cleanups.push(() => {
+      clearInterval(tick);
+      unbind();
+      hideToast();
+      if (state.markers) { state.markers.remove(); state.markers = null; }
+    });
   }
 
   const MAX_LINES = 20000;

@@ -114,6 +114,9 @@ Status values: `queued → classifying → classifying_rest → done` (or `error
   - category: `sponsor | selfpromo | interaction`
   - style: `read | integration`
 - **Rubric (system prompt):**
+  - sponsor = any third-party brand; a creator-specific code or link is the standard sponsor pattern, not selfpromo.
+    selfpromo = only things the creator owns. Disclaimers about sponsors and the video's own subject product are
+    never segments.
   - read = "sponsored by", promo codes, "link in the description", generic benefit claims, topic switch away and back.
   - integration = product used to do the video's actual task, advances the content, no hard topic break.
   - mixed (integration that ends in a promo-code pitch) → two segments; only the pitch is a read.
@@ -183,6 +186,10 @@ Each stage ends with a "done when" check on a real video.
    - `vGoRpjE-svI` Hindi vlog — **must NOT skip** anything. Falsely skipped 9:10–9:25 ("Adoni", conf 0.75) before
      the evidence gate and 0.85 threshold.
    - `qv9BD1AnojQ` — returned 0 segments (unverified).
+   - `SOQynHuWPeI` fern, "Facebook's Most Dangerous App" — must SKIP the Coddy read 4:47–5:39 (third-party sponsor
+     with creator code FERN20; was mislabeled selfpromo); must NOT mark the VPN sponsorship disclaimer 1:11–1:27
+     (was sponsor/integration) or Onavo Protect 11:57–12:14 (the video's subject; was selfpromo). Rubric updated
+     for all three in pipeline v6.
    *Known performance note:* Hindi transcripts are ~2x tokens per window and ~3–4x slower. Not addressed yet.
    *Tuning ideas parked for this stage:*
    - drop `show` segments below ~0.7 confidence (Hindi vlog produced a selfpromo `show` at 0.60 that was noise);
@@ -224,5 +231,5 @@ Debug: DevTools console filtered by `SponsorSkipper`; server terminal for segmen
 - [x] 3. Server skeleton + relay
 - [x] 4. Qwen classification
 - [x] 5. Post-processing + cache
-- [ ] 6. Playback UI
+- [x] 6. Playback UI
 - [ ] 7. Tuning pass
