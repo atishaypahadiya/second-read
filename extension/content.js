@@ -401,8 +401,9 @@
     });
   }
 
-  // --- stats (today + all-time), read by the popup: skips and seconds saved (an undo takes its skip back and is
-  // counted as an undo), and integrations that were left to play
+  // --- stats (today + all-time), read by the popup when the server cannot be asked: skips, undone skips, net
+  // seconds saved (the server's definition: an undo is counted and its seconds are taken back, the skip still
+  // counts as a skip), and integrations that were left to play
   function updateStats(change) {
     chrome.storage.local.get('stats', (res) => {
       const today = new Date().toISOString().slice(0, 10);
@@ -416,9 +417,9 @@
   function recordSkip(savedSeconds) {
     const undo = savedSeconds < 0;
     updateStats((b) => {
-      b.skips = Math.max(0, (b.skips || 0) + (undo ? -1 : 1));
-      b.saved = Math.max(0, (b.saved || 0) + savedSeconds);
       if (undo) b.undos = (b.undos || 0) + 1;
+      else b.skips = (b.skips || 0) + 1;
+      b.saved = Math.max(0, (b.saved || 0) + savedSeconds);
     });
   }
   function recordKept() {

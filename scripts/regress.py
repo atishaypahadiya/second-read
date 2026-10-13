@@ -285,6 +285,9 @@ def unit_checks():
     for i in range(2):
         spot(i, "Twicebrand")
     d = stats.compute()
+    o = d["overall"]
+    eq("totals: today's skips and seconds are the same definition as the all-time ones (every test event is from today)",
+       (o["today"], o["skips"] > 0), ({"skips": o["skips"], "undos": o["undos"], "saved_s": o["saved_s"]}, True))
     eq(f"halls: ranked only from {stats.HALL_MIN_SPOTS} spots",
        ([b["brand"] for b in d["hall_of_shame"]], [b["brand"] for b in d["hall_of_fame"]]), (["Thricebrand"], ["Integrated"]))
     # brands: a rule segment (recap/outro/intro/interaction) never gets one, not even the video's only hint

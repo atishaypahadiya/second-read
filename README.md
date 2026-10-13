@@ -234,7 +234,7 @@ video with different request metadata, and one with a stand-in English
 analysis track) through the real pipeline from stored
 transcripts and stored model outputs, with zero model calls, and checks
 expected segments within 1.5 s, that must-not-skip videos have no skip, and
-that forbidden ranges stay empty. It also runs 44 rule checks and the
+that forbidden ranges stay empty. It also runs 45 rule checks and the
 extension wiring test. All eleven rows pass at versions detect 3, refine 3,
 post 5. The expectations were written from the same videos the prompt and
 thresholds were tuned on, so a pass says nothing has regressed and nothing
