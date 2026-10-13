@@ -220,9 +220,13 @@ Every GET/POST for a video counts as a poll.
   evidence gate needs a verbatim cue). Log: `prefilter: X of Y windows sent`.
 - **Order:** the window containing the playhead first, then later windows, then earlier ones; within each group,
   windows matching description hints first. Segments are published after every window.
-- **Description hints:** brands (capitalized words on "(ad)"/sponsor lines), promo codes, domains and chapter titles
-  are extracted from the description, added to the cue list, used for ordering, and shown to the model in the prompt
-  header (so a misheard "Udo" can be matched to Odoo).
+- **Description hints:** brands (capitalized words on "(ad)"/sponsor lines), promo codes, sponsor links and chapter
+  titles are extracted from the description, added to the cue list, used for ordering, and shown to the model in the
+  prompt header (so a misheard "Udo" can be matched to Odoo). **Only sponsor lines contribute links and brands:** a
+  line with an (ad)/sponsor/partner marker, a promo code or an offer, or the line right after one. The creator's own
+  shop, socials (with or without `www.`) and source links are ignored, and any term that is really the creator's own
+  name ("fern" from fern.deals/coddy, "HARRIS" for Johnny Harris) is dropped from the hint terms. Reason: hint terms
+  count as sponsor cues for the skip gate, so they must never include things the creator says in ordinary content.
 - **Chapter fast path:** a description chapter whose title reads like an ad (sponsor, ad, advert, promo, partner,
   paid promotion, and common non-English equivalents) ≤ 4 min long becomes a `skip` segment from its bounds
   immediately, snapped to pauses but never past the chapter end, `source: chapter`, no model call; the evidence is

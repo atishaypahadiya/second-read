@@ -138,6 +138,34 @@ def check(entry, segments):
     return out
 
 
+def unit_checks():
+    """Pure-function guards for rules that have regressed before. Returns (ok, message) pairs."""
+    out = []
+
+    def eq(name, got, want):
+        out.append((got == want, f"{name}" if got == want else f"{name}: got {got!r}, expected {want!r}"))
+    # transcript cleaning is idempotent, including consecutive speaker markers
+    for t in (">> >> So it needed insights.", "expensive, >> especially >> in the US", "[Music] >> [Applause] >> hello"):
+        once = server.strip_noise(t)
+        eq(f"strip_noise({t!r}) has no '>>' and is stable", (">>" in once, server.strip_noise(once) == once), (False, True))
+    # description hints: only sponsor lines count; the creator's own links, socials and name do not
+    h = server.extract_hints("Learn to code with Coddy (ad): https://fern.deals/coddy")
+    eq("hints: (ad) line -> brand + link", (h["brands"], h["domains"]), (["Coddy"], ["fern.deals/coddy"]))
+    eq("hint terms drop the creator's own name", server.hint_terms(h, "fern"), ["Coddy", "coddy"])
+    h = server.extract_hints("Order food at: https://www.eatsides.com/\nMerch: https://www.sidemenclothing.com\nhttps://www.instagram.com/Sidemen")
+    eq("hints: own shop and social links are not sponsor hints", (h["brands"], h["domains"]), ([], []))
+    h = server.extract_hints("Get 60% off Incogni with code HARRIS: https://incogni.com/harris")
+    eq("hint terms: creator's code/name excluded, brand kept", server.hint_terms(h, "Johnny Harris"), ["incogni.com/harris", "incogni"])
+    h = server.extract_hints("This video is sponsored by Odoo.\nhttps://www.odoo.com/r/fern")
+    eq("hints: link on the line after a sponsor line", (h["brands"], h["domains"]), (["Odoo"], ["odoo.com/r"]))
+    # disclosure is 'undisclosed' only when both signals are known and negative
+    table = {(p, d): server.disclosure_state(p, d) for p in (True, False, None) for d in (True, False, None)}
+    eq("disclosure: only (False, False) is undisclosed", sorted(k for k, v in table.items() if v == "undisclosed"), [(False, False)])
+    eq("disclosure: any missing signal without a positive one is unknown",
+       [table[(None, None)], table[(False, None)], table[(None, False)]], ["unknown"] * 3)
+    return out
+
+
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     allow_model = "--allow-model" in sys.argv
@@ -169,6 +197,12 @@ def main():
             rows.append(("wiring", "extension", "PASS" if r.returncode == 0 else "FAIL", out, time.time() - t0))
         else:
             rows.append(("wiring", "extension", "SKIP", ["not run: node not found"], 0.0))
+    if not args:
+        t0 = time.time()
+        results = unit_checks()
+        bad = [m for ok, m in results if not ok]
+        failures += 1 if bad else 0
+        rows.append(("rules", "server", "FAIL" if bad else "PASS", bad or [f"{len(results)} rule checks ok (cleaning, hints, disclosure)"], time.time() - t0))
     for e in entries:
         t0 = time.time()
         label = e.get("id", e["video"])
