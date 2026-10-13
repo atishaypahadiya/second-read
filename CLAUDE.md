@@ -161,7 +161,8 @@ API:
 | Method | Path | Body / query | Returns |
 | --- | --- | --- | --- |
 | POST | `/analyze` | `{videoId, lang, title, creator, kind, description, position, lines, analysisLines?, analysisLang?}` | job; starts/resumes it if new |
-| GET | `/analyze?v=ID` | — | job `{status, segments, paused?, progress?, cached?}` or 404 `unknown` |
+| GET | `/analyze?v=ID` | — | job `{status, segments, paused?, progress?, cached?}` or 404 `unknown`. Needs `X-SR-Client: extension`, like `/stored` (it answers per video id). |
+| GET | `/stored?v=ID&build=N&dur=S&desc=H` | — | `{match, why}`: may the caption read be skipped? True when the stored result's duration is within 2 s of `dur` and the SHA-1 of its description starts with `desc` (12 hex). |
 | GET | `/stored?v=ID&build=N` | — | `{status: done, segments, instant: true}` for the instant revisit, or 404. Only a complete result made by the current detect/refine/post/leadin versions and model, and only if `build` is this server's `CLIENT_BUILD`. Does not check the transcript. Needs the header `X-SR-Client: extension` (403 without it). |
 | GET | `/health` | — | `{ok, model, ollama, loaded, build}`; the popup shows *restart server* when `build` is not the extension's |
 | POST | `/feedback` | `{videoId, kind: false_skip\|missed_ad, playhead, segment?, channelId, channelName, title}` | `{ok}`; appended to `server/cache/feedback.local.jsonl` with the cached segment's evidence/reason and pipeline versions |
@@ -319,6 +320,14 @@ Every GET/POST for a video counts as a poll.
   (`queue_leadin_checks`), and the segment is republished only if the start moved. Segments carry `lead_in_s` and
   `lead_in` {from, sentences}; the tooltip says "incl. Ns lead-in". content.js moves a segment's handled state to
   its new key when the start changes.
+- **Two tracks for manual captions:** a manual track spells brands right but has no word timing. When the picked
+  track is manual and an auto track in the same language exists, page.js reads that too (`timingTrackFor`) and
+  sends it as `lines` (the cut is placed on its word offsets) with the manual text as `analysisLines`
+  (`assembleTracks`): prefilter, detect, refine and evidence run on the manual text, the word pass and snapping on
+  the auto track, exactly like the translation case below, and the lead-in check runs (same language). If the
+  auto track cannot be read or has no word offsets, nothing changes (estimates on the manual track). The capture
+  line ends with `cut placement: word offsets from the asr track | … from the picked track | estimated from the
+  picked track`. Not yet seen on a real video.
 - **Two tracks for non-English videos:** page.js also fetches the English auto-translation (`tlang=en` on the token
   URL). Prefilter, detect, refine, evidence and topic filter run on the English `analysisLines`; the result is mapped
   to the original track by time overlap and the word pass + snapping run on the original for exact cuts. No
@@ -403,6 +412,11 @@ Every GET/POST for a video counts as a poll.
   complete (an unfinished re-analysis never wipes what is on screen).
 - Server log: `cache: instant (…)`, then `cache: confirmed (…)` or `cache: replaced (…): served …, now …`.
   The same three lines appear in the page console in dev mode.
+- **Clean hit: no caption read at all.** With a stored result on screen, content.js asks page.js for the page's
+  own metadata (`getMeta`: the player response only, no fetch, no CC click) and then asks the server whether the
+  stored result still fits: same video id, duration within 2 s, same description (SHA-1). If so the captions are
+  never read; the server logs `cache: instant (no re-read)`. Any mismatch, a stored result without a duration, or
+  no answer from page.js within 4 s → the captions are read as before (`cache: reading captions to validate …`).
 - **Fails closed.** The stored result is on screen before anything has checked it against this video's captions.
   If that check cannot be made (captions unreadable or malformed, server unreachable, analysis failed), or has
   not even started 30 s after the result was drawn, the result is withdrawn: its segments stay as labels
@@ -412,8 +426,8 @@ Every GET/POST for a video counts as a poll.
   `Origin` is otherwise let in (curl, the dashboard). A web page can make such a request with an `<img>` or
   `<script>` load and see whether it loads or fails, which would tell it which videos were watched. So the
   endpoint requires `X-SR-Client: extension`: a page cannot put a header on those loads, and a `fetch()` with one
-  needs a CORS preflight that this server never answers. (`GET /analyze?v=` has the same weakness and predates
-  this; not changed.)
+  needs a CORS preflight that this server never answers. `GET /analyze?v=` answers per video id too and has the
+  same gate; a script that polls it (the timing snippet in the README) sends the header.
 
 ### [8]–[9] Playback (content.js + content.css)
 - After POST, poll GET every 2s until `done`/`error`. Redraw markers on each update.

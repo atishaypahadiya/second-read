@@ -319,9 +319,10 @@ def unit_checks():
        [t for _, t in server.sentences_before(talk, talk[2]["words"][3][0])][-1], "When abroad, I")
     real_chat = server.ollama_chat
 
-    def lead(answer):
+    def lead(answer, tracks=None):
         seg = {"start": when, "end": 150.0, "action": "skip", "category": "sponsor", "style": "read", "brand": "Saylite"}
-        job = {"lines": talk, "alines": talk, "title": "t", "calls": server.CallCache(None), "final": [seg]}
+        job = {"lines": talk, "alines": talk, "lang": "en", "alang": "en", "title": "t", "calls": server.CallCache(None), "final": [seg]}
+        job.update(tracks or {})
 
         def chat(*a, **k):
             if isinstance(answer, Exception):
@@ -339,6 +340,10 @@ def unit_checks():
        [lead({"A": "content", "B": "content", "reason": ""})[:2], lead({"A": "lead-in", "B": "content", "reason": ""})[:2],
         lead({"B": "lead-in", "reason": ""})[:2], lead({"A": "lead-in", "B": "maybe", "reason": ""})[:2], lead(["A"])[:2],
         lead(OSError("timed out"))[:2], lead(ValueError("not json"))[:2]], [(False, when)] * 7)
+    # two tracks: manual text analyzed, auto track for timing (same language) is checked; a translation is not
+    both = {"A": "lead-in", "B": "lead-in", "reason": "r"}
+    eq("lead-in: checked when the analysis track is in the same language as the cut track, not when it is a translation",
+       [lead(both, {"alines": list(talk)})[0], lead(both, {"alines": list(talk), "lang": "hi", "alang": "en"})[0]], [True, False])
     server.ollama_chat = real_chat
     # the start phrase the refine call found is kept over the word pass's later pick, if it is at most one line earlier
     chat_lines = server.clean_lines([
@@ -365,6 +370,17 @@ def unit_checks():
     eq("stored result: only a request carrying the extension's header may ask (a page's <img>/<script> load cannot)",
        [server.extension_request(h) for h in ({"X-SR-Client": "extension"}, {}, {"X-SR-Client": "page"}, {"Origin": "https://evil.example"})],
        [True, False, False, False])
+    # clean hit: the caption read may be skipped only if duration and description still match what was stored
+    import hashlib
+    desc = "Sponsored by Odoo.\nhttps://www.odoo.com/r/fern"
+    h12 = hashlib.sha1(desc.encode("utf-8")).hexdigest()[:12]
+    server.save_cache("storedVid10", {**done, "videoId": "storedVid10", "meta": {"duration": 1012.4, "description": desc}})
+    eq("stored result: matches on duration (within 2 s) and description hash; not on another duration, another "
+       "description, or when no duration was stored",
+       [server.stored_matches("storedVid10", 1012.0, h12)[0], server.stored_matches("storedVid10", 1014.0, h12)[0],
+        server.stored_matches("storedVid10", 1030.0, h12)[0], server.stored_matches("storedVid10", 1012.0, "0" * 12)[0],
+        server.stored_matches("storedVid10", None, h12)[0], server.stored_matches("storedVid00", 1012.0, h12)[0]],
+       [True, True, False, False, False, False])
     said = []
     keep_log, server.log = server.log, said.append
     server.instant_served["storedVid00"] = server.segments_signature(done["segments"])

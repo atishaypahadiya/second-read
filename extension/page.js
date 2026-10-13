@@ -19,7 +19,7 @@
 
   // Bumped together in page.js, content.js, background.js and server.py (CLIENT_BUILD). The server logs all three
   // and warns when they differ, which is how a half-reloaded extension shows up.
-  const BUILD = 20;
+  const BUILD = 21;
   const TAG = '[SecondRead:page]';
   const dbg = (...a) => console.log(TAG, ...a);
   const MAX_LINE_SECONDS = 8;
@@ -251,6 +251,29 @@
     return { params, others: others.slice(0, 40) };
   }
 
+  // Timing track. Manual captions spell brand names right but carry no word timing; the auto track in the same
+  // language has word offsets. When both exist, the manual text is what gets analyzed and the cut is placed on
+  // the auto track's words: the same split as analyzing a translation and cutting on the original.
+  function timingTrackFor(tracks, picked) {
+    if (!picked || picked.kind === 'asr') return null;
+    return tracks.find((t) => t.kind === 'asr' && t.languageCode === picked.languageCode) || null;
+  }
+  function hasWordTiming(lines) {
+    return !!lines && lines.length > 0 && lines.filter((l) => l.timed).length >= lines.length / 2;
+  }
+  // What goes to the server: `lines` is the track the cut is placed on, `analysisLines` the text that is analyzed
+  // (null = the same track). A timing track without word offsets is no better than the picked one and is dropped.
+  function assembleTracks(pickedLines, timingLines, translationLines, lang) {
+    const useTiming = hasWordTiming(timingLines);
+    return {
+      lines: useTiming ? timingLines : pickedLines,
+      analysisLines: translationLines || (useTiming ? pickedLines : null),
+      analysisLang: translationLines ? 'en' : lang,
+      timing: useTiming ? 'word offsets from the asr track'
+        : hasWordTiming(pickedLines) ? 'word offsets from the picked track' : 'estimated from the picked track',
+    };
+  }
+
   // Short-read guard. A transcript whose last line ends well before the video does is either a real silent tail
   // (music, credits) or a read that came back incomplete. It is read once more: if the second read ends in the
   // same place the tail is real, if it ends later it replaces the first.
@@ -479,6 +502,7 @@
 
     // Path A: direct fetch of the track with fmt=json3. Cheap; works if YouTube stops requiring the token.
     let path = 'A';
+    let capturedUrl = null; // path B: the player's own request, which other tracks can be fetched through too
     let sourceUrl = null; // the URL that actually produced caption data (used again for the translation)
     const aUrl = new URL(track.baseUrl, location.href); aUrl.searchParams.set('fmt', 'json3');
     dbg('path A: fetching track baseUrl');
@@ -493,6 +517,7 @@
       const entry = await obtainTimedtextUrl(videoId, stale);
       if (stale()) return;
       if (entry) {
+        capturedUrl = entry.url;
         const cu = new URL(entry.url);
         if (cu.searchParams.has('tlang')) {
           dbg(`path B: player's request was for a TRANSLATED track (lang=${cu.searchParams.get('lang')} tlang=${cu.searchParams.get('tlang')})`);
@@ -568,6 +593,22 @@
         dbg('analysis track: en translation unavailable; analyzing the original language');
       }
     }
+    // Manual track picked and an auto track in the same language exists: read that too, for its word offsets.
+    // If it cannot be read, or has none, everything stays as it was (estimated word times on the manual track).
+    let timingLines = null;
+    const sibling = via === 'as-is' ? null : timingTrackFor(tracks, track);
+    if (sibling) {
+      const sUrl = new URL(sibling.baseUrl, location.href); sUrl.searchParams.set('fmt', 'json3');
+      const sData = await fetchJson3(path === 'B' && capturedUrl ? buildFetchUrl(capturedUrl, sibling) : sUrl.href);
+      if (stale()) return;
+      timingLines = sData ? mergeCues(eventsToCues(sData.events)) : null;
+      dbg(timingLines ? `timing track: ${sibling.languageCode} asr, ${timingLines.length} lines, ${timingLines.filter((l) => l.timed).length} with word timing`
+                      : 'timing track: the asr track could not be read; keeping the estimates');
+    }
+    const sent = assembleTracks(lines, timingLines, analysisLines, lang);
+    capture.timing = sent.timing;
+    if (sibling) capture.timingLines = timingLines ? timingLines.length : 0;
+    dbg(`cut placement: ${sent.timing}`);
     // YouTube's "Includes paid promotion" disclosure lives in the player response when the creator set it.
     const paidPromotion = !!(pr.paidContentOverlay && pr.paidContentOverlay.paidContentOverlayRenderer);
     const heat = readHeatmap();
@@ -575,8 +616,8 @@
     dbg(`metadata (lengths): title=${title.length} creator=${creator.length} channelId=${channelId.length} ` +
         `description=${description.length} heat=${heat.length} paidPromotion=${paidPromotion} kind=${kind} ` +
         `videoDetails=${pr.videoDetails ? 'present' : 'MISSING'} build=${BUILD}`);
-    reply({ build: BUILD, lang, kind, path, lines, title, creator, channelId, description, heat, paidPromotion,
-            analysisLines, analysisLang: analysisLines ? 'en' : lang, capture });
+    reply({ build: BUILD, lang, kind, path, lines: sent.lines, title, creator, channelId, description, heat, paidPromotion,
+            analysisLines: sent.analysisLines, analysisLang: sent.analysisLang, capture });
   }
 
   // "Most replayed" graph: the player draws it as an SVG path (x 0..1000, y 0..100, y grows downward).
@@ -609,9 +650,27 @@
     return u.href;
   }
 
+  // What the page says about the video, without touching the captions (no fetch, no CC click): enough for
+  // content.js to tell whether a stored result is still for this video as it is now.
+  async function getMeta(videoId) {
+    const pr = await waitForPlayerResponse(videoId);
+    const vd = pr && pr.videoDetails;
+    const say = (msg) => window.postMessage({ source: 'sr-page', type: 'meta', videoId, build: BUILD, ...msg }, '*');
+    if (!vd) return say({ error: 'player not ready' });
+    say({ duration: Number(vd.lengthSeconds) || 0,
+          description: typeof vd.shortDescription === 'string' ? vd.shortDescription.slice(0, 5000) : '',
+          title: typeof vd.title === 'string' ? vd.title : '', creator: typeof vd.author === 'string' ? vd.author : '',
+          channelId: typeof vd.channelId === 'string' ? vd.channelId : '',
+          paidPromotion: !!(pr.paidContentOverlay && pr.paidContentOverlay.paidContentOverlayRenderer) });
+  }
+
   window.addEventListener('message', (ev) => {
     if (ev.source !== window) return;
     const d = ev.data;
+    if (d && d.source === 'sr-content' && d.type === 'getMeta' && typeof d.videoId === 'string') {
+      getMeta(d.videoId).catch(() => window.postMessage({ source: 'sr-page', type: 'meta', videoId: d.videoId, error: 'failed' }, '*'));
+      return;
+    }
     if (!d || d.source !== 'sr-content' || d.type !== 'getCaptions' || typeof d.videoId !== 'string') return;
     getCaptions(d.videoId).catch((e) => {
       console.warn(TAG, 'getCaptions failed', e);

@@ -4,7 +4,7 @@
 // send messages here and we relay them over fetch. host_permissions covers this.
 
 const SERVER = 'http://127.0.0.1:8765';
-const BUILD = 20; // keep equal to page.js, content.js and server.py CLIENT_BUILD
+const BUILD = 21; // keep equal to page.js, content.js and server.py CLIENT_BUILD
 
 async function call(path, init) {
   let res;
@@ -43,12 +43,16 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       break;
     }
     case 'poll':
-      p = call(`/analyze?v=${encodeURIComponent(msg.videoId)}`);
+      p = call(`/analyze?v=${encodeURIComponent(msg.videoId)}`, { headers: { 'X-SR-Client': 'extension' } });   // as /stored: extension only
       break;
     case 'stored':   // instant revisit: a finished result by video id, before the captions are read
       // the header marks the request as scripted: the server refuses /stored without it (a web page's <img> or
       // <script> load cannot carry one, so a page cannot probe which videos have been analyzed)
       p = call(`/stored?v=${encodeURIComponent(msg.videoId)}&build=${BUILD}`, { headers: { 'X-SR-Client': 'extension' } });
+      break;
+    case 'storedCheck':   // is the stored result still for this video as the page reports it? (then no caption read)
+      p = call(`/stored?v=${encodeURIComponent(msg.videoId)}&build=${BUILD}&dur=${encodeURIComponent(msg.duration)}&desc=${encodeURIComponent(msg.desc)}`,
+               { headers: { 'X-SR-Client': 'extension' } });
       break;
     case 'codes':
       p = call(`/codes.json?q=${encodeURIComponent(msg.q || '')}`);
