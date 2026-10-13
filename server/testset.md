@@ -9,7 +9,7 @@ automatic rows live in `server/cache/results.local.md` (gitignored: it records w
 | dU7gCt-7kKk | fern | en | asr | SKIP Odoo read ~9:17–9:55 (asr mishears brand as Udo/Udu) | SKIP 9:17–9:56 Udo (0.95) | ok | start varied 9:03/9:17 run to run (candidate range differs) |
 | O7LvhSQ5Te4 | Johnny Harris | en | asr | SKIP Incogni read ~10:27–11:52 with promo code; newpress.com selfpromo = SHOW | SKIP 10:27–11:51 Incogni (0.95); SHOW 29:53–30:38 newpress.com | ok | |
 | SOQynHuWPeI | fern | en | asr | SKIP Coddy read ~4:47–5:39 (code FERN20); NO marker for the VPN disclaimer 1:11 or Onavo 11:57 | SKIP 4:47–5:39 Cody (0.95); disclaimer + Onavo dropped by filter | ok | start snaps back to "You" |
-| vGoRpjE-svI | (Hindi vlog) | hi | asr | NOTHING to skip | none (prefilter: 0 windows sent) | ok | was a false skip (Adoni, 0.75) before the evidence gate + 0.85 threshold |
+| vGoRpjE-svI | (Hindi vlog) | hi | asr | NOTHING to skip; NO segment of any kind at 0:45–0:57 ("shooting for Fossil": his own brand work, told as story) | none (prefilter: 0 windows sent on the Hindi track; on the English track detect + refine label Fossil sponsor/integration and the ad-marker filter drops it) | ok | was a false skip (Adoni, 0.75) before the evidence gate + 0.85 threshold; was a stored Fossil integration (keep, 0.80) before post v5 |
 | QVZHQ8Cmr70 | Sidemen | en | asr | (unverified) | outro 19:38–19:47 (rule), selfpromo 19:47–20:25 | | |
 
 Rule-based categories currently expected by `testset.json` (label-only, guard against regressions):

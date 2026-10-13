@@ -75,7 +75,7 @@ KEEP_ALIVE = -1                                       # keep the model loaded be
 # Rubric changes in SYSTEM_PROMPT affect both passes: bump DETECT and REFINE.
 DETECT_VERSION = 3
 REFINE_VERSION = 3
-POST_VERSION = 4
+POST_VERSION = 5
 NUM_CTX = 8192
 LLM_TIMEOUT_S = 600
 MAX_BODY_BYTES = 8 * 1024 * 1024
@@ -293,6 +293,12 @@ STRONG_CUE_RE = re.compile(
     r"sponsor|brought to you|promo ?code|use (?:the |my |your )?code|\bcode [A-Z0-9]{3,}|discount|\d+ ?(?:%|percent) off|"
     r"link(?:'s| is)? in the description|partner(?:ed|ing)? with|in partnership with|supported by|made possible by|"
     r"it'?s an ad\b|this is an ad\b|an ad for\b|ad break|free trial|free for life|first \d+ (?:people|months)", re.I)
+# Ad markers: what separates an ad from a brand that merely comes up in the story ("we're shooting for Fossil
+# today"). Sponsorship language, a code, an offer, a link or a call to action. A sponsor label that is not a skip
+# (an integration, or a read that was downgraded) needs one; a skip already needs a cue in its evidence.
+AD_MARKER_RE = re.compile(
+    STRONG_CUE_RE.pattern + r"|link (?:below|in (?:the|my) bio)|use (?:my|the|this|our) link|\.com\b|sign ?up|"
+    r"check (?:them|it) out", re.I)
 # Cues for the other model categories (affiliate, selfpromo, membership, crosspromo, charity, giveaway): they get
 # a window to the model, but they never count as evidence for a sponsor skip.
 OTHER_CUE_PATTERNS = [
@@ -1277,11 +1283,34 @@ def mentions_outside(seg, lines):
     return n
 
 
-def post_filter(segments, title, lines, verbose=True):
+def ad_markers(seg, lines, terms=()):
+    """The ad markers that back a sponsor label, [] if there are none: an ad marker or a description hint in the
+    evidence quote or in the segment's lines (+-1), or the same brand next to an ad marker elsewhere in the video
+    ("sponsored by X" at the top, X used later). Without any, the brand is just part of what the creator is telling."""
+    s0, s1 = seg.get("line_start", seg["start"]), seg.get("line_end", seg["end"])
+    idx = [i for i, l in enumerate(lines) if l["end"] > s0 and l["start"] < s1]
+    lo, hi = (max(0, idx[0] - 1), min(len(lines) - 1, idx[-1] + 1)) if idx else (0, -1)
+    text = seg.get("evidence", "") + " " + " ".join(lines[i]["text"] for i in range(lo, hi + 1))
+    found = [m.group(0) for m in AD_MARKER_RE.finditer(text)]
+    found += [h for h in terms if h.lower() in text.lower()]
+    brand = brand_terms(seg.get("brand", ""))
+    if found or not brand:
+        return found
+    for i, l in enumerate(lines):
+        if lo <= i <= hi or not any(f" {b} " in " " + " ".join(normalize(l["text"])) + " " for b in brand):
+            continue
+        m = AD_MARKER_RE.search(" ".join(lines[k]["text"] for k in range(max(0, i - 1), min(len(lines), i + 2))))
+        if m:
+            return [f"{m.group(0)} (with the brand at {fmt_time(l['start'])})"]
+    return []
+
+
+def post_filter(segments, title, lines, verbose=True, terms=()):
     """Final safety net for keep/show markers (skips are left alone and only logged):
     - drop keep/show whose evidence/reason reads like a sponsor disclaimer;
     - drop keep/show whose brand is the video's subject (in the title, or mentioned in >= TOPIC_MENTIONS
       lines outside the segment);
+    - drop a sponsor keep/show that has no ad marker (ad_markers): the creator's own brand work told as story;
     - drop show below SHOW_THRESHOLD."""
     out = []
     say = log if verbose else (lambda *a: None)
@@ -1303,6 +1332,10 @@ def post_filter(segments, title, lines, verbose=True):
             n = mentions_outside(s, lines) if "start_line" in s else 0
             if n >= TOPIC_MENTIONS:
                 say(f"  filter: dropped {s['action']} {rng} {s['brand']!r}: brand mentioned in {n} lines outside the segment (subject)")
+                continue
+            if s.get("category") == "sponsor" and not ad_markers(s, lines, terms):
+                say(f"  filter: dropped {s['action']} {rng} {s['brand']!r}: sponsor label with no ad marker (no sponsorship "
+                    f"language, call to action, link, code or offer, and no description hint): story, not an ad")
                 continue
             if s["action"] == "show" and s["confidence"] < SHOW_THRESHOLD:
                 say(f"  filter: dropped show {rng} {s['brand']!r}: conf {s['confidence']:.2f} < {SHOW_THRESHOLD}")
@@ -1797,7 +1830,7 @@ def finalize(job, verbose):
     out = []
     kept = [x for x in job["final"] if x.get("action") != "drop"]
     state = disclosure_state(job.get("paid_promotion"), job.get("disclosed"))
-    for x in post_filter(merge_segments(kept), job["title"], job["alines"], verbose):
+    for x in post_filter(merge_segments(kept), job["title"], job["alines"], verbose, job.get("terms") or ()):
         x.pop("undisclosed", None)
         if x.get("category") == "sponsor" and x.get("style") == "read":
             x["disclosure"] = state
