@@ -470,3 +470,40 @@
   .ss-badge, .ss-toast, .ss-tooltip, .ss-panel--float { animation: none; }
   .ss-marker:hover { transform: none; }
 }
+
+/* ================= dashboard: pieces beyond the mockup (tabs, empty state, ad cards, insights) =================
+   Same rules as everything else: tone and opacity only. A warning is a chip with a ring dot, never a colour. */
+.ss-dash__nav { display: flex; align-items: center; gap: var(--ss-s3); }
+.ss-seg a.ss-seg__btn { display: inline-flex; align-items: center; text-decoration: none; }
+.ss-seg__btn[aria-current="page"] { background: var(--ss-primary-bg); color: var(--ss-primary-fg); opacity: var(--ss-o1); }
+.ss-empty { padding: var(--ss-s7) var(--ss-s6); text-align: center; opacity: var(--ss-o2); }
+.ss-note { font-family: var(--ss-font-mono); font-weight: 400; font-size: var(--ss-fs-chip); opacity: var(--ss-o3); padding: 0 var(--ss-s2); margin-top: var(--ss-s2); }
+.ss-halls { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--ss-s3); }
+.ss-hall .ss-title { margin-bottom: var(--ss-s3); }
+.ss-hall .ss-hall__empty { font-size: var(--ss-fs-body); opacity: var(--ss-o2); }
+.ss-chip--flag .ss-dot { background: transparent; box-shadow: inset 0 0 0 1.5px currentColor; }   /* "look at this" */
+.ss-card--light .ss-chip { background: rgba(var(--ss-fg-rgb), 0.10); }
+.ss-table td .ss-chips { gap: var(--ss-s1); }
+
+/* ad card: one deep card per sponsor segment */
+.ss-ads { display: grid; grid-template-columns: repeat(auto-fit, minmax(460px, 1fr)); gap: var(--ss-s3); }
+.ss-adcard { display: flex; flex-direction: column; gap: var(--ss-s4); padding: var(--ss-s6); }
+.ss-adcard__head { display: flex; align-items: center; flex-wrap: wrap; gap: var(--ss-s2); }
+.ss-adcard__title { font-size: var(--ss-fs-panel); line-height: var(--ss-lh-title); margin-right: var(--ss-s1); }
+.ss-adcard__meta { font-family: var(--ss-font-mono); font-weight: var(--ss-w-mono-light); font-size: var(--ss-fs-chip); opacity: var(--ss-o2); margin-top: calc(-1 * var(--ss-s2)); }
+/* mini timeline: the hairline, with the ad as a span, chapter ticks and the most-replayed curve above it */
+.ss-timeline { position: relative; padding-top: 22px; }
+.ss-timeline__heat { position: absolute; left: 0; right: 0; top: 0; height: 18px; display: flex; align-items: flex-end; }
+.ss-timeline__heat i { flex: 1; background: rgba(var(--ss-fg-rgb), var(--ss-o5)); border-radius: 1px 1px 0 0; }
+.ss-timeline__heat i.is-peak { background: rgba(var(--ss-fg-rgb), var(--ss-o2)); }
+.ss-timeline__tick { position: absolute; top: -3px; width: 1px; height: 8px; background: rgba(var(--ss-fg-rgb), var(--ss-o3)); }
+.ss-kv { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: var(--ss-s3) var(--ss-s4); margin: 0; }
+.ss-kv dt { font-family: var(--ss-font-mono); font-weight: 400; font-size: var(--ss-fs-chip); text-transform: lowercase; opacity: var(--ss-o2); }
+.ss-kv dd { margin: 2px 0 0; font-size: var(--ss-fs-body); }
+.ss-quote { font-family: var(--ss-font-mono); font-weight: var(--ss-w-mono-light); font-size: var(--ss-fs-body); line-height: var(--ss-lh-body); }
+.ss-quote--dim { opacity: var(--ss-o2); }
+.ss-tags { display: flex; flex-direction: column; gap: var(--ss-s2); }
+.ss-tag { display: flex; align-items: baseline; gap: var(--ss-s2); }
+.ss-tag .ss-chip { flex: none; }
+.ss-inset { background: rgba(var(--ss-fg-rgb), 0.10); border-radius: var(--ss-r-tooltip); padding: var(--ss-s3) var(--ss-s4); display: flex; flex-direction: column; gap: var(--ss-s1); }
+.ss-inset__label { font-family: var(--ss-font-mono); font-weight: 400; font-size: var(--ss-fs-chip); text-transform: lowercase; opacity: var(--ss-o2); }

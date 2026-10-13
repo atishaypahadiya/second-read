@@ -173,6 +173,34 @@ product name. Buttons say what happens: *Skipping on*, *Paused*, *Undo*, *Wrong 
 *Don't skip fern*, *Missed an ad here*. Status reads as a state: *analyzing 2/4*, *ready · 1 to skip*,
 *no ads*, *server offline*. Empty and error states say what to do next.
 
+## Applied on main (and where the real surfaces differ from the mockup)
+
+All five real surfaces use the system: badge, marker lane (+ tooltip), toast, popup, dashboard. The ad panel is
+specified here but not built; nothing in the product opens it yet.
+
+- **Fonts.** The faces live in `ui/fonts.css` (relative URLs: popup, dashboard, gallery) and
+  `ui/fonts-content.css` (absolute `chrome-extension://` URLs for the YouTube page, where a relative URL would be
+  requested from youtube.com). `tokens.css` sets `color-scheme` on `.ss-sheet`, not on `:root`, because it is
+  injected into YouTube.
+- **Badge.** Two states beyond the table: `busy` with the text *paused* (the server paused the job), and `none`
+  with the text *nothing to skip* (segments were found, but none will be skipped). The count slot carries the
+  server's error category on `error`.
+- **Tooltip.** A child of the lane, not of the marker (a marker scales on hover and would stretch it), centred on
+  the marker and clamped inside the player. A brand-less segment is titled by its category in sentence case and
+  gets no chip (*Outro*, not *outro [outro]*).
+- **Popup.** Chrome caps a popup at 600px; the board is 720. The default state fits by using 12px gaps, 36px
+  rows and text buttons and 16px hero padding (overrides in `popup.css`). Four categories are always visible
+  (sponsor read, sponsor integration, self-promo, like & subscribe); the other eight are behind a
+  *more categories* disclosure that shows a mono chip (*2 changed*) when any of them is off its default.
+  *Sponsor integration* is a static *always plays* chip: it is not a setting. The hero shows *saved today* with
+  today's and all-time counts, because that is what the extension stores (no weekly, per-brand or wrong-skip
+  numbers in the popup). Codes, the don't-skip list, dev mode and the version are a second pane (*Codes & more*).
+  A server problem replaces the channel row's sub line with what to do (*start it: python3 server/server.py*).
+- **Dashboard.** Tabs are a `.ss-seg` in the header. Beyond the mockup: ad cards (`.ss-adcard` with a hairline
+  timeline, most-replayed curve, chapter ticks, `.ss-kv` facts, `.ss-inset` for the placement suggestion) and the
+  insights tab (tiles + `.ss-hall` distributions). A warning is `.ss-chip--flag`, a chip with a ring dot; nothing
+  is amber or red. Category swatches are gone. `?theme=light|dark` forces a theme.
+
 ## Not matched exactly (deliberate)
 
 - The opacity ladder keeps o3 = 0.55 where the mockup uses 0.6 for secondary text; both pass on the

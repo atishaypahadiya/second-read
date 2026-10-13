@@ -44,8 +44,11 @@ sponsor-skipper/
 │   ├── content.js       isolated world: video detection, server calls, markers, skipping, toast
 │   ├── content.css      markers, toast, status badge
 │   ├── background.js    service worker: the only thing that talks to localhost
-│   ├── popup.html/css/js  action popup: master switch, per-category actions, server status, stats, dev mode
+│   ├── popup.html/css/js  action popup: master toggle, hero stats, channel, categories (4 + disclosure), codes pane
+│   ├── ui/              the design system: tokens.css, components.css, fonts.css / fonts-content.css, fonts/
 │   └── icons/           16/32/48/128 png
+├── design/              gallery.html (every state, next to the mockup crops), reference boards, screenshots
+├── DESIGN.md            the design language (source of truth for visuals); MERGE_NOTES.md how it was applied
 ├── scripts/
 │   ├── com.sponsor-skipper.server.plist   LaunchAgent template (install.sh fills in paths)
 │   ├── install.sh / uninstall.sh          launchctl bootstrap / bootout
@@ -157,8 +160,9 @@ server adds the cached pipeline context and versions. Rows that predate validati
   (ad density s/min, integration %, brands), overall (time saved, ads per video, % videos with a sponsor, 10-bin
   ad-position histogram), 💀 Hall of Shame (skip rate × avg read length), 🏆 Hall of Fame (integration % /
   watch-through / never skipped).
-- `GET /dashboard` is one HTML page, inline CSS/JS, with tabs Stats (`/stats.json`), Ad cards and Insights
-  (`/ads.json`). Linked from the popup footer.
+- `GET /dashboard` is one HTML page with tabs Stats (`/stats.json`), Ad cards and Insights (`/ads.json`), built
+  from the design system: the server serves `extension/ui/` at `/ui/` (tokens, components, fonts; a fixed
+  whitelist of names). Linked from the popup footer. `?theme=light|dark` forces a theme.
 
 ### Ad intelligence (server/intel.py; never blocks skipping)
 - **Tier 1**, deterministic, computed right after a job's segments are recorded, stored in `ad_metrics`:
@@ -311,18 +315,24 @@ Every GET/POST for a video counts as a poll.
 ### [8]–[9] Playback (content.js + content.css)
 - After POST, poll GET every 2s until `done`/`error`. Redraw markers on each update.
 - Video element: `video.html5-main-video`. Progress bar: `.ytp-progress-bar`.
-- Markers: absolutely positioned divs, left/width as % of duration; one color per category (legend in the popup):
-  sponsor read red, integration green, affiliate orange, selfpromo yellow, membership purple, crosspromo blue,
-  charity pink, giveaway teal, interaction grey, intro/outro light blue, recap lavender. Label-only markers are
-  dimmer; a marker that will skip is full strength.
-  Tooltip shows category/style/brand/confidence/reason. Redraw on `loadedmetadata`.
+- **All visuals come from the design system** (`DESIGN.md`, `extension/ui/tokens.css` + `components.css`; the
+  gallery at `design/gallery.html` shows every state). `content.css` and `popup.css` only place things and hold
+  what is specific to the real surfaces. Monochrome plus one accent: the accent means *live* or *skip*, nothing
+  else is coloured; hierarchy is the opacity ladder; no shadows, borders or dividers.
+- Markers live in their own 4px lane (`.ss-lane`) above YouTube's bar, never on it. Meaning is shape and tone:
+  skip = filled accent, integration (keep) = outline, label-only (show) = dim, low confidence = hatched
+  (sponsor read under 0.85, anything else under 0.8). Hover shows a glass tooltip with name, chip, confidence,
+  time, what will happen, and the evidence quote.
+  Redraw on `loadedmetadata`.
 - On `timeupdate`: if inside a `skip` segment (before `end - 0.5`) not already handled → mark handled,
-  set `video.currentTime = end`, show toast "Skipped <brand> read (m:ss) · Undo" for 6s.
+  set `video.currentTime = end`, show the toast for 6s: name, chip, "m:ss skipped", a hairline with the skipped
+  span, the evidence quote, **Undo** and **Wrong skip**.
 - Undo restores the pre-skip time; the segment stays handled. **Wrong skip** (next to Undo) undoes and POSTs a
   `false_skip` report. The popup's **Missed an ad here** POSTs a `missed_ad` report at the current playhead.
 - Manual seek into a skip segment (`seeking` not caused by us) → mark it handled; respect the user.
 - Do nothing while `#movie_player` has class `ad-showing` (YouTube's own ads share the video element).
-- Small status badge bottom-right: reading captions / analyzing / ready · N to skip / no captions / server offline.
+- Status badge bottom-right (glass pill, state dot, mono count; collapses to the dot after 3s): reading captions /
+  analyzing 2/4 / ready · N to skip / nothing to skip / no ads / no captions / server offline / analysis failed.
   Shown only in **dev mode** (popup toggle); dev mode also gates ordinary console logs (errors always print).
 - **Settings** (`chrome.storage.local.settings`, edited by the popup, applied instantly by content.js without
   re-analysis): `enabled` (off = no analysis, no markers), `actions.sponsor_read` skip|show,
