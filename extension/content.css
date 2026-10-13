@@ -1,80 +1,21 @@
-/* Sponsor Skipper — markers on the progress bar, toast, status badge */
+/* Second Read (Sponsor Skipper) — placement inside YouTube's player.
+   Every look (colour, type, radius, motion) comes from ui/tokens.css + ui/components.css; see DESIGN.md.
+   This file only says where things sit in YouTube's DOM and how they follow its chrome. */
 
-.ss-markers {
-  position: absolute;
-  left: 0; right: 0; top: 0; bottom: 0;
-  z-index: 35;            /* above .ytp-play-progress, below the scrubber handle */
-  pointer-events: none;
-}
-.ss-marker {
-  position: absolute;
-  top: 0; height: 100%;
-  min-width: 2px;
-  opacity: 0.85;
-  pointer-events: auto;   /* so the title tooltip and click-to-seek work */
-  cursor: pointer;
-}
-/* one color per category; a segment that will actually be skipped gets a brighter, taller stripe */
-.ss-marker[data-category="sponsor"]     { background: #e53935; }
-.ss-marker[data-category="integration"] { background: #43a047; }
-.ss-marker[data-category="affiliate"]   { background: #fb8c00; }
-.ss-marker[data-category="selfpromo"]   { background: #fdd835; }
-.ss-marker[data-category="membership"]  { background: #8e24aa; }
-.ss-marker[data-category="crosspromo"]  { background: #1e88e5; }
-.ss-marker[data-category="charity"]     { background: #ec407a; }
-.ss-marker[data-category="giveaway"]    { background: #00897b; }
-.ss-marker[data-category="interaction"] { background: #9e9e9e; }
-.ss-marker[data-category="intro"],
-.ss-marker[data-category="outro"]       { background: #4fc3f7; }
-.ss-marker[data-category="recap"]       { background: #b39ddb; }
-.ss-marker[data-action="show"] { opacity: 0.6; }
-.ss-marker[data-action="skip"] { opacity: 1; box-shadow: 0 0 0 1px rgba(255,255,255,.5) inset; }
-#movie_player.ad-showing .ss-markers { display: none; }  /* the bar shows the ad's timeline then */
-
-.ss-toast {
-  position: absolute;
-  left: 50%; bottom: 72px;
-  transform: translateX(-50%);
-  display: flex; align-items: center; gap: 12px;
-  padding: 9px 14px;
-  background: rgba(20, 20, 20, 0.92);
-  color: #fff;
-  font: 13px/1.3 Roboto, Arial, sans-serif;
-  border-radius: 6px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
-  z-index: 100;
-  white-space: nowrap;
-  animation: ss-fade-in 150ms ease-out;
-}
-.ss-toast button {
-  all: unset;
-  cursor: pointer;
-  color: #3ea6ff;
-  font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 4px;
-}
-.ss-toast button:hover { background: rgba(62, 166, 255, 0.15); }
-.ss-toast button.ss-wrong { color: #ff8a80; }
-.ss-toast button.ss-wrong:hover { background: rgba(255, 138, 128, 0.15); }
-@keyframes ss-fade-in { from { opacity: 0; transform: translate(-50%, 6px); } to { opacity: 1; transform: translate(-50%, 0); } }
-
-.ss-badge {
-  position: absolute;
-  right: 12px; bottom: 60px;
-  padding: 3px 9px;
-  background: rgba(0, 0, 0, 0.6);
-  color: #fff;
-  font: 11px/1.4 Roboto, Arial, sans-serif;
-  border-radius: 10px;
-  z-index: 60;
-  pointer-events: none;
-  opacity: 0.9;
-  transition: opacity 400ms;
-}
-.ss-badge[data-kind="ready"]   { border-left: 3px solid #43a047; }
-.ss-badge[data-kind="busy"]    { border-left: 3px solid #fdd835; }
-.ss-badge[data-kind="off"]     { border-left: 3px solid #9e9e9e; }
-.ss-badge[data-kind="error"]   { border-left: 3px solid #e53935; }
-.ss-badge.ss-dim { opacity: 0.35; }
+/* status badge (dev mode): bottom right, above the control bar; follows the controls' autohide */
+/* z-index below YouTube's control bar (59) so a marker tooltip near the right edge is never covered by it */
+#movie_player .ss-badge { position: absolute; right: 24px; bottom: 72px; z-index: 40; }
+#movie_player.ytp-big-mode .ss-badge { bottom: 96px; }
 #movie_player.ytp-autohide .ss-badge { opacity: 0; }
+
+/* toast: bottom left, above the control bar; never wider than a small player */
+#movie_player .ss-toast { z-index: 100; max-width: calc(100% - 48px); }
+#movie_player.ytp-big-mode .ss-toast { bottom: 124px; }
+
+/* marker lane: its own strip above the progress bar (components.css positions it relative to the container) */
+#movie_player .ss-lane { z-index: 35; }
+#movie_player.ad-showing .ss-lane { display: none; }   /* the bar shows the ad's own timeline then */
+/* a 4px marker is a small target: extend the hit area without changing how it looks */
+#movie_player .ss-marker::before { content: ""; position: absolute; left: 0; right: 0; top: -8px; bottom: -6px; }
+/* the tooltip is a child of the lane (not of the marker, which scales on hover) */
+#movie_player .ss-lane .ss-tooltip { max-width: calc(100% - 16px); }

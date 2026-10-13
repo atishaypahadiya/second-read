@@ -112,9 +112,10 @@
   --ss-dur: 180ms;
   --ss-rise: 6px;
   --ss-pulse: 1.6s;
-
-  color-scheme: light dark;
 }
+/* color-scheme belongs to our own pages only. tokens.css is also injected into youtube.com, where setting it on
+   :root would restyle YouTube's scrollbars and form controls. */
+.ss-sheet { color-scheme: light dark; }
 
 /* ---- dark sheet (popup + dashboard in dark mode). Same ladder; cards go charcoal. ---- */
 @media (prefers-color-scheme: dark) {
