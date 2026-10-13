@@ -23,38 +23,24 @@ Ollama with `qwen3:14b`.
 ## How it works
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#3A3A3A', 'primaryTextColor': '#F0F0F0', 'primaryBorderColor': '#FF4A1C', 'lineColor': '#FF4A1C', 'secondaryColor': '#2A2A2A', 'tertiaryColor': '#2A2A2A', 'tertiaryTextColor': '#F0F0F0', 'tertiaryBorderColor': '#FF4A1C', 'clusterBkg': '#2A2A2A', 'clusterBorder': '#FF4A1C', 'titleColor': '#F0F0F0', 'edgeLabelBackground': '#2A2A2A'}}}%%
-flowchart TB
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#3A3A3A', 'primaryTextColor': '#F0F0F0', 'primaryBorderColor': '#FF4A1C', 'lineColor': '#FF4A1C', 'secondaryColor': '#2A2A2A', 'tertiaryColor': '#2A2A2A', 'tertiaryTextColor': '#F0F0F0', 'tertiaryBorderColor': '#FF4A1C', 'clusterBkg': '#2A2A2A', 'clusterBorder': '#FF4A1C', 'titleColor': '#F0F0F0', 'edgeLabelBackground': '#2A2A2A', 'fontSize': '18px'}, 'flowchart': {'rankSpacing': 26, 'nodeSpacing': 22}}}%%
+flowchart LR
   subgraph tab ["YouTube tab"]
-    PG["page.js<br/>MAIN world"] -->|"lines, word timing, metadata"| CS["content.js<br/>isolated world"]
-    CS --> UI["marker lane, toast, badge"]
+    PG["page.js<br/>MAIN world"] -->|"lines, word timing,<br/>metadata"| CS["content.js<br/>isolated world"]
+    CS --> UI["marker lane,<br/>toast, badge"]
   end
-  subgraph ext ["Extension"]
-    POP["popup"]
-    BG["background.js<br/>service worker"]
-  end
-  subgraph local ["This machine"]
-    SRV["server.py<br/>127.0.0.1:8765"]
-    OL["Ollama, qwen3:14b<br/>localhost:11434"]
-    CA[("result cache<br/>one JSON file per video")]
-    ST["stats.py"]
-    IN["intel.py"]
-    DB[("SQLite<br/>stats.local.db")]
-    DASH["dashboard page"]
-    LA["LaunchAgent<br/>com.second-read.server"]
-  end
-  POP <-->|"settings in chrome.storage"| CS
-  CS <-->|"runtime messages, no network"| BG
-  BG <-->|"POST /analyze, poll every 2 s,<br/>/event, /feedback"| SRV
-  LA -.->|"starts it, keeps it alive"| SRV
-  SRV -->|"/api/chat, one call at a time"| OL
-  SRV <--> CA
-  SRV --> ST
-  SRV --> IN
+  POP["popup"] <--> CS
+  CS <-->|"runtime messages,<br/>no network"| BG["background.js<br/>service worker"]
+  BG <-->|"POST /analyze,<br/>poll every 2 s,<br/>/event, /feedback"| SRV["server.py<br/>127.0.0.1:8765"]
+  LA["LaunchAgent<br/>com.second-read.server"] -.-> SRV
+  SRV <--> CA[("result cache<br/>one JSON file<br/>per video")]
+  SRV -->|"/api/chat,<br/>one call at a time"| OL["Ollama, qwen3:14b<br/>localhost:11434"]
+  SRV --> IN["intel.py"]
+  IN -.-> OL
+  SRV --> ST["stats.py"]
+  IN --> DB[("SQLite<br/>stats.local.db")]
   ST --> DB
-  IN --> DB
-  IN -.->|"tier 2, only when idle"| OL
-  SRV -->|"/dashboard, /stats.json, /ads.json"| DASH
+  SRV -->|"/dashboard,<br/>/stats.json,<br/>/ads.json"| DASH["dashboard page"]
 ```
 
 `page.js` runs in the page's own JavaScript world, because the caption tracks
@@ -70,12 +56,12 @@ stats and ad-analysis code runs after a job or while the worker is idle, so it
 never delays a skip.
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#3A3A3A', 'primaryTextColor': '#F0F0F0', 'primaryBorderColor': '#FF4A1C', 'lineColor': '#FF4A1C', 'secondaryColor': '#2A2A2A', 'tertiaryColor': '#2A2A2A', 'actorBkg': '#3A3A3A', 'actorTextColor': '#F0F0F0', 'actorBorder': '#FF4A1C', 'actorLineColor': '#FF4A1C', 'signalColor': '#FF4A1C', 'signalTextColor': '#F0F0F0', 'noteBkgColor': '#3A3A3A', 'noteTextColor': '#F0F0F0', 'noteBorderColor': '#FF4A1C', 'labelBoxBkgColor': '#3A3A3A', 'labelBoxBorderColor': '#FF4A1C', 'labelTextColor': '#F0F0F0', 'loopTextColor': '#F0F0F0'}}}%%
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#3A3A3A', 'primaryTextColor': '#F0F0F0', 'primaryBorderColor': '#FF4A1C', 'lineColor': '#FF4A1C', 'secondaryColor': '#2A2A2A', 'tertiaryColor': '#2A2A2A', 'actorBkg': '#3A3A3A', 'actorTextColor': '#F0F0F0', 'actorBorder': '#FF4A1C', 'actorLineColor': '#FF4A1C', 'signalColor': '#FF4A1C', 'signalTextColor': '#F0F0F0', 'noteBkgColor': '#3A3A3A', 'noteTextColor': '#F0F0F0', 'noteBorderColor': '#FF4A1C', 'labelBoxBkgColor': '#3A3A3A', 'labelBoxBorderColor': '#FF4A1C', 'labelTextColor': '#F0F0F0', 'loopTextColor': '#F0F0F0'}, 'sequence': {'mirrorActors': false}}}%%
 sequenceDiagram
   participant CS as content.js
   participant PG as page.js
   participant PL as YouTube player
-  participant TT as /api/timedtext
+  participant TT as timedtext
   rect rgb(42, 42, 42)
     CS->>PG: getCaptions for this video id
     PG->>PL: getPlayerResponse, until the video id matches
@@ -381,30 +367,30 @@ gitignored as well.
 
 ```
 extension/
-  manifest.json     Manifest V3: two content scripts, a service worker, the popup
-  page.js           MAIN world: caption capture (paths A and B), json3 to lines with word timing
-  content.js        isolated world: video detection, server calls, markers, skipping, toast, badge
+  manifest.json     MV3 manifest: two content scripts, service worker, popup
+  page.js           MAIN world: caption capture, json3 to lines with word times
+  content.js        isolated world: detection, markers, skipping, toast, badge
   content.css       placement of the on-player UI
   background.js     service worker: the only code that talks to localhost
-  popup.html/css/js master toggle, stats, channel switch, category settings, code vault
-  ui/               the design system: tokens.css, components.css, fonts
+  popup.html/css/js toggle, stats, channel switch, categories, code vault
+  ui/               design system: tokens.css, components.css, fonts
   icons/            generated by scripts/make_icons.py
 server/
-  server.py         HTTP API, scheduler, prefilter, detect and refine prompts, evidence gate, snapping, cache
-  stats.py          SQLite store, brand normalization, promo-code vault, metrics, the dashboard page
-  intel.py          ad analysis: deterministic metrics at job end, model analysis only when idle
-  testset.md        curated test videos, expectations, human verdicts, speed table
+  server.py         API, scheduler, prompts, evidence gate, snapping, cache
+  stats.py          SQLite store, brand names, code vault, metrics, dashboard
+  intel.py          ad analysis: metrics at job end, model only when idle
+  testset.md        test videos, expectations, human verdicts, speed table
   testset.json      the same expectations for scripts/regress.py
   cache/            results, stats DB, results log, feedback (gitignored)
 scripts/
   regress.py        regression harness over the test set, in a temp data dir
-  wiring_test.js    runs the real content.js, background.js and caption parser against stubs
+  wiring_test.js    real content.js, background.js and parser against stubs
   install.sh        installs the LaunchAgent; uninstall.sh removes it
-  com.second-read.server.plist   LaunchAgent template
+  com.second-read.server.plist  LaunchAgent template
   make_icons.py     writes the extension icons
 design/             gallery.html (every UI state), reference boards, screenshots
-DESIGN.md           the design language; MERGE_NOTES.md records how it was applied
-CLAUDE.md           the full pipeline specification, constraints, and the build log
+DESIGN.md           the design language; MERGE_NOTES.md: how it was applied
+CLAUDE.md           pipeline specification, constraints, build log
 ```
 
 ## Limitations
