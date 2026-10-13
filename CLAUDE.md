@@ -162,9 +162,14 @@ server adds the cached pipeline context and versions. Rows that predate validati
 - Segment ids are stable across re-records (upsert on video + start + end), so stats are synced on every finished
   job, on cache hits, and when metadata arrives later, without orphaning ad metrics or analyses. `duration_s` falls
   back to the end of the transcript when the client sent none. Segments carry `brand_canonical` for the toast/tooltip.
-- Brand normalization order: alias table → fuzzy match against the video's description hints (brands, domain
-  labels/paths; ≥ 0.55, e.g. "Udo" → Odoo via fern.deals/odoo) → the single hint if there is only one → fuzzy
+- Brand normalization order: alias table → fuzzy match against the brands *written* on the description's sponsor
+  lines (≥ 0.55, e.g. "Udo" → Odoo) → the single written brand if there is only one (sponsor segments) → fuzzy
   against brands already in the DB (≥ 0.8) → raw spelling. Learned aliases are stored with how they were made.
+  **The spoken name beats a domain label:** a sponsor link names the brand only when the model gave none and the
+  description wrote none, and then without affixes and TLDs (`headspace-web.app` → Headspace). Rule segments
+  (recap, outro, intro, interaction) never get a brand; a non-sponsor segment never borrows the video's hint.
+  `BRAND_RULES_VERSION` (SQLite `user_version`): when the rules change, stored brands are re-derived once at
+  startup, learned aliases are dropped and re-learned, and events and codes follow their segment.
 - `GET /stats.json` computes: per category (segments, videos, avg/total length, skips, undo/seek-in), per brand (spots, creators, read/integration %, skips, seconds skipped, avg length,
   watch-through = undo + seek-into ÷ skips, wrong-skip flags, top creators, templated one-line verdict), per creator
   (ad density s/min, integration %, brands), overall (time saved, ads per video, % videos with a sponsor, 10-bin
