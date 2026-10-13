@@ -121,6 +121,18 @@ async function init() {
       render(); save();
     });
   }
+  $('missedBtn').addEventListener('click', () => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      const tab = tabs && tabs[0];
+      if (!tab) return;
+      chrome.tabs.sendMessage(tab.id, { type: 'missedAd' }, (r) => {
+        const b = $('missedBtn');
+        if (chrome.runtime.lastError || !r || !r.ok) { b.textContent = 'Could not report'; return; }
+        b.textContent = `Reported at ${fmtDur(r.playhead)}`;
+        b.disabled = true;
+      });
+    });
+  });
   $('allowBtn').addEventListener('click', () => {
     if (!tabState || !tabState.channelId) return;
     if (settings.allowlist[tabState.channelId]) delete settings.allowlist[tabState.channelId];

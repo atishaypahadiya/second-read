@@ -101,7 +101,11 @@ API:
 | --- | --- | --- | --- |
 | POST | `/analyze` | `{videoId, lang, title, creator, kind, description, position, lines, analysisLines?, analysisLang?}` | job; starts/resumes it if new |
 | GET | `/analyze?v=ID` | — | job `{status, segments, paused?, progress?, cached?}` or 404 `unknown` |
-| GET | `/health` | — | `{ok, model, ollama}` |
+| GET | `/health` | — | `{ok, model, ollama, loaded}` |
+| POST | `/feedback` | `{videoId, kind: false_skip\|missed_ad, playhead, segment?, channelId, channelName, title}` | `{ok}`; appended to `server/cache/feedback.local.jsonl` with the cached segment's evidence/reason and pipeline versions |
+| GET | `/feedback` | — | `{count, recent}` |
+
+`python3 server/server.py --feedback-report` prints a summary table of the feedback file for tuning sessions.
 
 Status values: `queued → classifying → done` (or `error`); `paused: true` while the video isn't being polled.
 Every GET/POST for a video counts as a poll.
@@ -206,7 +210,8 @@ Every GET/POST for a video counts as a poll.
   Tooltip shows category/style/brand/confidence/reason. Redraw on `loadedmetadata`.
 - On `timeupdate`: if inside a `skip` segment (before `end - 0.5`) not already handled → mark handled,
   set `video.currentTime = end`, show toast "Skipped <brand> read (m:ss) · Undo" for 6s.
-- Undo restores the pre-skip time; the segment stays handled.
+- Undo restores the pre-skip time; the segment stays handled. **Wrong skip** (next to Undo) undoes and POSTs a
+  `false_skip` report. The popup's **Missed an ad here** POSTs a `missed_ad` report at the current playhead.
 - Manual seek into a skip segment (`seeking` not caused by us) → mark it handled; respect the user.
 - Do nothing while `#movie_player` has class `ad-showing` (YouTube's own ads share the video element).
 - Small status badge bottom-right: reading captions / analyzing / ready · N to skip / no captions / server offline.
