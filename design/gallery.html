@@ -459,20 +459,20 @@ Start learning with Coddy Tech now. Use code fern20 for 20% off.</div>
   <!-- ============================== CONTRAST ============================== -->
   <section class="g-sec">
     <h2>contrast</h2>
-    <p>WCAG ratios for text on every surface. White at o1 and at o2 pass across the whole deep gradient: the bottom stop is #5A5A5A, the lightest grey where o2 still reads 4.5:1 (it was #717171, where o2 dropped to 3.4). 0.6 and o3 are not used for text on a deep card.</p>
+    <p>WCAG ratios for text on every surface. White at o1 and at o2 pass across the whole deep gradient (#444444 → #5A5A5A): the bottom stop is the lightest grey where o2 still reads 4.5:1, and the top was darkened to keep the card's depth. 0.6 and o3 are not used for text on a deep card.</p>
     <div class="ss-sheet ss-theme-light g-contrast" style="padding:16px 8px;border-radius:32px">
       <table class="ss-table">
         <thead><tr><th>surface</th><th>text</th><th class="ss-num">o1</th><th class="ss-num">o2</th><th class="ss-num">0.6</th><th class="ss-num">o3</th><th>verdict</th></tr></thead>
         <tbody>
           <tr><td>sheet #F0F0F0</td><td>ink</td><td class="ss-num">18.4</td><td class="ss-num">8.7</td><td class="ss-num">5.5</td><td class="ss-num">4.6</td><td class="ok">passes through o3</td></tr>
-          <tr><td>deep card #555555 (top)</td><td>white</td><td class="ss-num">7.5</td><td class="ss-num">4.8</td><td class="ss-num">3.9</td><td class="ss-num">3.5</td><td class="ok">o1, o2 pass</td></tr>
-          <tr><td>deep card #585858 (middle)</td><td>white</td><td class="ss-num">7.1</td><td class="ss-num">4.6</td><td class="ss-num">3.8</td><td class="ss-num">3.4</td><td class="ok">o1, o2 pass</td></tr>
+          <tr><td>deep card #444444 (top)</td><td>white</td><td class="ss-num">9.7</td><td class="ss-num">6.0</td><td class="ss-num">4.7</td><td class="ss-num">4.2</td><td class="ok">o1, o2 pass</td></tr>
+          <tr><td>deep card #4F4F4F (middle)</td><td>white</td><td class="ss-num">8.2</td><td class="ss-num">5.2</td><td class="ss-num">4.2</td><td class="ss-num">3.8</td><td class="ok">o1, o2 pass</td></tr>
           <tr><td>deep card #5A5A5A (bottom)</td><td>white</td><td class="ss-num">6.9</td><td class="ss-num">4.5</td><td class="ss-num">3.7</td><td class="ss-num">3.4</td><td class="ok">o1, o2 pass across the whole card</td></tr>
           <tr><td>light card #8E8E8E → #B4B4B4</td><td>ink</td><td class="ss-num">6.4 – 10.1</td><td class="ss-num">4.5 – 6.2</td><td class="ss-num">3.5 – 4.4</td><td class="ss-num">3.2 – 3.8</td><td class="ok">o1, o2 pass</td></tr>
           <tr><td>dark sheet #111 / cards #2A → #3A</td><td>white</td><td class="ss-num">11.4 – 18.9</td><td class="ss-num">6.8 – 9.9</td><td class="ss-num">6.3</td><td class="ss-num">4.7 – 6.2</td><td class="ok">passes through o3</td></tr>
           <tr><td>glass / tooltip over #282828</td><td>white</td><td class="ss-num">14.7</td><td class="ss-num">8.4</td><td class="ss-num">6.3</td><td class="ss-num">5.5</td><td class="ok">passes (darker video = better)</td></tr>
           <tr><td>glass over #282828</td><td>accent</td><td class="ss-num">4.4</td><td class="ss-num">–</td><td class="ss-num">–</td><td class="ss-num">–</td><td class="ok">dot and marks; text only at ≥ 18px</td></tr>
-          <tr><td>deep card #555555</td><td>accent</td><td class="ss-num">2.2</td><td class="ss-num">–</td><td class="ss-num">–</td><td class="ss-num">–</td><td class="no">accent on a card is a dot, never text</td></tr>
+          <tr><td>deep card #444444 → #5A5A5A</td><td>accent</td><td class="ss-num">2.1 – 2.9</td><td class="ss-num">–</td><td class="ss-num">–</td><td class="ss-num">–</td><td class="no">accent on a card is a dot, never text</td></tr>
           <tr><td>sheet #F0F0F0</td><td>accent</td><td class="ss-num">2.9</td><td class="ss-num">–</td><td class="ss-num">–</td><td class="ss-num">–</td><td class="no">accent on the sheet is the toggle knob, never text</td></tr>
         </tbody>
       </table>

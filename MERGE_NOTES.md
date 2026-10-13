@@ -79,9 +79,9 @@ Dark mode is automatic through `prefers-color-scheme`; `:root[data-theme=dark|li
 
 ## 6. Decisions made on this branch (confirm or revert)
 
-- **Deep card is the default** (`#555555 → #5A5A5A`, white text); light card (`#8E → #B4`, ink) is
-  `.ss-card--light` for tables and lists only. The bottom stop was darkened from `#717171` so white o2 passes
-  4.5:1 on the whole card (4.8 → 4.5); the gradient is nearly flat as a result.
+- **Deep card is the default** (`#444444 → #5A5A5A`, white text); light card (`#8E → #B4`, ink) is
+  `.ss-card--light` for tables and lists only. Both stops were darkened from `#555555 → #717171` so white o2
+  passes 4.5:1 on the whole card (6.3 → 4.5) and the gradient keeps its depth.
 - **Marker lane** is a separate 4px strip 4px above YouTube's bar; markers never overlay the bar.
 - **Marker shapes.** skip = filled accent, keep = hollow outline, show = dim fill, low confidence =
   hatch (the mockup draws integration as a solid white bar; the outline keeps "never colour alone").
@@ -90,4 +90,4 @@ Dark mode is automatic through `prefers-color-scheme`; `:root[data-theme=dark|li
 - **Category chip labels** read `skip / label / off`; storage values are unchanged. The mockup's
   five rows include `sponsor integration` and `charity`, which main is adding.
 - **Popup width 360** (was 320) and the product name `second read` in the header.
-- **Accent is never text** on the sheet (2.9:1) or a card (2.2:1); it is a dot, a knob or a marker.
+- **Accent is never text** on the sheet (2.9:1) or a card (2.1–2.9:1); it is a dot, a knob or a marker.
