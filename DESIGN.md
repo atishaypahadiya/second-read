@@ -195,13 +195,23 @@ specified here but not built; nothing in the product opens it yet.
 - **Tooltip.** A child of the lane, not of the marker (a marker scales on hover and would stretch it), centred on
   the marker and clamped inside the player. A brand-less segment is titled by its category in sentence case and
   gets no chip (*Outro*, not *outro [outro]*).
-- **Popup.** Chrome caps a popup at 600px; the board is 720. The default state fits by using 12px gaps, 36px
-  rows and text buttons and 16px hero padding (overrides in `popup.css`). Four categories are always visible
+- **Popup.** The order is value first, settings after: the hero, then *this video*, then the channel row and
+  the categories, and the master toggle last. The hero number is the time saved **all-time**, with *today* as a
+  chip and one mono line of proof under it (*41 skips · 1 undone · 3 integrations left playing*). *This video*
+  appears when the open video has a sponsor segment: a hairline of the video with those segments (accent = will
+  skip, solid = skipped, dim = plays, the same meaning as the lane), one row per segment (*Brilliant · 0:53
+  skipped*, *skips at 9:40*, *integration · plays*), and the read's code or link with its offer and a Copy
+  button. The master toggle is a setting, not the point: it is the 44px button at the end of the pane, usually
+  below the fold, and the head chip reads *paused* whenever it is off so that can never go unnoticed. The footer
+  is sticky (*Missed an ad here* is time-sensitive). The focus ring is ink, not the accent.
+  Chrome caps a popup at 600px; the board is 720. The pane uses 12px gaps, 36px
+  rows and text buttons and 16px hero padding (overrides in `popup.css`) and scrolls when it is longer. Four categories are always visible
   (sponsor read, sponsor integration, self-promo, like & subscribe); the other eight are behind a
   *more categories* disclosure that shows a mono chip (*2 changed*) when any of them is off its default.
-  *Sponsor integration* is a static *always plays* chip: it is not a setting. The hero shows *saved today* with
-  today's and all-time counts, because that is what the extension stores (no weekly, per-brand or wrong-skip
-  numbers in the popup). Codes, the don't-skip list, dev mode and the version are a second pane (*Codes & more*).
+  *Sponsor integration* is a static *always plays* chip: it is not a setting. The numbers are what the extension
+  stores itself (today and all-time: skips, seconds saved, undone skips, integrations left to play), so they show
+  with the server offline. Codes, the don't-skip list, dev mode and the version are a second pane (*Codes & more*);
+  its list rows never shrink (a scrolling flex column used to squash them into each other).
   A server problem replaces the channel row's sub line with what to do (*start it: python3 server/server.py*).
 - **Dashboard.** Tabs are a `.sr-seg` in the header. Beyond the mockup: ad cards (`.sr-adcard` with a hairline
   timeline, most-replayed curve, chapter ticks, `.sr-kv` facts, `.sr-inset` for the placement suggestion) and the

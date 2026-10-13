@@ -15,21 +15,22 @@
       <span class="sr-chip sr-chip--status" id="status"><span class="sr-dot sr-dot--faint" id="statusDot"></span><span id="statusText">checking</span></span>
     </div>
 
-    <button class="sr-button sr-toggle" id="enabled" aria-pressed="true" title="Turn skipping on or off">
-      <span id="enabledLabel">Skipping on</span>
-      <span class="sr-toggle__track"><span class="sr-toggle__knob"></span></span>
-    </button>
-
-    <!-- main -->
+    <!-- main: what the extension has done for you first, settings below -->
     <div class="sr-pane" id="pane-main">
       <div class="sr-card sr-hero" id="hero">
-        <span class="sr-hero__num" id="savedToday">0:00</span>
-        <span class="sr-hero__cap">saved today</span>
+        <span class="sr-hero__num" id="savedAll">0:00</span>
+        <span class="sr-hero__cap">saved all-time</span>
         <div class="sr-chips">
-          <span class="sr-chip sr-chip--mono" id="skipsToday">0 skips</span>
-          <span class="sr-chip sr-chip--mono" id="savedAll">all-time 0:00</span>
-          <span class="sr-chip sr-chip--mono" id="skipsAll">0 skips</span>
+          <span class="sr-chip sr-chip--mono" id="savedToday">today 0:00</span>
         </div>
+        <span class="sr-hero__line" id="trust"></span>
+      </div>
+
+      <div class="sr-video" id="video" hidden>
+        <div class="sr-rows__head"><span class="sr-label">this video</span><span class="sr-hint" id="videoLen"></span></div>
+        <div class="sr-hairline"><div class="sr-hairline__track" id="videoTrack"></div></div>
+        <div id="videoRows"></div>
+        <ul class="sr-list" id="videoDeal"></ul>
       </div>
 
       <div class="sr-channel" id="channel">
@@ -51,11 +52,17 @@
         <div id="mainRows"></div>
         <div id="moreRows" hidden></div>
       </div>
+
+      <!-- the off switch is a setting, not the point: it sits at the end of the pane -->
+      <button class="sr-button sr-button--sm sr-toggle" id="enabled" aria-pressed="true" title="Turn skipping on or off">
+        <span id="enabledLabel">Skipping on</span>
+        <span class="sr-toggle__track"><span class="sr-toggle__knob"></span></span>
+      </button>
     </div>
 
     <!-- codes & more -->
     <div class="sr-pane" id="pane-more" hidden>
-      <div class="sr-rows__head"><span class="sr-label">codes</span><button class="sr-button--text sr-more" id="backBtn">← back</button></div>
+      <span class="sr-label">codes</span>
       <input class="sr-input" type="search" id="codeSearch" placeholder="Search brand, code, creator" autocomplete="off">
       <ul class="sr-list sr-scroll" id="codeList"></ul>
       <div class="sr-hint" id="codeHint">Codes, links and offers from analyzed sponsor reads.</div>

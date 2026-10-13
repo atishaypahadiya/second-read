@@ -401,18 +401,28 @@
     });
   }
 
-  // --- stats (today + all-time), read by the popup
-  function recordSkip(savedSeconds) {
+  // --- stats (today + all-time), read by the popup: skips and seconds saved (an undo takes its skip back and is
+  // counted as an undo), and integrations that were left to play
+  function updateStats(change) {
     chrome.storage.local.get('stats', (res) => {
       const today = new Date().toISOString().slice(0, 10);
       const st = res.stats || {};
       const t = st.today && st.today.date === today ? st.today : { date: today, skips: 0, saved: 0 };
       const a = st.all || { skips: 0, saved: 0 };
-      const d = savedSeconds >= 0 ? 1 : -1;
-      t.skips = Math.max(0, t.skips + d); t.saved = Math.max(0, t.saved + savedSeconds);
-      a.skips = Math.max(0, a.skips + d); a.saved = Math.max(0, a.saved + savedSeconds);
+      for (const bucket of [t, a]) change(bucket);
       chrome.storage.local.set({ stats: { today: t, all: a } });
     });
+  }
+  function recordSkip(savedSeconds) {
+    const undo = savedSeconds < 0;
+    updateStats((b) => {
+      b.skips = Math.max(0, (b.skips || 0) + (undo ? -1 : 1));
+      b.saved = Math.max(0, (b.saved || 0) + savedSeconds);
+      if (undo) b.undos = (b.undos || 0) + 1;
+    });
+  }
+  function recordKept() {
+    updateStats((b) => { b.kept = (b.kept || 0) + 1; });
   }
 
   // --- toast after a skip: .sr-toast.sr-glass (DESIGN.md): head (dot, name, chip, "0:52 skipped"), hairline with the
@@ -482,6 +492,10 @@
       if (!video || adShowing() || video.seeking) return;
       const t = video.currentTime;
       for (const s of state.segments) {
+        if (s.action === 'keep' && t >= s.start && t < s.end && !state.handled.has('kept:' + segKey(s))) {
+          state.handled.add('kept:' + segKey(s));
+          recordKept();
+        }
         if (effectiveAction(s) !== 'skip') {
           if (s.action === 'skip' && state.channelId && settings.allowlist[state.channelId] &&
               t >= s.start && t < s.end && !state.handled.has('allow:' + segKey(s))) {
@@ -635,8 +649,9 @@
     sendResponse(current ? {
       videoId: current.videoId, channelId: current.channelId || '', channelName: current.creator || '',
       title: current.title || '', position: v ? v.currentTime : 0, status: current.lastStatus || '',
+      duration: v && Number.isFinite(v.duration) ? v.duration : 0,
       captions: current.captionsNote || '',
-      segments: (current.segments || []).map((s) => ({ ...s, effective: effectiveAction(s) })),
+      segments: (current.segments || []).map((s) => ({ ...s, effective: effectiveAction(s), done: current.outcome.get(segKey(s)) || '' })),
     } : {});
     return false;
   });

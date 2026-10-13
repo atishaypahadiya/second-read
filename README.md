@@ -199,10 +199,15 @@ pre-skip position. Wrong skip does the same and files a report with the
 segment and its evidence. Seeking into a segment by hand marks it handled and
 lets it play.
 
-The popup has the master toggle, time saved today, a don't-skip switch for the
-current channel, the per-category setting (four categories shown, eight behind
-a disclosure), a searchable vault of promo codes, and "Missed an ad here",
-which reports the current playhead. A status badge on the player (reading
+The popup opens on what the extension has done: the time saved all-time, with
+today's figure and one line of proof (skips, how many you undid, integrations
+left playing). Under it, for the video in the tab, a thin timeline with its
+sponsor segments, what happened to each, and the read's code or link with a
+Copy button, so skipping the ad does not cost you the offer. Settings come
+after: a don't-skip switch for the current channel, the per-category setting
+(four categories shown, eight behind a disclosure), and the on/off switch at
+the end. A second pane holds the searchable vault of promo codes. "Missed an
+ad here" reports the current playhead. A status badge on the player (reading
 captions, analyzing 2/4, ready, no ads, no captions, server offline, analysis
 failed) is shown in dev mode only.
 

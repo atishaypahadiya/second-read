@@ -199,8 +199,8 @@
 }
 .sr-button--text:hover { opacity: var(--sr-o1); }
 .sr-glass .sr-button--text { opacity: var(--sr-o2); padding: 0 var(--sr-s3); font-size: 14px; }
-.sr-ui :focus-visible {
-  outline: 2px solid var(--sr-accent);
+.sr-ui :focus-visible {                 /* ink, not the accent: the accent means live or skip, never "focused" */
+  outline: 2px solid rgba(var(--sr-fg-rgb, 255, 255, 255), var(--sr-o3));
   outline-offset: 2px;
   border-radius: var(--sr-r-pill);
 }
