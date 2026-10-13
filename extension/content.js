@@ -2,7 +2,8 @@
 // Stage 1: detect the current video and react to YouTube's in-app navigation.
 // Stage 2: ask page.js (MAIN world) for the caption lines and log what came back.
 // Stage 3: send the lines to the local server via background.js and poll for segments.
-// Stage 6: progress-bar markers, live skipping with Undo toast, status badge.
+// Stage 6: marker lane, live skipping with Undo toast, status badge. All visuals come from ui/components.css
+// (DESIGN.md); this file only builds the markup those classes expect.
 
 (() => {
   const BUILD = 14; // keep equal to page.js, background.js and server.py CLIENT_BUILD
@@ -76,7 +77,7 @@
     current = { videoId, cleanups: [], segments: [], handled: new Set() };
     log('video', videoId);
     if (!settings.enabled) { log('disabled in popup; not analyzing'); return; }
-    setBadge('reading captions', 'busy');
+    setBadge('reading captions', 'reading');
     attachPlayback();
     requestCaptions(videoId);
   }
@@ -92,7 +93,7 @@
       if (d.error) {
         log('captions:', String(d.error).slice(0, 80));
         current.captionsNote = d.error === 'no captions' ? 'no captions' : 'captions unavailable';
-        setBadge(current.captionsNote, 'off');
+        setBadge(current.captionsNote, 'nocaptions');
         return;
       }
       // Any page script can post a message shaped like this one, so validate before trusting it.
@@ -169,7 +170,7 @@
     setBadge('analyzing', 'busy');
     const res = await send({ type: 'analyze', payload: analyzePayload(state) });
     if (!alive()) return;
-    if (!res.ok) { logErr('server:', res.error); setBadge(res.error === 'server offline' ? 'server offline' : `server: ${res.error}`, 'error'); return; }
+    if (!res.ok) { logErr('server:', res.error); serverErrorBadge(res.error); return; }
     handleJob(videoId, res);
     if (res.status === 'done' || res.status === 'error') return;
 
@@ -179,7 +180,7 @@
     timer = setInterval(async () => {
       const r = await send({ type: 'poll', videoId });
       if (!alive()) { stop(); return; }
-      if (!r.ok) { logErr('server:', r.error); setBadge(r.error === 'server offline' ? 'server offline' : `server: ${r.error}`, 'error'); stop(); return; }
+      if (!r.ok) { logErr('server:', r.error); serverErrorBadge(r.error); stop(); return; }
       handleJob(videoId, r);
       if (r.status === 'done' || r.status === 'error') stop();
     }, POLL_MS);
@@ -196,13 +197,14 @@
       for (const s of state.segments) {
         log(`  ${s.action.toUpperCase()} [${fmtTime(s.start)}-${fmtTime(s.end)}] ${s.category}/${s.style} ${s.brand} conf=${s.confidence} — ${s.reason}`);
       }
-      setBadge(`ready · ${skips} to skip`, 'ready');
-      dimBadgeSoon();
+      // Only something that will be skipped gets the accent "ready" dot; everything else is the quiet state.
+      if (skips) setBadge('ready', 'ready', `${skips} to skip`);
+      else setBadge(state.segments.length ? 'nothing to skip' : 'no ads', 'none');
+      collapseBadgeSoon();
     } else if (job.status === 'error') {
-      setBadge(`analysis error${job.error ? `: ${job.error}` : ''}`, 'error');
+      setBadge('analysis failed', 'error', job.error || '');
     } else {
-      const prog = job.progress ? ` ${job.progress}` : '';
-      setBadge(`${job.paused ? 'paused' : 'analyzing'}${prog}${skips ? ` · ${skips} to skip so far` : ''}`, 'busy');
+      setBadge(job.paused ? 'paused' : 'analyzing', 'busy', [job.progress || '', skips ? `${skips} to skip` : ''].filter(Boolean).join(' · '));
     }
     drawMarkers();
   }
@@ -218,69 +220,142 @@
   const adShowing = () => { const p = playerEl(); return !!p && p.classList.contains('ad-showing'); };
   const segKey = (s) => `${s.start}-${s.end}`;
 
-  // --- status badge
-  function setBadge(text, kind) {
+  // --- status badge (dev mode). Markup per DESIGN.md: .ss-badge.ss-glass[data-kind] > .ss-dot + text + .ss-badge__count
+  // kinds: reading | busy | ready | none | nocaptions | off | error
+  const BADGE_COLLAPSE_MS = 3000;
+  function setBadge(text, kind, count) {
     const state = current;
     if (!state) return;
-    state.badgeText = text; state.badgeKind = kind; // remembered so the tick can (re)place it
-    if (!settings.devMode) return;
+    // remembered so the tick can (re)place it
+    state.badgeText = text; state.badgeKind = kind; state.badgeCount = count || ''; state.badgeCollapsed = false;
+    if (state.badgeTimer) { clearTimeout(state.badgeTimer); state.badgeTimer = null; }
+    renderBadge();
+  }
+  function renderBadge() {
+    const state = current;
+    if (!state || !settings.devMode || !state.badgeText) return;
     const p = playerEl();
     if (!p) return;
     if (!state.badge || !state.badge.isConnected) {
       if (state.badge) state.badge.remove();
-      state.badge = document.createElement('div');
-      state.badge.className = 'ss-badge';
-      p.appendChild(state.badge);
+      const el = document.createElement('div');
+      el.className = 'ss-badge ss-glass ss-ui';
+      const dot = document.createElement('span'); dot.className = 'ss-dot';
+      const label = document.createElement('span');
+      const cnt = document.createElement('span'); cnt.className = 'ss-badge__count';
+      el.append(dot, label, cnt);
+      el.ssLabel = label; el.ssCount = cnt;
+      p.appendChild(el);
+      state.badge = el;
       state.cleanups.push(() => { if (state.badge) state.badge.remove(); state.badge = null; });
     }
-    state.badge.textContent = text;
-    state.badge.dataset.kind = kind;
-    state.badge.classList.remove('ss-dim');
+    state.badge.ssLabel.textContent = state.badgeText;
+    state.badge.ssCount.textContent = state.badgeCount;
+    state.badge.ssCount.style.display = state.badgeCount ? '' : 'none';
+    state.badge.dataset.kind = state.badgeKind;
+    state.badge.classList.toggle('is-collapsed', !!state.badgeCollapsed);
   }
-  function dimBadgeSoon() {
+  function collapseBadgeSoon() {   // after 3s only the dot is left
     const state = current;
-    const t = setTimeout(() => { if (state.badge) state.badge.classList.add('ss-dim'); }, 4000);
-    state.cleanups.push(() => clearTimeout(t));
+    if (state.badgeTimer) clearTimeout(state.badgeTimer);
+    state.badgeTimer = setTimeout(() => { state.badgeTimer = null; state.badgeCollapsed = true; if (current === state) renderBadge(); }, BADGE_COLLAPSE_MS);
+    state.cleanups.push(() => { if (state.badgeTimer) clearTimeout(state.badgeTimer); });
+  }
+  function serverErrorBadge(error) {
+    if (error === 'server offline') setBadge('server offline', 'off');
+    else setBadge('analysis failed', 'error', String(error || ''));
   }
 
-  // --- markers
+  // --- labels shared by the tooltip and the toast (chips are lowercase; DESIGN.md "Writing")
+  const CATEGORY_LABEL = { affiliate: 'affiliate', selfpromo: 'self-promo', membership: 'membership', crosspromo: 'cross-promo',
+                           charity: 'charity', giveaway: 'giveaway', interaction: 'like & subscribe', intro: 'intro', outro: 'outro', recap: 'recap' };
+  const categoryLabel = (s) => (s.category === 'sponsor' ? (s.style === 'integration' ? 'integration' : 'sponsor · read') : (CATEGORY_LABEL[s.category] || s.category));
+  const sentence = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+  const brandOf = (s) => s.brand_canonical || s.brand || '';
+  // Title: the brand when there is one, otherwise the category in sentence case ("Outro", "Like & subscribe").
+  const displayName = (s) => brandOf(s) || (s.category === 'sponsor' ? 'Sponsor' : sentence(CATEGORY_LABEL[s.category] || s.category));
+  // Chip: the category, unless the title already says it (a brand-less outro is not "Outro [outro]").
+  const chipLabel = (s) => (brandOf(s) || s.category === 'sponsor' ? categoryLabel(s) : '');
+  // Same thresholds as the server (SKIP_THRESHOLD 0.85; label-only segments under 0.8). A low-confidence segment is
+  // hatched so it never looks like a confident one. Rule and chapter segments are exact, never low.
+  const SKIP_CONF = 0.85, LABEL_LOW_CONF = 0.8;
+  function isLow(s) {
+    if (s.source === 'rule' || s.source === 'chapter') return false;
+    const c = Number(s.confidence);
+    if (!Number.isFinite(c)) return false;
+    return s.category === 'sponsor' && s.style !== 'integration' ? c < SKIP_CONF : c < LABEL_LOW_CONF;
+  }
+  function el(tag, className, text) {
+    const e = document.createElement(tag);
+    if (className) e.className = className;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+
+  // --- marker lane: its own 4px strip above YouTube's bar (.ss-lane), one .ss-marker per segment.
+  // Meaning is shape + colour: skip = filled accent, keep (integration) = outline, show (label) = dim, low = hatched.
   function drawMarkers() {
     const state = current;
     if (!state) return;
     const bar = document.querySelector('#movie_player .ytp-progress-bar');
     const video = videoEl();
     if (!bar || !video || !isFinite(video.duration) || video.duration <= 0) return;
+    const host = document.querySelector('#movie_player .ytp-progress-bar-container') || bar;
     if (state.markers) state.markers.remove();
-    bar.querySelectorAll('.ss-markers').forEach((e) => e.remove());
-    const box = document.createElement('div');
-    box.className = 'ss-markers';
+    host.querySelectorAll('.ss-lane').forEach((e) => e.remove());
+    const lane = el('div', 'ss-lane ss-ui');
     const dur = video.duration;
     for (const s of state.segments) {
       const eff = effectiveAction(s);
       if (eff === 'off') continue;
-      const el = document.createElement('div');
-      el.className = 'ss-marker';
-      el.dataset.action = eff;
-      el.dataset.category = s.category === 'sponsor' ? (s.style === 'integration' ? 'integration' : 'sponsor') : s.category;
-      el.style.left = `${(Math.max(0, s.start) / dur) * 100}%`;
-      el.style.width = `${(Math.max(0, Math.min(dur, s.end) - Math.max(0, s.start)) / dur) * 100}%`;
-      el.title = [
-        `${eff.toUpperCase()}${eff !== s.action ? ` (server: ${s.action})` : ''} ${fmtTime(s.start)}–${fmtTime(s.end)}`,
-        `${s.category}${s.category === 'sponsor' ? `/${s.style}` : ''}${(s.brand_canonical || s.brand) ? ` · ${s.brand_canonical || s.brand}` : ''} · conf ${Number(s.confidence).toFixed(2)}${s.source && s.source !== 'detect' ? ` · ${s.source}` : ''}`,
-        s.evidence ? `evidence: ${s.evidence}` : '',
-        s.reason || '',
-      ].filter(Boolean).join('\n');
-      el.addEventListener('click', (ev) => {
+      const m = el('div', `ss-marker${isLow(s) ? ' is-low' : ''}`);
+      m.dataset.action = eff;
+      m.dataset.category = s.category === 'sponsor' ? (s.style === 'integration' ? 'integration' : 'sponsor') : s.category;
+      const left = (Math.max(0, s.start) / dur) * 100;
+      const width = (Math.max(0, Math.min(dur, s.end) - Math.max(0, s.start)) / dur) * 100;
+      m.style.left = `${left}%`;
+      m.style.width = `${width}%`;
+      m.addEventListener('mouseenter', () => showTooltip(lane, s, eff, left + width / 2));
+      m.addEventListener('mouseleave', () => hideTooltip(lane));
+      m.addEventListener('click', (ev) => {
         ev.stopPropagation(); ev.preventDefault();
         const r = bar.getBoundingClientRect();
         const frac = Math.min(1, Math.max(0, (ev.clientX - r.left) / r.width));
         const v = videoEl();
         if (v) v.currentTime = frac * v.duration;
       });
-      box.appendChild(el);
+      lane.appendChild(m);
     }
-    bar.appendChild(box);
-    state.markers = box;
+    host.appendChild(lane);
+    state.markers = lane;
+  }
+
+  // --- marker tooltip: .ss-tooltip.ss-glass.ss-glass--solid, a child of the lane centred on the marker
+  function showTooltip(lane, s, eff, centerPct) {
+    hideTooltip(lane);
+    const low = isLow(s);
+    const tip = el('div', 'ss-tooltip ss-glass ss-glass--solid');
+    const head = el('div', 'ss-tooltip__head');
+    head.append(el('span', 'ss-tooltip__brand', displayName(s)));
+    const chip = [chipLabel(s), low ? 'low' : ''].filter(Boolean).join(' · ');
+    if (chip) head.append(el('span', 'ss-chip', chip));
+    const c = Number(s.confidence);
+    if (Number.isFinite(c)) head.append(el('span', 'ss-tooltip__conf', c.toFixed(2)));
+    const what = eff === 'skip' ? 'will skip' : 'plays';
+    const why = eff !== 'skip' && s.category === 'sponsor' && s.style !== 'integration' && low ? ` · below ${SKIP_CONF}` : '';
+    tip.append(head, el('span', 'ss-tooltip__time', `${fmtTime(s.start)} – ${fmtTime(s.end)} · ${what}${why}`));
+    const quote = s.evidence ? `“${s.evidence}”` : (s.reason || '');
+    if (quote) tip.append(el('span', 'ss-tooltip__quote', quote.length > 220 ? `${quote.slice(0, 217)}…` : quote));
+    // keep the 320px card inside the player: clamp its centre to the lane
+    const w = lane.getBoundingClientRect().width || 0;
+    const half = Math.min(160, Math.max(0, w / 2 - 8));
+    const x = w ? Math.min(w - half, Math.max(half, (centerPct / 100) * w)) : 0;
+    tip.style.left = w ? `${x}px` : `${centerPct}%`;
+    lane.appendChild(tip);
+    lane.ssTip = tip;
+  }
+  function hideTooltip(lane) {
+    if (lane.ssTip) { lane.ssTip.remove(); lane.ssTip = null; }
   }
 
   // --- stats events (skip / undo / seek_into / allowlisted) -> background -> POST /event. Fire and forget.
@@ -326,37 +401,61 @@
     });
   }
 
-  // --- toast
-  function showToast(text, onUndo, onWrong) {
+  // --- toast after a skip: .ss-toast.ss-glass (DESIGN.md): head (dot, name, chip, "0:52 skipped"), hairline with the
+  // skipped span, the evidence quote (two lines), Undo + Wrong skip. Enters with ss-enter, leaves with .is-leaving.
+  const TOAST_EXIT_MS = 180;
+  function showToast(info, onUndo, onWrong) {
     const state = current;
     const p = playerEl();
     if (!state || !p) return;
-    hideToast();
-    const el = document.createElement('div');
-    el.className = 'ss-toast';
-    const span = document.createElement('span');
-    span.textContent = text;
-    const btn = document.createElement('button');
-    btn.textContent = 'Undo';
-    btn.addEventListener('click', (ev) => { ev.stopPropagation(); onUndo(); hideToast(); });
-    el.append(span, btn);
+    hideToast(true);
+    const s = info.segment;
+    const v = videoEl();
+    const dur = v && isFinite(v.duration) && v.duration > 0 ? v.duration : 0;
+    const toast = el('div', 'ss-toast ss-glass ss-ui');
+    toast.setAttribute('role', 'status');
+    const head = el('div', 'ss-toast__head');
+    head.append(el('span', 'ss-dot ss-dot--lg'), el('span', 'ss-toast__brand', displayName(s)));
+    if (chipLabel(s)) head.append(el('span', 'ss-chip', chipLabel(s)));
+    head.append(el('span', 'ss-toast__meta', `${fmtTime(info.saved)} skipped`));
+    const hair = el('div', 'ss-hairline');
+    const track = el('div', 'ss-hairline__track');
+    const span = el('div', 'ss-hairline__span');
+    if (dur) {
+      span.style.left = `${Math.min(100, (Math.max(0, s.start) / dur) * 100)}%`;
+      span.style.width = `${Math.max(0.8, ((Math.min(dur, s.end) - Math.max(0, s.start)) / dur) * 100)}%`;
+    } else { span.style.left = '0'; span.style.width = '100%'; }
+    track.append(span);
+    const ends = el('div', 'ss-hairline__ends');
+    ends.append(el('span', '', `${fmtTime(s.start)} → ${fmtTime(s.end)}`), el('span', '', dur ? fmtTime(dur) : ''));
+    hair.append(track, ends);
+    toast.append(head, hair);
+    if (s.evidence) toast.append(el('div', 'ss-stream ss-stream--2', s.evidence));
+    const actions = el('div', 'ss-toast__actions');
+    const undo = el('button', 'ss-button ss-button--sm', 'Undo');
+    undo.addEventListener('click', (ev) => { ev.stopPropagation(); onUndo(); hideToast(); });
+    actions.append(undo);
     if (onWrong) {
-      const wrong = document.createElement('button');
-      wrong.textContent = 'Wrong skip';
-      wrong.className = 'ss-wrong';
+      const wrong = el('button', 'ss-button--text', 'Wrong skip');
       wrong.title = 'Undo and report this as a wrong skip';
       wrong.addEventListener('click', (ev) => { ev.stopPropagation(); onUndo(); onWrong(); hideToast(); });
-      el.appendChild(wrong);
+      actions.append(wrong);
     }
-    p.appendChild(el);
-    state.toast = el;
+    toast.append(actions);
+    p.appendChild(toast);
+    state.toast = toast;
     state.toastTimer = setTimeout(hideToast, TOAST_MS);
   }
-  function hideToast() {
+  function hideToast(immediate) {
     const state = current;
     if (!state) return;
     if (state.toastTimer) { clearTimeout(state.toastTimer); state.toastTimer = null; }
-    if (state.toast) { state.toast.remove(); state.toast = null; }
+    const toast = state.toast;
+    if (!toast) return;
+    state.toast = null;
+    if (immediate === true) { toast.remove(); return; }
+    toast.classList.add('is-leaving');
+    setTimeout(() => toast.remove(), TOAST_EXIT_MS);
   }
 
   // --- skipping
@@ -388,10 +487,6 @@
           log(`skipped ${s.brand || 'sponsor'} ${s.category === 'sponsor' ? 'read' : s.category} ${fmtTime(s.start)}-${fmtTime(s.end)} (from ${fmtTime(from)})`);
           recordSkip(saved);
           sendEvent('skip', s, { playhead: from, saved });
-          const names = { affiliate: 'affiliate plug', selfpromo: 'self-promo', membership: 'membership ask', crosspromo: 'cross-promo',
-                          charity: 'donation appeal', giveaway: 'giveaway', interaction: 'like & subscribe', intro: 'intro', outro: 'outro', recap: 'recap' };
-          const brand = s.brand_canonical || s.brand;
-          const what = s.category === 'sponsor' ? `${brand ? `${brand} ` : ''}read` : (names[s.category] || s.category);
           const undo = () => {
             const v = videoEl();
             if (!v) return;
@@ -401,7 +496,7 @@
             sendEvent('undo', s, { playhead: from, saved });
             log(`undo: back to ${fmtTime(from)}; segment stays handled`);
           };
-          showToast(`Skipped ${what} (${fmtTime(saved)})`, undo, () => {
+          showToast({ segment: s, saved }, undo, () => {
             sendFeedback({ kind: 'false_skip', segment: s, playhead: from });
           });
           return;
@@ -447,14 +542,14 @@
       const v = videoEl();
       if (v !== video) bind(v);
       if (state.segments.length && (!state.markers || !state.markers.isConnected)) drawMarkers();
-      if (settings.devMode && (!state.badge || !state.badge.isConnected) && state.badgeText) setBadge(state.badgeText, state.badgeKind);
+      if (settings.devMode && (!state.badge || !state.badge.isConnected) && state.badgeText) renderBadge();
     }, 1000);
 
     bind(videoEl());
     state.cleanups.push(() => {
       clearInterval(tick);
       unbind();
-      hideToast();
+      hideToast(true);
       if (state.markers) { state.markers.remove(); state.markers = null; }
     });
   }
@@ -498,7 +593,7 @@
       return;
     }
     if (!settings.devMode && current.badge) { current.badge.remove(); current.badge = null; }
-    if (settings.devMode && current.badgeText) setBadge(current.badgeText, current.badgeKind);
+    if (settings.devMode && current.badgeText) renderBadge();
     drawMarkers();
   }
 

@@ -63,10 +63,13 @@ const videoHandlers = {};
 const fakeVideo = { currentTime: 12.5, duration: 1012.4, seeking: false,
                     addEventListener: (type, fn) => { videoHandlers[type] = fn; }, removeEventListener() {} };
 // Minimal DOM: elements remember their children and click handlers so the test can press the toast's buttons.
-const makeEl = () => ({ style: {}, dataset: {}, children: [], handlers: {}, textContent: '', className: '',
+const makeEl = () => ({ style: {}, dataset: {}, children: [], handlers: {}, attrs: {}, textContent: '', className: '',
   classList: { add() {}, remove() {}, toggle() {}, contains: () => false },
   append(...kids) { this.children.push(...kids); }, appendChild(k) { this.children.push(k); return k; },
+  setAttribute(k, v) { this.attrs[k] = v; }, querySelectorAll: () => [], getBoundingClientRect: () => ({ left: 0, width: 0 }),
   addEventListener(type, fn) { this.handlers[type] = fn; }, remove() { this.removed = true; }, isConnected: true });
+const hasClass = (e, c) => String(e.className || '').split(/\s+/).includes(c);
+const findDeep = (e, pred) => { if (pred(e)) return e; for (const k of e.children || []) { const r = findDeep(k, pred); if (r) return r; } return null; };
 const player = makeEl();
 const contentRuntimeListeners = [];
 const win = {
@@ -151,9 +154,22 @@ setTimeout(() => {
   check(typeof videoHandlers.timeupdate === 'function', 'content.js did not bind timeupdate on the video');
   if (videoHandlers.timeupdate) videoHandlers.timeupdate();
   check(fakeVideo.currentTime === SEG.end, `skip did not fire: currentTime ${fakeVideo.currentTime}, expected ${SEG.end}`);
-  const toast = player.children.find((c) => c.className === 'ss-toast' && !c.removed);
+  const toast = player.children.find((c) => hasClass(c, 'ss-toast') && !c.removed);
   check(!!toast, 'no toast after the skip');
-  const wrong = toast && toast.children.find((c) => c.textContent === 'Wrong skip');
+  // design-system markup (DESIGN.md "Toast"): glass surface, name + chip + "m:ss skipped", hairline, evidence, two actions
+  if (toast) {
+    check(hasClass(toast, 'ss-glass') && hasClass(toast, 'ss-ui'), `toast classes: ${toast.className}`);
+    const text = (c) => (findDeep(toast, (e) => hasClass(e, c)) || {}).textContent;
+    check(text('ss-toast__brand') === 'Coddy', `toast name = ${text('ss-toast__brand')}, expected the canonical brand`);
+    check(text('ss-chip') === 'sponsor · read', `toast chip = ${text('ss-chip')}`);
+    check(text('ss-toast__meta') === '0:29 skipped', `toast meta = ${text('ss-toast__meta')}`);
+    check(text('ss-stream') === SEG.evidence, 'toast does not show the evidence quote');
+    const span = findDeep(toast, (e) => hasClass(e, 'ss-hairline__span'));
+    check(!!span && /%$/.test(span.style.left || '') && /%$/.test(span.style.width || ''), 'toast hairline span has no position');
+    const undo = findDeep(toast, (e) => e.textContent === 'Undo' && hasClass(e, 'ss-button'));
+    check(!!undo && typeof undo.handlers.click === 'function', 'toast has no Undo button');
+  }
+  const wrong = toast && findDeep(toast, (e) => e.textContent === 'Wrong skip');
   check(!!wrong && typeof wrong.handlers.click === 'function', 'toast has no "Wrong skip" button');
   if (wrong && wrong.handlers.click) wrong.handlers.click({ stopPropagation() {} });
   check(fakeVideo.currentTime === PLAYHEAD, `"Wrong skip" did not undo: currentTime ${fakeVideo.currentTime}, expected ${PLAYHEAD}`);
