@@ -82,8 +82,8 @@
           "action": "show",
           "category": "intro",
           "start": 0,
-          "end": 15,
-          "tol": 2
+          "end": 13.5,
+          "tol": 2.5
         }
       ],
       "forbid": [
@@ -180,8 +180,8 @@
           "action": "show",
           "category": "intro",
           "start": 0,
-          "end": 15,
-          "tol": 2
+          "end": 13.5,
+          "tol": 2.5
         }
       ],
       "forbid": [
