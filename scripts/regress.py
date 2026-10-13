@@ -282,19 +282,19 @@ def unit_checks():
        [labeled(story, paid=True), labeled(story, paid=False), labeled(story, paid=None)], [["keep"], [], []])
     eq("filter: skips and other categories are not touched by it",
        (labeled(story, style="read", action="skip", confidence=0.95), labeled(story, category="selfpromo", action="show")), (["skip"], ["show"]))
-    # ---- lead-in: the segue before a read is cut with it, by whole sentences, at most 8 s, and only on a clear answer
+    # ---- lead-in: the segue before a read is cut with it, by whole sentences, at most 6 s, and only on a clear answer
     def spoken(start, end, text):   # a caption line with its words spread evenly (enough for sentence boundaries)
         ws = text.split()
         step = (end - start) / len(ws)
         return {"start": start, "end": end, "text": text, "timed": True,
                 "words": [[round(start + i * step, 2), round(start + (i + 1) * step, 2), w] for i, w in enumerate(ws)]}
     talk = server.clean_lines([
-        spoken(100.0, 106.0, "flying is safe and it lets you visit places across the globe. Look at"),
-        spoken(106.0, 112.0, "Lens, for example, one of our animators. Hey, I'm currently in China."),
+        spoken(101.0, 108.0, "flying is safe and it lets you visit places across the globe. Look at"),
+        spoken(108.0, 112.0, "Lens, for example, one of our animators. Hey, I'm currently in China."),
         spoken(112.0, 118.0, "When abroad, I always use Saylite to get an eSIM. It's a no-brainer."),
         spoken(118.0, 150.0, "Use code FERNTV at checkout for a discount and thanks to Saylite for sponsoring.")])
     when = talk[2]["words"][0][0]
-    eq("lead-in: the whole sentences before the cut, oldest first, none starting more than 8 s back",
+    eq("lead-in: the whole sentences before the cut, oldest first, none starting more than 6 s back",
        [t for _, t in server.sentences_before(talk, when)],
        ["Look at Lens, for example, one of our animators.", "Hey, I'm currently in China."])
     eq("lead-in: a cut in mid-sentence offers the head of that sentence last",
