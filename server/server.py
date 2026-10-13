@@ -1008,7 +1008,7 @@ def merge_segments(segs):
 
 def public_segment(seg):
     keys = ("start", "end", "category", "style", "brand", "confidence", "evidence", "reason", "action", "line_start", "line_end",
-            "source")
+            "source", "undisclosed")
     return {k: seg[k] for k in keys if k in seg}
 
 
@@ -1535,7 +1535,12 @@ def run_window(job, first, last):
 
 
 def finalize(job, verbose):
-    return [public_segment(x) for x in post_filter(merge_segments(job["final"]), job["title"], job["alines"], verbose)]
+    out = []
+    for x in post_filter(merge_segments(job["final"]), job["title"], job["alines"], verbose):
+        if x.get("category") == "sponsor" and x.get("style") == "read" and not job.get("paid_promotion") and not job.get("disclosed"):
+            x["undisclosed"] = True  # 7c: a sponsor read with neither YouTube's paid-promotion flag nor an (ad)/sponsor line in the description
+        out.append(x)
+    return [public_segment(x) for x in out]
 
 
 def publish(job):
@@ -1576,6 +1581,9 @@ def finish_job(job):
         job["status"] = "done"
         job["paused"] = False
     calls = job["calls"]
+    if any(x.get("undisclosed") for x in segments):
+        log(f"[{video_id}] disclosure: sponsor read found but neither YouTube's paid-promotion flag nor an (ad)/sponsor line "
+            f"in the description -> flagged undisclosed?")
     log(f"[{video_id}] done: {len(segments)} segment(s), {job['n_sent']}/{job['n_windows']} window(s) sent, "
         f"model calls: {calls.reused} reused / {calls.computed} computed, {job_time:.1f}s wall "
         f"({job['work_s']:.1f}s working), first skip at {'%.1fs' % job['ttfs'] if job['ttfs'] is not None else '-'}, cached")
@@ -1751,6 +1759,7 @@ def start_or_get_job(video_id, lang, lines, title="", meta=None, alines=None, al
                "video_id": video_id, "kind": meta.get("kind", ""), "creator": meta.get("creator", ""),
                "tag": meta.get("tag", ""), "channel_id": meta.get("channel_id", ""), "duration": meta.get("duration"),
                "heat": meta.get("heat") or [], "chapter_times": hints.get("chapter_times", []),
+               "paid_promotion": bool(meta.get("paid_promotion")), "disclosed": bool(AD_LINE_RE.search(description or "")),
                "position": position, "hints": hints, "terms": terms,
                "header": hints_header(hints), "calls": CallCache(prior_calls), "final": [], "pending": None,
                "n_windows": 0, "n_sent": 0, "ttfs": None, "t_start": time.time(), "work_s": 0.0,
@@ -1892,7 +1901,8 @@ class Handler(BaseHTTPRequestHandler):
                 "tag": str(data.get("tag") or "")[:40],  # free-text note for results.md (e.g. BASELINE)
                 "channel_id": str(data.get("channelId") or "")[:40], "duration": finite(data.get("duration")),
                 "heat": [[finite(p[0], 0.0), finite(p[1], 0.0)] for p in (data.get("heat") or [])[:200]
-                         if isinstance(p, list) and len(p) == 2]}
+                         if isinstance(p, list) and len(p) == 2],
+                "paid_promotion": data.get("paidPromotion") is True}
         description = str(data.get("description") or "")[:5000]
         try:
             position = max(0.0, float(data.get("position") or 0.0))

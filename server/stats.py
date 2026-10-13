@@ -243,8 +243,9 @@ def compute():
     """All dashboard numbers in one dict."""
     with _lock, connect() as c:
         videos = [dict(r) for r in c.execute("SELECT * FROM videos")]
-        segs = [dict(r) for r in c.execute("SELECT s.*, v.channel_id, v.channel_name, v.duration_s FROM segments s "
-                                           "LEFT JOIN videos v ON v.video_id = s.video_id")]
+        segs = [dict(r) for r in c.execute("SELECT s.*, v.channel_id, v.channel_name, v.duration_s, x.paid_promotion, x.disclosed "
+                                           "FROM segments s LEFT JOIN videos v ON v.video_id = s.video_id "
+                                           "LEFT JOIN video_context x ON x.video_id = s.video_id")]
         events = [dict(r) for r in c.execute("SELECT * FROM events")]
         aliases = [dict(r) for r in c.execute("SELECT * FROM brand_aliases WHERE how != 'builtin'")]
 
@@ -266,8 +267,11 @@ def compute():
     for s in sponsor:
         b = brands.setdefault(s["brand"] or "(unknown)", {
             "brand": s["brand"] or "(unknown)", "spots": 0, "reads": 0, "integrations": 0, "creators": set(), "len_s": 0.0,
-            "skips": 0, "skipped_s": 0.0, "undos": 0, "seek_into": 0, "wrong_skips": 0, "raw": set(), "creator_counts": {}})
+            "skips": 0, "skipped_s": 0.0, "undos": 0, "seek_into": 0, "wrong_skips": 0, "raw": set(), "creator_counts": {},
+            "undisclosed": 0})
         b["spots"] += 1
+        if s["style"] == "read" and s.get("paid_promotion") is not None and not s["paid_promotion"] and not s["disclosed"]:
+            b["undisclosed"] += 1
         b["reads" if s["style"] == "read" else "integrations"] += 1
         b["creators"].add(s["channel_name"] or s["channel_id"] or "?")
         b["creator_counts"][s["channel_name"] or "?"] = b["creator_counts"].get(s["channel_name"] or "?", 0) + 1
@@ -298,7 +302,7 @@ def compute():
             "read_pct": pct(b["reads"], b["spots"]), "integration_pct": pct(b["integrations"], b["spots"]),
             "skips": b["skips"], "skipped_s": max(0.0, round(b["skipped_s"], 1)), "avg_len_s": round(b["len_s"] / b["spots"], 1),
             "watch_through": wt, "watch_through_pct": min(100, pct(wt, b["skips"])) if b["skips"] else 0,
-            "wrong_skips": b["wrong_skips"], "skip_rate": round(b["skips"] / b["spots"], 2),
+            "wrong_skips": b["wrong_skips"], "skip_rate": round(b["skips"] / b["spots"], 2), "undisclosed": b["undisclosed"],
             "top_creators": [k for k, _ in sorted(b["creator_counts"].items(), key=lambda x: -x[1])[:3]],
             "raw_spellings": sorted(b["raw"]),
         }
@@ -411,7 +415,7 @@ function tiles(o){return `<div class="tiles">
 <div class="tile"><div class="n">${o.wrong_skips}</div><div class="c">wrong-skip flags · ${o.missed_ads} missed-ad flags</div></div>
 </div>`}
 function hist(h){const m=Math.max(1,...h);return `<div class="bars">${h.map((n,i)=>`<div class="bar" style="height:${Math.round(100*n/m)}%" title="${n} ad(s) start in ${i*10}–${i*10+10}% of the video"><span>${n||''}</span></div>`).join('')}</div><div class="axis"><span>start of video</span><span>end of video</span></div>`}
-function brandsTable(rows){if(!rows.length)return '<div class="empty">No sponsor segments yet.</div>';return `<table><thead><tr><th>brand</th><th class="num">spots</th><th class="num">creators</th><th class="num">read / integr.</th><th class="num">skips</th><th class="num">skipped</th><th class="num">avg len</th><th class="num">watch-through</th><th class="num">wrong</th><th>top creators</th></tr></thead><tbody>${rows.map(r=>`<tr><td><b>${esc(r.brand)}</b>${r.raw_spellings.length&&r.raw_spellings.join('')!==r.brand?`<div class="raw">raw: ${esc(r.raw_spellings.join(', '))}</div>`:''}<div class="verdict">${esc(r.verdict)}</div></td><td class="num">${r.spots}</td><td class="num">${r.creators}</td><td class="num">${r.read_pct}% / ${r.integration_pct}%</td><td class="num">${r.skips}</td><td class="num">${dur(r.skipped_s)}</td><td class="num">${dur(r.avg_len_s)}</td><td class="num">${r.skips?r.watch_through_pct+'%':'–'}</td><td class="num">${r.wrong_skips||''}</td><td>${r.top_creators.map(esc).join(', ')}</td></tr>`).join('')}</tbody></table>`}
+function brandsTable(rows){if(!rows.length)return '<div class="empty">No sponsor segments yet.</div>';return `<table><thead><tr><th>brand</th><th class="num">spots</th><th class="num">creators</th><th class="num">read / integr.</th><th class="num">skips</th><th class="num">skipped</th><th class="num">avg len</th><th class="num">watch-through</th><th class="num">wrong</th><th class="num">undisclosed?</th><th>top creators</th></tr></thead><tbody>${rows.map(r=>`<tr><td><b>${esc(r.brand)}</b>${r.raw_spellings.length&&r.raw_spellings.join('')!==r.brand?`<div class="raw">raw: ${esc(r.raw_spellings.join(', '))}</div>`:''}<div class="verdict">${esc(r.verdict)}</div></td><td class="num">${r.spots}</td><td class="num">${r.creators}</td><td class="num">${r.read_pct}% / ${r.integration_pct}%</td><td class="num">${r.skips}</td><td class="num">${dur(r.skipped_s)}</td><td class="num">${dur(r.avg_len_s)}</td><td class="num">${r.skips?r.watch_through_pct+'%':'–'}</td><td class="num">${r.wrong_skips||''}</td><td class="num">${r.undisclosed?`<span class="flag">${r.undisclosed}</span>`:''}</td><td>${r.top_creators.map(esc).join(', ')}</td></tr>`).join('')}</tbody></table>`}
 function creatorsTable(rows){if(!rows.length)return '<div class="empty">No creators yet.</div>';return `<table><thead><tr><th>creator</th><th class="num">videos</th><th class="num">with ads</th><th class="num">spots</th><th class="num">ad density</th><th class="num">ad time</th><th class="num">integrations</th><th>brands</th></tr></thead><tbody>${rows.map(r=>`<tr><td><b>${esc(r.creator)}</b></td><td class="num">${r.videos}</td><td class="num">${r.videos_with_ads_pct}%</td><td class="num">${r.spots}</td><td class="num">${r.ad_density==null?'–':r.ad_density+' s/min'}</td><td class="num">${dur(r.ad_s)}</td><td class="num">${r.integration_pct}%</td><td>${r.brands.map(b=>`<span class="pill">${esc(b)}</span>`).join(' ')}</td></tr>`).join('')}</tbody></table>`}
 function hall(title,rows,fmt){return `<div class="hall"><h3>${title}</h3>${rows.length?`<ol>${rows.map(r=>`<li>${fmt(r)}</li>`).join('')}</ol>`:'<div class="sub">nothing yet</div>'}</div>`}
 function pctv(v){return v==null?'–':(v>=0?'+':'')+v+'%'}
@@ -431,7 +435,7 @@ const kv=[['position',m.position_pct!=null?m.position_pct+'% of video':'–'],['
 const tags=an&&an.persuasion.length?`<div class="tags">${an.persuasion.map(p=>`<span class="tag">${esc(p.tag)} <q>“${esc(p.quote)}”</q></span>`).join('')}</div>`:(an?'<div class="tags"><span class="sub">no persuasion techniques quoted</span></div>':'');
 const beats=an&&an.beats.length?`<div class="beats">structure: ${an.beats.map(b=>esc(b.beat)).join(' → ')}</div>`:'';
 const bp=an&&an.better_placement;const sugg=bp?(bp.same_as_now?`<div class="sugg">placement: already the natural spot — ${esc(bp.reason)}</div>`:`<div class="sugg">better placement: <b>${fmt(bp.time_s)}</b> — ${esc(bp.reason)}${bp.quote?` <q>“${esc(bp.quote)}”</q>${bp.quote_verified?'':' <span class="flag">(quote not found verbatim)</span>'}`:''}</div>`):(a.analysis_error?`<div class="sub">analysis failed: ${esc(a.analysis_error)}</div>`:'<div class="sub">deeper analysis pending (runs when the server is idle)</div>');
-return `<div class="card"><h3>${esc(a.brand||'?')} <span class="pill">${esc(a.style)}</span> <span class="pill">${esc(a.action)}</span></h3><div class="meta">${esc(a.creator||'')} · ${esc(a.title||a.video_id)} · ${fmt(a.start)}–${fmt(a.end)} (${fmt(a.end-a.start)}) · conf ${a.confidence}${a.brand_raw&&a.brand_raw!==a.brand?` · raw “${esc(a.brand_raw)}”`:''}</div>${timeline(a)}<div class="kv">${kv.map(([k,v])=>`<div><span>${k}</span><br><b>${v}</b></div>`).join('')}</div>${m.first_sentence?`<div class="beats">opens with: “${esc(m.first_sentence)}”</div>`:''}${beats}${tags}${sugg}</div>`}
+return `<div class="card"><h3>${esc(a.brand||'?')} <span class="pill">${esc(a.style)}</span> <span class="pill">${esc(a.action)}</span>${a.undisclosed?' <span class="pill flag" title="no paid-promotion flag and no (ad)/sponsor line in the description">undisclosed?</span>':''}${a.paid_promotion?' <span class="pill">paid promotion ✓</span>':''}</h3><div class="meta">${esc(a.creator||'')} · ${esc(a.title||a.video_id)} · ${fmt(a.start)}–${fmt(a.end)} (${fmt(a.end-a.start)}) · conf ${a.confidence}${a.brand_raw&&a.brand_raw!==a.brand?` · raw “${esc(a.brand_raw)}”`:''}</div>${timeline(a)}<div class="kv">${kv.map(([k,v])=>`<div><span>${k}</span><br><b>${v}</b></div>`).join('')}</div>${m.first_sentence?`<div class="beats">opens with: “${esc(m.first_sentence)}”</div>`:''}${beats}${tags}${sugg}</div>`}
 function dist(title,obj){const e=Object.entries(obj||{}).sort((a,b)=>b[1]-a[1]);return `<div class="card"><h3>${title}</h3>${e.length?`<ul>${e.map(([k,v])=>`<li>${esc(k||'–')}: <b>${v}</b></li>`).join('')}</ul>`:'<div class="sub">nothing yet</div>'}</div>`}
 function insights(i){return `<div class="tiles">
 <div class="tile"><div class="n">${i.ads}</div><div class="c">ads · ${i.analyzed} deep-analyzed · ${i.pending_analysis} pending</div></div>
@@ -442,6 +446,7 @@ function insights(i){return `<div class="tiles">
 <div class="tile"><div class="n">${i.template_pct}%</div><div class="c">template scripts (≥70% shared with another creator)</div></div>
 <div class="tile"><div class="n">${i.avg_topic_fit==null?'–':i.avg_topic_fit}</div><div class="c">avg topic fit (cosine)</div></div>
 <div class="tile"><div class="n">${i.better_placement_suggested}</div><div class="c">ads with a better placement suggested</div></div>
+<div class="tile"><div class="n">${i.undisclosed}</div><div class="c">reads with no disclosure · ${i.paid_promotion_pct}% carry YouTube's paid-promotion flag</div></div>
 </div><h2>Distributions</h2><div class="dist">${dist('Segue type',i.segues)}${dist('Chapter placement',i.placements)}${dist('Offers',i.offers)}${dist('Persuasion techniques',i.persuasion)}</div>`}
 let cache={};
 async function show(tab){document.querySelectorAll('.tabs a').forEach(a=>a.classList.toggle('on',a.dataset.tab===tab));
