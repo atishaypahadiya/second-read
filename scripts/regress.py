@@ -158,6 +158,9 @@ def unit_checks():
     eq("hint terms: creator's code/name excluded, brand kept", server.hint_terms(h, "Johnny Harris"), ["incogni.com/harris", "incogni"])
     h = server.extract_hints("This video is sponsored by Odoo.\nhttps://www.odoo.com/r/fern")
     eq("hints: link on the line after a sponsor line", (h["brands"], h["domains"]), (["Odoo"], ["odoo.com/r"]))
+    eq("ad lines: a denial is not a sponsorship marker",
+       [server.is_ad_line(l) for l in ("Coddy (ad): https://fern.deals/coddy", "This video is sponsored by Odoo.",
+                                       "This video is not sponsored.", "No sponsor today.")], [True, True, False, False])
     # disclosure is 'undisclosed' only when both signals are known and negative
     table = {(p, d): server.disclosure_state(p, d) for p in (True, False, None) for d in (True, False, None)}
     eq("disclosure: only (False, False) is undisclosed", sorted(k for k, v in table.items() if v == "undisclosed"), [(False, False)])

@@ -24,10 +24,12 @@ Status: queued -> classifying -> done | error  (+ paused:true while the video is
 """
 
 import hashlib
+import http.client
 import json
 import math
 import os
 import re
+import socket
 import sys
 import threading
 import time
@@ -305,6 +307,13 @@ def window_cues(text, hint_terms, sponsor_only=False):
 CODE_RE = re.compile(r"\bcode[:\s]+([A-Z0-9]{3,20})\b")
 DOMAIN_RE = re.compile(r"\b([a-z0-9-]{1,63}(?:\.[a-z0-9-]{1,63}){0,4}\.(?:com|net|org|io|co|deals|gg|ai|app|tv|me|ly|fm|shop|store|xyz|dev|to)(?:/[\w.-]{1,80})?)\b", re.I)
 AD_LINE_RE = re.compile(r"\(ad\)|\bsponsor|\bpartner|#ad\b|\bpaid promotion", re.I)
+NOT_AD_LINE_RE = re.compile(r"\b(?:not|no|non|never|isn'?t|aren'?t|wasn'?t|without)\b[^.!?\n]{0,20}\b(?:sponsor|paid promotion|partner)", re.I)
+
+
+def is_ad_line(line):
+    """A line that marks a sponsorship: '(ad)', 'sponsored by', 'in partnership with', '#ad'. A denial
+    ('this video is not sponsored', 'no sponsor') is not one."""
+    return bool(AD_LINE_RE.search(line)) and not NOT_AD_LINE_RE.search(line)
 CHAPTER_RE = re.compile(r"^\s*(?:\d+:)?\d{1,2}:\d{2}\s*[-–—:]?\s*(.+)$")
 STOPWORDS = {"the", "this", "video", "sponsored", "sponsor", "by", "thanks", "to", "for", "and", "with", "check", "out",
              "get", "use", "code", "off", "free", "trial", "link", "description", "below", "today", "ad", "our", "my",
@@ -350,7 +359,7 @@ def extract_hints(description):
                 hints.setdefault("chapter_times", []).append([secs, m.group(1).strip()[:60]])
         codes = CODE_RE.findall(line)
         hints["codes"].extend(codes)
-        marked = bool(AD_LINE_RE.search(line))
+        marked = is_ad_line(line)
         sponsor_line = marked or bool(codes) or bool(OFFER_LINE_RE.search(line))
         if sponsor_line or prev_sponsor:
             for d in DOMAIN_RE.findall(line):
@@ -1964,10 +1973,79 @@ class JobError(Exception):
 ANALYSIS_SYSTEM = "You are a concise analyst of sponsorship segments in YouTube videos. Answer only with the JSON schema."
 
 
+class Preempted(Exception):
+    """An idle-time model call was abandoned because a video being watched needs the model."""
+    preempted = True
+
+
+def watched_job_waiting():
+    now = time.time()
+    with jobs_lock:
+        return any(j["status"] not in ("done", "error") and now - j["last_poll"] <= PAUSE_AFTER_S for j in jobs.values())
+
+
+def ollama_chat_stream(user_content, schema, system, should_abort, model=None):
+    """Like ollama_chat, but abandonable: a watchdog shuts the socket down as soon as should_abort() is true.
+    That unblocks the read immediately, also while the prompt is still being evaluated and nothing has come back
+    (closing the response object from another thread does not), and Ollama stops generating when the client is
+    gone. Raises Preempted in that case."""
+    payload = {
+        "model": model or MODEL,
+        "messages": [{"role": "system", "content": system or SYSTEM_PROMPT}, {"role": "user", "content": user_content}],
+        "stream": True, "format": schema or OUTPUT_SCHEMA, "think": False, "keep_alive": KEEP_ALIVE,
+        "options": {"temperature": 0, "num_ctx": NUM_CTX},
+    }
+    u = urlparse(OLLAMA)
+    conn = http.client.HTTPConnection(u.hostname, u.port or 80, timeout=LLM_TIMEOUT_S)
+    finished, aborted = threading.Event(), threading.Event()
+
+    def watchdog():
+        while not finished.wait(0.2):
+            if should_abort():
+                aborted.set()
+                try:
+                    if conn.sock:
+                        conn.sock.shutdown(socket.SHUT_RDWR)
+                except OSError:
+                    pass
+                return
+
+    parts = []
+    try:
+        conn.connect()
+        threading.Thread(target=watchdog, daemon=True).start()
+        conn.request("POST", "/api/chat", body=json.dumps(payload).encode("utf-8"), headers={"Content-Type": "application/json"})
+        resp = conn.getresponse()  # blocks until the first token; the watchdog can cut it short
+        if resp.status != 200:
+            raise OSError(f"ollama http {resp.status}")
+        for raw in resp:
+            if aborted.is_set():
+                break
+            raw = raw.strip()
+            if not raw:
+                continue
+            obj = json.loads(raw.decode("utf-8"))
+            parts.append((obj.get("message") or {}).get("content") or "")
+            if obj.get("done"):
+                break
+    except Exception:  # noqa: BLE001 - reads on a socket the watchdog shut down fail in several ways
+        if not aborted.is_set():
+            raise
+    finally:
+        finished.set()
+        try:
+            conn.close()
+        except Exception:  # noqa: BLE001
+            pass
+    if aborted.is_set():
+        raise Preempted()
+    return json.loads("".join(parts))
+
+
 def analysis_chat(prompt, schema):
+    """Tier-2 model call: only ever runs while idle, and gives the model up the moment a watched video needs it."""
     with llm_lock:
-        result, _meta = ollama_chat_retry(prompt, schema, label="intel", model=MODEL, system=ANALYSIS_SYSTEM)
-    return result
+        return ollama_chat_stream(prompt, schema, ANALYSIS_SYSTEM, watched_job_waiting)
 
 
 def load_transcript(video_id):
@@ -2007,7 +2085,7 @@ def start_or_get_job(video_id, lang, lines, title="", meta=None, alines=None, al
             "tag": meta.get("tag", ""), "channel_id": meta.get("channel_id", ""), "duration": meta.get("duration"),
             "client": meta.get("client"), "heat": meta.get("heat") or [], "chapter_times": hints.get("chapter_times", []),
             # Both disclosure signals are tri-state. None = we were not told (no description / no flag from the client).
-            "paid_promotion": paid, "disclosed": bool(AD_LINE_RE.search(description)) if description else None,
+            "paid_promotion": paid, "disclosed": any(is_ad_line(l) for l in description.splitlines()) if description else None,
             "position": position, "hints": hints, "terms": terms, "header": hints_header(hints),
             "last_poll": time.time(), "paused": False}
     resync = None

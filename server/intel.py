@@ -381,6 +381,7 @@ def run_analysis(row, chat_fn, load_transcript):
     prompt = ANALYSIS_PROMPT.format(brand=row["brand"], start=stats.fmt_time(row["seg_start"]), end=stats.fmt_time(row["seg_end"]),
                                     ad_lines=ad_block, context=sample_context(lines, row["seg_start"], row["seg_end"]))
     t0 = time.time()
+    _log(f"[{vid}] intel: tier-2 analysis started for {row['brand']!r} {stats.fmt_time(row['seg_start'])}-{stats.fmt_time(row['seg_end'])} (idle)")
     try:
         result = chat_fn(prompt, ANALYSIS_SCHEMA)
         # keep only quotes that are really in the ad (verbatim, normalized)
@@ -418,6 +419,10 @@ def run_analysis(row, chat_fn, load_transcript):
                     "seconds": round(time.time() - t0, 1)}
         err = None
     except Exception as e:  # noqa: BLE001
+        if getattr(e, "preempted", False):
+            # A watched video needed the model. Nothing is recorded: the segment stays pending and is retried when idle.
+            _log(f"[{vid}] intel: tier-2 analysis preempted after {time.time() - t0:.1f}s (a video is being watched); will retry when idle")
+            return
         analysis, err = None, repr(e)[:200]
     with stats._lock, stats.connect() as c:
         c.execute("INSERT OR REPLACE INTO ad_analysis(segment_id, version, created_at, analysis, error) VALUES (?,?,?,?,?)",

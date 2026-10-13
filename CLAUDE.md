@@ -170,7 +170,10 @@ server adds the cached pipeline context and versions. Rows that predate validati
   ads by other creators; ≥ 0.7 = "template script"), topic fit (cosine of `nomic-embed-text` embeddings, ad vs rest
   of video; skipped if the model isn't pulled).
 - **Tier 2**, Qwen, `ANALYSIS_VERSION`, stored in `ad_analysis`: runs only when the worker is idle (no job being
-  polled), one segment per idle step: persuasion tags with verbatim quotes (quotes not found in the ad are dropped),
+  polled), one segment per idle step, and is **preemptible**: the call is streamed over a raw `http.client`
+  connection and a watchdog shuts the socket down the moment a watched job is waiting (≈0.2s; closing the response
+  object from another thread does not unblock a read that is waiting for the first token). A preempted analysis
+  records nothing and is retried when idle. Per segment: persuasion tags with verbatim quotes (quotes not found in the ad are dropped),
   structure beats, and a better-placement suggestion (timestamp, reason, verbatim quote, flagged if not verbatim).
 - Dashboard "Ad cards": mini timeline (ad, chapters, heat, peaks), all metrics, tags, suggestion. "Insights":
   aggregates and distributions across all ads.
@@ -179,7 +182,8 @@ server adds the cached pipeline context and versions. Rows that predate validati
   coddy"), per brand, with the video and the ad's timestamp.
 - **Disclosure check (fails safe):** two tri-state signals: YouTube's "Includes paid promotion" flag
   (`paidContentOverlay` in the player response; `null` when the client didn't report it) and an (ad)/sponsor/partner
-  line in the description (`null` when no description was received). Each sponsor read gets
+  line in the description (`null` when no description was received; a denial such as "this video is not sponsored"
+  is not an ad line). Each sponsor read gets
   `disclosure: disclosed | undisclosed | unknown`: disclosed if either signal is positive, **undisclosed only when
   both are known and negative**, otherwise unknown. `undisclosed: true` is set only in that one case. Stats count and
   the dashboard flag follow the same rule; unknown shows as a neutral "disclosure unknown" pill.
