@@ -98,11 +98,16 @@ Status values: `queued → classifying → classifying_rest → done` (or `error
 
 - Validate video ID (`^[A-Za-z0-9_-]{11}$`), clean lines, sort by start.
 - Cache key: videoId + short SHA-1 of `start|text` lines. Cache file `cache/<videoId>.json` holds hash, lang,
-  segments, transcript, model and `version` (= `PIPELINE_VERSION`). A changed caption track = new hash = re-run.
-  A cache written by an older pipeline version or another model is ignored and re-run. **Bump
-  `PIPELINE_VERSION` whenever the prompt, schema, threshold or post-processing changes**, or tuning will be
-  tested against stale results. A POST with a new hash while a job is running supersedes it; the old thread's
-  result is discarded.
+  title, model, `versions` {detect, refine, post}, the final segments, the transcript, and `calls`: every raw
+  model output keyed by its inputs (`detect|first|last|…`, `refine|…`, `words|…`) with the version it was made
+  under. A changed caption track = new hash = everything re-runs.
+  **Staged versions** — bump the one(s) a change affects:
+  - `DETECT_VERSION`: pass-1 rubric (`SYSTEM_PROMPT`), `OUTPUT_SCHEMA`, window size/overlap;
+  - `REFINE_VERSION`: `SYSTEM_PROMPT`, `REFINE_INSTRUCTIONS`, context size, `WORD_PROMPT`/`WORD_SCHEMA`;
+  - `POST_VERSION`: evidence gate, thresholds, snapping, merge, filters (no model calls; re-process is < 1s).
+  A rubric change in `SYSTEM_PROMPT` affects both passes: bump DETECT and REFINE. The server logs how many
+  model calls were reused vs computed. A POST with a new hash while a job is running supersedes it; the old
+  thread's result is discarded.
 - Access: Host must be localhost/127.0.0.1 (DNS rebinding), http(s) Origins are refused, and
   `SS_EXTENSION_ID=<id>` optionally restricts to one extension's origin.
 - Run in a background thread. One LLM call at a time (lock).
@@ -136,10 +141,10 @@ Status values: `queued → classifying → classifying_rest → done` (or `error
   - start = start of the first ad word; end = end of the last ad word − 0.3s (round inward). If the word
     pick is invalid, fall back to the boundary lines' start/end.
   - **Snap to natural pauses** (word ends are capped at their cue end, so pauses between cues show as gaps):
-    start moves forward to the nearest sentence start, else the largest gap ≥ 0.25s, within 5s and inside the
-    ad lines; otherwise backward to the start of the sentence containing the pick if that sentence starts in the
-    ad's first line. End moves to the start of the largest gap ≥ 0.25s that begins within 1s after the last ad
-    word. Original and snapped times are logged.
+    start: if the sentence containing the pick begins inside the ad lines, snap backward to that sentence start
+    (still ad); else forward to the nearest sentence start, else the largest gap ≥ 0.25s, within 5s and inside
+    the ad lines. End: if the sentence containing the last word ends inside the ad lines, extend to it; then end
+    at the start of the largest gap ≥ 0.25s beginning within 1s. Original and snapped times are logged.
   - Action: sponsor+read with confidence ≥ `SKIP_THRESHOLD` (0.85) → `skip`; sponsor+integration → `keep`;
     low-confidence reads, selfpromo, interaction → `show`.
   - **Evidence gate:** a `skip` must carry an `evidence` field that quotes a sponsor cue verbatim from the
