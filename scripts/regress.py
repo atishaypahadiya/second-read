@@ -344,6 +344,9 @@ def unit_checks():
        [server.stored_result(v, b)[0] is not None for v, b in (("storedVid00", B), ("storedVid00", B - 1), ("storedVid00", None),
                                                                ("storedVid01", B), ("storedVid02", B), ("storedVid03", B), ("storedVid99", B))],
        [True, False, False, False, False, False, False])
+    eq("stored result: only a request carrying the extension's header may ask (a page's <img>/<script> load cannot)",
+       [server.extension_request(h) for h in ({"X-SR-Client": "extension"}, {}, {"X-SR-Client": "page"}, {"Origin": "https://evil.example"})],
+       [True, False, False, False])
     said = []
     keep_log, server.log = server.log, said.append
     server.instant_served["storedVid00"] = server.segments_signature(done["segments"])

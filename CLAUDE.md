@@ -158,7 +158,7 @@ API:
 | --- | --- | --- | --- |
 | POST | `/analyze` | `{videoId, lang, title, creator, kind, description, position, lines, analysisLines?, analysisLang?}` | job; starts/resumes it if new |
 | GET | `/analyze?v=ID` | — | job `{status, segments, paused?, progress?, cached?}` or 404 `unknown` |
-| GET | `/stored?v=ID&build=N` | — | `{status: done, segments, instant: true}` for the instant revisit, or 404. Only a complete result made by the current detect/refine/post/leadin versions and model, and only if `build` is this server's `CLIENT_BUILD`. Does not check the transcript. |
+| GET | `/stored?v=ID&build=N` | — | `{status: done, segments, instant: true}` for the instant revisit, or 404. Only a complete result made by the current detect/refine/post/leadin versions and model, and only if `build` is this server's `CLIENT_BUILD`. Does not check the transcript. Needs the header `X-SR-Client: extension` (403 without it). |
 | GET | `/health` | — | `{ok, model, ollama, loaded, build}`; the popup shows *restart server* when `build` is not the extension's |
 | POST | `/feedback` | `{videoId, kind: false_skip\|missed_ad, playhead, segment?, channelId, channelName, title}` | `{ok}`; appended to `server/cache/feedback.local.jsonl` with the cached segment's evidence/reason and pipeline versions |
 | GET | `/feedback` | — | `{count, recent}` |
@@ -399,6 +399,17 @@ Every GET/POST for a video counts as a poll.
   complete (an unfinished re-analysis never wipes what is on screen).
 - Server log: `cache: instant (…)`, then `cache: confirmed (…)` or `cache: replaced (…): served …, now …`.
   The same three lines appear in the page console in dev mode.
+- **Fails closed.** The stored result is on screen before anything has checked it against this video's captions.
+  If that check cannot be made (captions unreadable or malformed, server unreachable, analysis failed), or has
+  not even started 30 s after the result was drawn, the result is withdrawn: its segments stay as labels
+  (`unvalidated`) and nothing skips by them. A stored result that arrives after the check already failed is not
+  used at all. While the server is re-analyzing with the captions in hand, the stored result stands.
+- **`/stored` is for the extension only.** It answers "has this video been analyzed?" by id, and a request with no
+  `Origin` is otherwise let in (curl, the dashboard). A web page can make such a request with an `<img>` or
+  `<script>` load and see whether it loads or fails, which would tell it which videos were watched. So the
+  endpoint requires `X-SR-Client: extension`: a page cannot put a header on those loads, and a `fetch()` with one
+  needs a CORS preflight that this server never answers. (`GET /analyze?v=` has the same weakness and predates
+  this; not changed.)
 
 ### [8]–[9] Playback (content.js + content.css)
 - After POST, poll GET every 2s until `done`/`error`. Redraw markers on each update.

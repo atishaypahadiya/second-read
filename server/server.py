@@ -53,7 +53,7 @@ def env(name, default=""):
 
 
 HOST, PORT = "127.0.0.1", int(env("PORT", "8765"))  # SR_PORT: run a second instance for testing
-CLIENT_BUILD = 19  # extension build this server expects (page.js / content.js / background.js BUILD)
+CLIENT_BUILD = 20  # extension build this server expects (page.js / content.js / background.js BUILD)
 ALLOWED_HOSTS = {f"127.0.0.1:{PORT}", f"localhost:{PORT}", "127.0.0.1", "localhost"}
 # Optional: restrict to one extension. Unpacked extension IDs differ per machine, so this is opt-in:
 #   SR_EXTENSION_ID=abcdefghijklmnopabcdefghijklmnop python3 server/server.py
@@ -1755,6 +1755,17 @@ def inputs_digest(thash, title, description, paid, alines, lines=()):
 
 
 instant_served = {}   # video id -> signature of the segments served by GET /stored, until the POST validates them
+INSTANT_SERVED_MAX = 64
+# GET /stored answers "has this video been analyzed?" by id and remembers that it answered. A request with no Origin
+# is normally let in (curl, the dashboard), and a web page can make one: <img> and <script> loads carry no Origin,
+# and whether they load or fail would tell the page which videos were watched. So this endpoint also wants a header
+# that only a scripted request can carry. A page cannot put it on an <img>/<script> load, and a fetch() with it
+# needs a CORS preflight, which this server never answers.
+EXTENSION_HEADER, EXTENSION_HEADER_VALUE = "X-SR-Client", "extension"
+
+
+def extension_request(headers):
+    return (headers.get(EXTENSION_HEADER) or "") == EXTENSION_HEADER_VALUE
 
 
 def segments_signature(segments):
@@ -2558,6 +2569,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(200, {"ok": True, "model": MODEL, "ollama": ok, "loaded": ok and model_loaded(MODEL),
                                         "build": CLIENT_BUILD})
         if u.path == "/stored":
+            if not extension_request(self.headers):
+                return self.send_json(403, {"error": "extension only"})
             q = parse_qs(u.query)
             vid = (q.get("v") or [""])[0]
             if not VIDEO_ID_RE.match(vid):
@@ -2569,6 +2582,9 @@ class Handler(BaseHTTPRequestHandler):
             segments, where = stored_result(vid, build)
             if segments is None:
                 return self.send_json(404, {"error": "not stored", "why": where})
+            instant_served.pop(vid, None)
+            while len(instant_served) >= INSTANT_SERVED_MAX:   # never grows without bound
+                instant_served.pop(next(iter(instant_served)))
             instant_served[vid] = segments_signature(segments)
             skips = sum(1 for s in segments if s.get("action") == "skip")
             log(f"[{vid}] cache: instant ({len(segments)} segment(s), {skips} to skip, from {where}), before the captions were read")
