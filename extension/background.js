@@ -4,6 +4,7 @@
 // send messages here and we relay them over fetch. host_permissions covers this.
 
 const SERVER = 'http://127.0.0.1:8765';
+const BUILD = 14; // keep equal to page.js, content.js and server.py CLIENT_BUILD
 
 async function call(path, init) {
   let res;
@@ -22,17 +23,20 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (!msg || typeof msg.type !== 'string') return false;
   let p;
   switch (msg.type) {
-    case 'analyze':
-      p = call('/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ videoId: msg.videoId, lang: msg.lang, lines: msg.lines, title: msg.title || '',
-                               kind: msg.kind || '', creator: msg.creator || '', description: msg.description || '',
-                               position: msg.position || 0, heat: msg.heat || [], paidPromotion: !!msg.paidPromotion,
-                               analysisLines: msg.analysisLines || null,
-                               analysisLang: msg.analysisLang || '' }),
-      });
+    case 'analyze': {
+      // Forward content.js's payload untouched; only stamp this worker's build. (An older content.js sent the
+      // fields at the top level of the message, so fall back to that.)
+      const base = msg.payload || msg;
+      const payload = { ...base, client: { ...(base.client || {}), background: BUILD } };
+      delete payload.type;
+      const len = (v) => (typeof v === 'string' || Array.isArray(v) ? v.length : v === null || v === undefined ? 'MISSING' : v);
+      console.log('[SponsorSkipper:bg] analyze', payload.videoId, 'lengths:', JSON.stringify({
+        lines: len(payload.lines), title: len(payload.title), creator: len(payload.creator), channelId: len(payload.channelId),
+        kind: payload.kind, description: len(payload.description), heat: len(payload.heat), duration: len(payload.duration),
+        paidPromotion: len(payload.paidPromotion), client: payload.client }));
+      p = call('/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       break;
+    }
     case 'poll':
       p = call(`/analyze?v=${encodeURIComponent(msg.videoId)}`);
       break;

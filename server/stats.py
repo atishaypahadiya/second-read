@@ -13,7 +13,8 @@ import sqlite3
 import threading
 import time
 
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cache", "stats.local.db")
+DB_PATH = os.path.join(os.environ.get("SS_DATA_DIR") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "cache"),
+                       "stats.local.db")
 _lock = threading.Lock()
 
 EVENT_KINDS = ("skip", "undo", "seek_into", "false_skip", "missed_ad", "allowlisted")
@@ -169,27 +170,50 @@ def canonical_brand(conn, raw, hints=None, evidence=""):
 # Writes
 # ---------------------------------------------------------------------------
 def record_video(job, segments, versions):
-    """Called at job end: upsert the video and all final segments with canonical brands."""
+    """Upsert the video and its final segments with canonical brands. Segment ids are stable across re-records
+    (keyed by video + start + end), so ad metrics, ad analysis and events stay attached. Sets s['brand_canonical'].
+    Returns {(start, end): segment_id}."""
     hints = job.get("hints") or {}
+    lines = job.get("lines") or []
+    # The player's duration when the client sent it; otherwise the end of the transcript (close enough for
+    # position statistics, and never NULL).
+    duration = job.get("duration") or (lines[-1]["end"] if lines else None)
     with _lock, connect() as c:
         c.execute("""INSERT INTO videos(video_id, channel_id, channel_name, title, lang, duration_s, analyzed_at, versions, hints)
                      VALUES (?,?,?,?,?,?,?,?,?)
-                     ON CONFLICT(video_id) DO UPDATE SET channel_id=excluded.channel_id, channel_name=excluded.channel_name,
-                       title=excluded.title, lang=excluded.lang, duration_s=COALESCE(excluded.duration_s, videos.duration_s),
+                     ON CONFLICT(video_id) DO UPDATE SET
+                       channel_id=CASE WHEN excluded.channel_id != '' THEN excluded.channel_id ELSE videos.channel_id END,
+                       channel_name=CASE WHEN excluded.channel_name != '' THEN excluded.channel_name ELSE videos.channel_name END,
+                       title=CASE WHEN excluded.title != '' THEN excluded.title ELSE videos.title END,
+                       lang=excluded.lang, duration_s=COALESCE(excluded.duration_s, videos.duration_s),
                        analyzed_at=excluded.analyzed_at, versions=excluded.versions, hints=excluded.hints""",
                   (job["video_id"], job.get("channel_id", ""), job.get("creator", ""), job.get("title", ""), job.get("lang", ""),
-                   job.get("duration") or None, now(), json.dumps(versions), json.dumps(hints)))
-        c.execute("DELETE FROM segments WHERE video_id = ?", (job["video_id"],))
-        ids = {}
+                   duration, now(), json.dumps(versions), json.dumps(hints)))
+        ids, keep = {}, []
         for s in segments:
             brand, how = canonical_brand(c, s.get("brand", ""), hints, s.get("evidence", ""))
             s["brand_canonical"] = brand
-            cur = c.execute("""INSERT OR REPLACE INTO segments(video_id, seg_start, seg_end, category, style, action, brand_raw, brand,
-                         confidence, evidence, reason, source, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            c.execute("""INSERT INTO segments(video_id, seg_start, seg_end, category, style, action, brand_raw, brand,
+                         confidence, evidence, reason, source, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+                         ON CONFLICT(video_id, seg_start, seg_end) DO UPDATE SET category=excluded.category, style=excluded.style,
+                           action=excluded.action, brand_raw=excluded.brand_raw, brand=excluded.brand,
+                           confidence=excluded.confidence, evidence=excluded.evidence, reason=excluded.reason,
+                           source=excluded.source""",
                       (job["video_id"], s["start"], s["end"], s.get("category"), s.get("style"), s.get("action"),
                        s.get("brand", ""), brand, s.get("confidence"), s.get("evidence", ""), s.get("reason", ""),
                        s.get("source", ""), now()))
-            ids[(s["start"], s["end"])] = cur.lastrowid
+            sid = c.execute("SELECT id FROM segments WHERE video_id=? AND seg_start=? AND seg_end=?",
+                            (job["video_id"], s["start"], s["end"])).fetchone()["id"]
+            ids[(s["start"], s["end"])] = sid
+            keep.append(sid)
+        gone = [r["id"] for r in c.execute("SELECT id FROM segments WHERE video_id = ?", (job["video_id"],)) if r["id"] not in keep]
+        for sid in gone:
+            c.execute("DELETE FROM segments WHERE id = ?", (sid,))
+            for table in ("ad_metrics", "ad_text", "ad_analysis"):
+                try:
+                    c.execute(f"DELETE FROM {table} WHERE segment_id = ?", (sid,))
+                except sqlite3.OperationalError:
+                    pass  # intel tables not created yet
         return ids
 
 
