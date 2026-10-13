@@ -691,13 +691,32 @@ def apply_picks(lines, s_line, e_line, s_words, fw, e_words, lw, how):
     return round(start, 2), round(max(start, end), 2), sure
 
 
+def trim_anchor(phrase, keep):
+    """The model sometimes quotes across a sentence boundary ("...percent off. Okay, so back to..."). Keep only the
+    ad side: for the end anchor the part before the first internal sentence end, for the start anchor the part
+    after the last internal sentence end (a later start and an earlier end are the safe directions)."""
+    toks = phrase.split()
+    ends = [i for i, t in enumerate(toks[:-1]) if SENTENCE_END_RE.search(t)]
+    if not ends:
+        return phrase
+    if keep == "head":
+        toks = toks[:ends[0] + 1]
+    else:
+        toks = toks[ends[-1] + 1:]
+    return " ".join(toks)
+
+
 def anchor_words(lines, s_line, e_line, seg):
     """Merged path: locate the refine call's first_words / last_words in the boundary contexts.
     Returns (start, end, sure) or None if either anchor is missing or ambiguous (caller runs the word pass)."""
     n = len(lines)
     s_words, e_words = boundary_words(lines, s_line, n), boundary_words(lines, e_line, n)
-    a = find_phrase(s_words, seg.get("first_words", ""))
-    b = find_phrase(e_words, seg.get("last_words", ""))
+    first_phrase = trim_anchor(seg.get("first_words", ""), "tail")
+    last_phrase = trim_anchor(seg.get("last_words", ""), "head")
+    if first_phrase != seg.get("first_words", "") or last_phrase != seg.get("last_words", ""):
+        log(f"  anchors: trimmed at sentence boundary -> first={first_phrase!r} last={last_phrase!r}")
+    a = find_phrase(s_words, first_phrase)
+    b = find_phrase(e_words, last_phrase)
     log(f"  anchors L{s_line}/L{e_line}: first_words={seg.get('first_words', '')!r} -> "
         f"{'S%d' % a[0] if a else 'no unique match'}; last_words={seg.get('last_words', '')!r} -> "
         f"{'E%d' % b[1] if b else 'no unique match'}")
@@ -1259,8 +1278,9 @@ def plan_job(job):
              + [("win", f, l, True) for f, l in order_windows(deferred, alines, position, terms)])
     with jobs_lock:
         job["n_windows"] = len(wins)
-        job["n_sent"] = len(units)
+        job["n_sent"] = len(sent) + len(deferred)
         job["pending"] = units
+        job["units_all"] = list(units)
     log(f"[{job['video_id']}] prefilter: {len(sent) + len(deferred)} of {len(wins)} windows sent"
         f"{f', {len(deferred)} deferred behind {len(hint_cands)} hint region(s)' if hint_cands else ''}"
         f"{'; hints: ' + ', '.join(terms[:8]) if terms else ''}; playhead {fmt_time(position)}; "
@@ -1317,7 +1337,8 @@ def publish(job):
         if jobs.get(job["video_id"]) is not job:
             return
         job["segments"] = finalize(job, verbose=False)
-        job["progress"] = f"{job['n_sent'] - len(job['pending'])}/{job['n_sent']}"
+        total = job["n_sent"] + sum(1 for u in job.get("units_all", []) if u[0] == "hint")
+        job["progress"] = f"{max(0, total - len(job['pending']))}/{total}"
         if job["ttfs"] is None and any(x["action"] == "skip" for x in job["segments"]):
             job["ttfs"] = time.time() - job["t_start"]
             log(f"[{job['video_id']}] first skip published after {job['ttfs']:.1f}s")
