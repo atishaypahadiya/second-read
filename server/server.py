@@ -21,6 +21,7 @@ Status: queued -> classifying -> done | error  (+ paused:true while the video is
 
 import hashlib
 import json
+import math
 import os
 import re
 import sys
@@ -91,6 +92,33 @@ VIDEO_ID_RE = re.compile(r"^[A-Za-z0-9_-]{11}$")
 jobs = {}                 # videoId -> job dict
 jobs_lock = threading.Lock()
 llm_lock = threading.Lock()  # one LLM call at a time
+
+
+CONTROL_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f\x1b]")
+
+
+def scrub(value, depth=0):
+    """Strip control/escape characters from every string in page-supplied JSON (they end up in the
+    terminal, results.md and the model prompt); drop non-finite numbers."""
+    if depth > 6:
+        return None
+    if isinstance(value, str):
+        return CONTROL_RE.sub("", value)
+    if isinstance(value, float):
+        return value if math.isfinite(value) else None
+    if isinstance(value, list):
+        return [scrub(v, depth + 1) for v in value[:50000]]
+    if isinstance(value, dict):
+        return {str(k)[:64]: scrub(v, depth + 1) for k, v in list(value.items())[:200]}
+    return value
+
+
+def finite(x, default=None):
+    try:
+        f = float(x)
+    except (TypeError, ValueError):
+        return default
+    return f if math.isfinite(f) else default
 
 
 def log(*args):
@@ -835,12 +863,12 @@ def to_segment(raw, lines, first, last):
         "start_line": s, "end_line": e,
         "category": raw.get("category") if raw.get("category") in ("sponsor", "selfpromo", "interaction") else "sponsor",
         "style": raw.get("style") if raw.get("style") in ("read", "integration") else "read",
-        "brand": str(raw.get("brand") or "").strip(),
+        "brand": scrub(str(raw.get("brand") or "")).strip()[:80],
         "confidence": conf,
-        "evidence": str(raw.get("evidence") or "").strip(),
-        "reason": str(raw.get("reason") or "").strip(),
-        "first_words": str(raw.get("first_words") or "").strip(),
-        "last_words": str(raw.get("last_words") or "").strip(),
+        "evidence": scrub(str(raw.get("evidence") or "")).strip()[:1000],
+        "reason": scrub(str(raw.get("reason") or "")).strip()[:1000],
+        "first_words": scrub(str(raw.get("first_words") or "")).strip()[:200],
+        "last_words": scrub(str(raw.get("last_words") or "")).strip()[:200],
     }
     out["action"] = action_for(out)
     return out
@@ -1184,17 +1212,15 @@ def record_feedback(data):
         return None, "bad video id"
     seg = data.get("segment") if isinstance(data.get("segment"), dict) else None
     if seg:
-        try:
-            seg = {"start": float(seg.get("start")), "end": float(seg.get("end")),
+        st, en = finite(seg.get("start")), finite(seg.get("end"))
+        if st is None or en is None or en < st or st < 0:
+            seg = None
+        else:
+            seg = {"start": st, "end": en,
                    "category": str(seg.get("category") or "")[:20], "style": str(seg.get("style") or "")[:20],
                    "brand": str(seg.get("brand") or "")[:80], "action": str(seg.get("action") or "")[:10],
-                   "confidence": float(seg.get("confidence") or 0)}
-        except (TypeError, ValueError):
-            seg = None
-    try:
-        playhead = round(float(data.get("playhead") or 0), 2)
-    except (TypeError, ValueError):
-        playhead = 0.0
+                   "confidence": max(0.0, min(1.0, finite(seg.get("confidence"), 0.0)))}
+    playhead = round(max(0.0, finite(data.get("playhead"), 0.0)), 2)
     entry = {
         "ts": time.strftime("%Y-%m-%dT%H:%M:%S"), "kind": kind, "videoId": vid,
         "channelId": str(data.get("channelId") or "")[:40], "channelName": str(data.get("channelName") or "")[:100],
@@ -1240,7 +1266,9 @@ def feedback_report():
     print("-" * 120)
     for e in fb:
         seg, ctx = e.get("segment") or {}, e.get("context") or {}
-        where = f"{fmt_time(seg['start'])}-{fmt_time(seg['end'])}" if seg else f"@{fmt_time(e.get('playhead', 0))}"
+        if seg and (finite(seg.get("start")) is None or finite(seg.get("end")) is None):
+            seg = {}
+        where = f"{fmt_time(seg['start'])}-{fmt_time(seg['end'])}" if seg else f"@{fmt_time(finite(e.get('playhead'), 0.0))}"
         ver = "/".join(str(e.get("versions", {}).get(k, "?")) for k in ("detect", "refine", "post"))
         text = (ctx.get("evidence") or "")[:50] + (" | " + (ctx.get("reason") or "")[:60] if ctx.get("reason") else "")
         print(f"{e['ts'][:16]:16} {e['kind']:10} {e['videoId']:11} {where:13} {(seg.get('brand') or '')[:14]:14} "
@@ -1713,7 +1741,7 @@ class Handler(BaseHTTPRequestHandler):
             n = int(self.headers.get("Content-Length") or 0)
             if n > MAX_BODY_BYTES:
                 return self.send_json(413, {"error": "body too large"})
-            data = json.loads(self.rfile.read(n) or b"{}")
+            data = scrub(json.loads(self.rfile.read(n) or b"{}"))
         except (ValueError, TypeError):
             return self.send_json(400, {"error": "bad json"})
         if u.path == "/feedback":
