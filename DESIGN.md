@@ -38,7 +38,7 @@ All variables are prefixed `--ss-`.
 | Group | Tokens |
 | --- | --- |
 | Light sheet | `--ss-sheet #F0F0F0`, `--ss-ink #000`, chips black @ .06, primary button black / white |
-| Deep card (default) | `--ss-card-top #555555 → --ss-card-bottom #5A5A5A`, white text on the ladder (o1 and o2 pass everywhere). Stats hero, tiles, ad panel, toast-like cards. |
+| Deep card (default) | `--ss-card-top #444444 → --ss-card-bottom #5A5A5A`, white text on the ladder (o1 and o2 pass everywhere). Stats hero, tiles, ad panel, toast-like cards. |
 | Light card | `--ss-card-light-top #8E8E8E → #B4B4B4`, ink text. `.ss-card--light`, secondary blocks only (tables, lists). |
 | Dark sheet | `#111`, cards `#2A2A2A → #3A3A3A`, ink white. Applied by `prefers-color-scheme: dark`, `:root[data-theme=dark]`, or scoped with `.ss-theme-dark` / `.ss-theme-light`. |
 | Glass | `--ss-glass rgba(28,28,28,.62)` + `blur(20px) saturate(140%)` for badge, toast and floating panels; `--ss-glass-solid rgba(40,40,40,.82)` for the marker tooltip (no blur). |
@@ -139,21 +139,21 @@ Measured WCAG ratios (also tabulated at the bottom of the gallery):
 | Surface | Text | o1 | o2 | 0.6 | o3 |
 | --- | --- | --- | --- | --- | --- |
 | sheet #F0F0F0 | ink | 18.4 | 8.7 | 5.5 | 4.6 |
-| deep card #555555 (top) | white | 7.5 | 4.8 | 3.9 | 3.5 |
-| deep card #585858 (middle) | white | 7.1 | 4.6 | 3.8 | 3.4 |
+| deep card #444444 (top) | white | 9.7 | 6.0 | 4.7 | 4.2 |
+| deep card #4F4F4F (middle) | white | 8.2 | 5.2 | 4.2 | 3.8 |
 | deep card #5A5A5A (bottom) | white | 6.9 | 4.5 | 3.7 | 3.4 |
 | light card #8E8E8E → #B4B4B4 | ink | 6.4 – 10.1 | 4.5 – 6.2 | 3.5 – 4.4 | 3.2 – 3.8 |
 | dark sheet #111 / cards #2A → #3A | white | 11.4 – 18.9 | 6.8 – 9.9 | 6.3 | 4.7 – 6.2 |
 | glass / tooltip over #282828 | white | 14.7 | 8.4 | 6.3 | 5.5 |
 | glass over #282828 | accent | 4.4 | | | |
-| deep card | accent | 2.2 | | | |
+| deep card | accent | 2.1 – 2.9 | | | |
 | sheet | accent | 2.9 | | | |
 
 Decisions that follow:
-- **Deep cards carry white text.** o1 and o2 pass across the whole gradient. The bottom stop is `#5A5A5A`, the
-  lightest grey where white at o2 still reads 4.5:1 (4.51); it was `#717171`, where o2 fell to 3.4, and `#626262`
-  would still only give 4.08. The price is a nearly flat gradient (5 levels). 0.6 and o3 are not used for text on a
-  deep card.
+- **Deep cards carry white text.** o1 and o2 pass across the whole gradient, `#444444 → #5A5A5A`. The bottom
+  stop is the lightest grey where white at o2 still reads 4.5:1 (4.51); the top stop was darkened from `#555555`
+  so the card keeps its depth (22 levels) instead of going flat. Earlier values: `#555555 → #717171` (o2 fell to
+  3.4 at the bottom) and `#555555 → #5A5A5A` (passed, nearly flat). 0.6 and o3 are not used for text on a deep card.
 - **Light cards carry ink.** White on `#8E → #B4` is 3.3:1 at best; they are secondary blocks only.
 - **The accent is never text on the sheet or a card.** It is a dot, a knob or a marker. On glass it
   reaches 4.4:1, enough for a mark but used as text only at ≥ 18px (not currently anywhere).

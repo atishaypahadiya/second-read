@@ -45,9 +45,10 @@
   --ss-primary-fg: #FFFFFF;
 
   /* deep card: the default card (stats hero, tiles, ad panel). White text on the ladder.
-     The bottom stop is the lightest grey where white at o2 (0.72) still reads 4.5:1 (#5A5A5A = 4.51), so o1 and
-     o2 text pass anywhere on the card. It was #717171 (o2 = 3.4 at the bottom). */
-  --ss-card-top: #555555;
+     #444444 -> #5A5A5A: the bottom stop is the lightest grey where white at o2 (0.72) still reads 4.5:1 (4.51),
+     and the top is dark enough to keep the card's depth (22 levels). o1 and o2 pass anywhere on the card.
+     History: #555555 -> #717171 (o2 fell to 3.4 at the bottom), then #555555 -> #5A5A5A (passed, but flat). */
+  --ss-card-top: #444444;
   --ss-card-bottom: #5A5A5A;
   --ss-card-text: #FFFFFF;
   --ss-card-text-rgb: 255, 255, 255;
@@ -158,7 +159,7 @@
   --ss-chip-sheet: rgba(0, 0, 0, 0.06);
   --ss-primary-bg: #000000;
   --ss-primary-fg: #FFFFFF;
-  --ss-card-top: #555555;
+  --ss-card-top: #444444;
   --ss-card-bottom: #5A5A5A;
   --ss-card-light-top: #8E8E8E;
   --ss-card-light-bottom: #B4B4B4;
