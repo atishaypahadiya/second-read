@@ -1116,9 +1116,10 @@ def plan_job(job):
         text = " ".join(alines[i]["text"] for i in range(first, last + 1))
         if window_cues(text, terms):
             sent.append((first, last))
-    job["pending"] = order_windows(sent, alines, position, terms)
-    job["n_windows"] = len(wins)
-    job["n_sent"] = len(sent)
+    with jobs_lock:
+        job["n_windows"] = len(wins)
+        job["n_sent"] = len(sent)
+        job["pending"] = order_windows(sent, alines, position, terms)
     log(f"[{job['video_id']}] prefilter: {len(sent)} of {len(wins)} windows sent"
         f"{'; hints: ' + ', '.join(terms[:8]) if terms else ''}; playhead {fmt_time(position)}; "
         f"order: {[fmt_time(alines[f]['start']) for f, _ in job['pending']]}")
@@ -1227,32 +1228,54 @@ def pick_job():
     return best
 
 
-def worker():
-    """Single worker: one Ollama call at a time, always for the video being watched right now."""
-    while True:
-        with work_available:
-            job = pick_job()
-            if job is None:
-                work_available.wait(timeout=1.0)
-                continue
-            if job.get("paused"):
-                job["paused"] = False
-                log(f"[{job['video_id']}] resumed")
-            job["status"] = "classifying"
-            if job["pending"] is None:
-                plan_job(job)
-            unit = job["pending"].pop(0) if job["pending"] else None
-        try:
-            if unit is None:
-                finish_job(job)
-                continue
+def worker_step():
+    """One scheduling step. Returns the job it worked on (or None if idle)."""
+    job = None
+    with work_available:
+        job = pick_job()
+        if job is None:
+            work_available.wait(timeout=1.0)
+            return None
+        if job.get("paused"):
+            job["paused"] = False
+            log(f"[{job['video_id']}] resumed")
+        job["status"] = "classifying"
+        needs_plan = job["pending"] is None
+        unit = None if needs_plan else (job["pending"].pop(0) if job["pending"] else None)
+    # Everything below runs without the lock so HTTP handlers never wait on model or planning work.
+    try:
+        if needs_plan:
+            plan_job(job)  # the next step pops the first window
+        elif unit is None:
+            finish_job(job)
+        else:
             t0 = time.time()
             run_window(job, *unit)
             job["work_s"] += time.time() - t0
             publish(job)
             save_partial(job)
+    except Exception as e:  # noqa: BLE001
+        raise JobError(job, e) from e
+    return job
+
+
+class JobError(Exception):
+    def __init__(self, job, cause):
+        super().__init__(repr(cause))
+        self.job, self.cause = job, cause
+
+
+def worker():
+    """Single worker: one Ollama call at a time, always for the video being watched right now.
+    Never dies: any error is logged, the job it was working on is marked error, and the loop goes on."""
+    while True:
+        try:
+            worker_step()
+        except JobError as je:
+            fail_job(je.job, je.cause)
         except Exception as e:  # noqa: BLE001
-            fail_job(job, e)
+            log(f"worker error outside any job: {e!r}")
+            time.sleep(1.0)
 
 
 def touch(job):
