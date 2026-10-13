@@ -74,9 +74,9 @@ Dark mode is automatic through `prefers-color-scheme`; `:root[data-theme=dark|li
 
 ## 6. Decisions made on this branch (confirm or revert)
 
-- **Deep card is the default** (`#555555 → #717171`, white text); light card (`#8E → #B4`, ink) is
-  `.ss-card--light` for tables and lists only. White o2 on a deep card passes only in its upper half
-  (4.8 → 3.4), so o2 captions sit high and the bottom of a card holds o1 text or a black button.
+- **Deep card is the default** (`#555555 → #5A5A5A`, white text); light card (`#8E → #B4`, ink) is
+  `.ss-card--light` for tables and lists only. The bottom stop was darkened from `#717171` so white o2 passes
+  4.5:1 on the whole card (4.8 → 4.5); the gradient is nearly flat as a result.
 - **Marker lane** is a separate 4px strip 4px above YouTube's bar; markers never overlay the bar.
 - **Marker shapes.** skip = filled accent, keep = hollow outline, show = dim fill, low confidence =
   hatch (the mockup draws integration as a solid white bar; the outline keeps "never colour alone").

@@ -4,35 +4,9 @@
    Rules: monochrome + one accent; hierarchy by opacity; depth by tone; no shadows, no borders.
    See DESIGN.md for the rationale and MERGE_NOTES.md for how each surface adopts these. */
 
-/* ---- fonts (bundled, SIL OFL; no network requests) ---- */
-@font-face {
-  font-family: "Geist";
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-  src: url("fonts/Geist-Regular.woff2") format("woff2");
-}
-@font-face {
-  font-family: "Geist";
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-  src: url("fonts/Geist-Medium.woff2") format("woff2");
-}
-@font-face {
-  font-family: "Geist Mono";
-  font-weight: 300;
-  font-style: normal;
-  font-display: swap;
-  src: url("fonts/GeistMono-Light.woff2") format("woff2");
-}
-@font-face {
-  font-family: "Geist Mono";
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-  src: url("fonts/GeistMono-Regular.woff2") format("woff2");
-}
+/* Fonts live in fonts.css (extension pages, dashboard, gallery: relative URLs) and fonts-content.css (the
+   YouTube page: content-script CSS resolves relative URLs against youtube.com, so it needs absolute
+   chrome-extension:// URLs). Link one of them next to this file. */
 
 :root {
   /* ---- type ---- */
@@ -70,9 +44,11 @@
   --ss-primary-bg: #000000;
   --ss-primary-fg: #FFFFFF;
 
-  /* deep card: the default card (stats hero, tiles, ad panel). White text on the ladder. */
+  /* deep card: the default card (stats hero, tiles, ad panel). White text on the ladder.
+     The bottom stop is the lightest grey where white at o2 (0.72) still reads 4.5:1 (#5A5A5A = 4.51), so o1 and
+     o2 text pass anywhere on the card. It was #717171 (o2 = 3.4 at the bottom). */
   --ss-card-top: #555555;
-  --ss-card-bottom: #717171;
+  --ss-card-bottom: #5A5A5A;
   --ss-card-text: #FFFFFF;
   --ss-card-text-rgb: 255, 255, 255;
   /* light card: secondary blocks only (tables, lists). Ink text. */
@@ -182,7 +158,7 @@
   --ss-primary-bg: #000000;
   --ss-primary-fg: #FFFFFF;
   --ss-card-top: #555555;
-  --ss-card-bottom: #717171;
+  --ss-card-bottom: #5A5A5A;
   --ss-card-light-top: #8E8E8E;
   --ss-card-light-bottom: #B4B4B4;
   --ss-card-light-text: #000000;
