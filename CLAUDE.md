@@ -107,6 +107,18 @@ second-read/                 (the folder may still be called sponsor-skipper on 
   click `.ytp-subtitles-button` on, wait (≤8s) for the captured response for this video ID, click it back off if it was off.
   If the captured body isn't json3, refetch the captured URL with `fmt=json3`.
 - No tracks → report `no captions`; the extension does nothing for that video.
+- **Capture report.** page.js sends `capture` with every read: path, how the URL was obtained (`direct`,
+  `retargeted`, `as-is`; own request / earlier player request / cc click / …), the tracks offered and the one
+  picked, the request's track and rendering parameters by value (every other parameter by name only), json3
+  counts (events, with word offsets, multi-seg) and where the transcript ends. The server logs it as
+  `[id] captions: …` and keeps it in the cache file's `meta`. Reason: `vpn3VmGvIXA` sent 514 lines and, 11 s
+  later, 807 lines, both `en asr` and both the full length of the video, and nothing recorded could say what
+  differed between the two reads. A different transcript is a different cache key.
+- **An as-is read is labeled by what was fetched**, not by the picked track: the player's own request can be for
+  another track (two English transcripts went out labeled `ar`).
+- **Short-read guard.** A transcript whose last line ends more than 15% before the video's length
+  (`videoDetails.lengthSeconds`) is read once more: a second read ending later replaces the first; one ending in
+  the same place (± 2 s) means the tail really has no speech.
 - Talks to content.js via `window.postMessage` (`source: 'sr-content'` → `source: 'sr-page'`).
 
 ### [3] Parse (page.js)
@@ -146,6 +158,7 @@ API:
 | --- | --- | --- | --- |
 | POST | `/analyze` | `{videoId, lang, title, creator, kind, description, position, lines, analysisLines?, analysisLang?}` | job; starts/resumes it if new |
 | GET | `/analyze?v=ID` | — | job `{status, segments, paused?, progress?, cached?}` or 404 `unknown` |
+| GET | `/stored?v=ID&build=N` | — | `{status: done, segments, instant: true}` for the instant revisit, or 404. Only a complete result made by the current detect/refine/post/leadin versions and model, and only if `build` is this server's `CLIENT_BUILD`. Does not check the transcript. |
 | GET | `/health` | — | `{ok, model, ollama, loaded, build}`; the popup shows *restart server* when `build` is not the extension's |
 | POST | `/feedback` | `{videoId, kind: false_skip\|missed_ad, playhead, segment?, channelId, channelName, title}` | `{ok}`; appended to `server/cache/feedback.local.jsonl` with the cached segment's evidence/reason and pipeline versions |
 | GET | `/feedback` | — | `{count, recent}` |
@@ -376,6 +389,16 @@ Every GET/POST for a video counts as a poll.
   evict events, and per job: wall time, working time, Ollama calls, time-to-first-skip. Each finished job appends
   a row to `server/cache/results.local.md` (gitignored: viewing history). The curated test set with expectations
   and verdicts is `server/testset.md`.
+
+### Instant revisit (content.js `askStored`, server `stored_result`)
+- On every video open, before the captions are read, content.js asks `GET /stored` by video id. If the server has
+  a finished result made by the current versions (memory or the cache file) and the builds match, the markers are
+  drawn and skips are live at once. Reading captions takes a few seconds; this does not wait for it.
+- The caption read continues in parallel. Its POST is the validation: same transcript and metadata → the stored
+  result is **confirmed**; otherwise the video is re-analyzed and the result **replaced** when the new one is
+  complete (an unfinished re-analysis never wipes what is on screen).
+- Server log: `cache: instant (…)`, then `cache: confirmed (…)` or `cache: replaced (…): served …, now …`.
+  The same three lines appear in the page console in dev mode.
 
 ### [8]–[9] Playback (content.js + content.css)
 - After POST, poll GET every 2s until `done`/`error`. Redraw markers on each update.

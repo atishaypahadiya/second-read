@@ -6,7 +6,7 @@
 // (DESIGN.md); this file only builds the markup those classes expect.
 
 (() => {
-  const BUILD = 18; // keep equal to page.js, background.js and server.py CLIENT_BUILD
+  const BUILD = 19; // keep equal to page.js, background.js and server.py CLIENT_BUILD
   const TAG = '[SecondRead]';
   // Dev mode gates ordinary logs; errors always print.
   const log = (...args) => { if (settings.devMode) console.log(TAG, ...args); };
@@ -79,8 +79,24 @@
     if (!settings.enabled) { log('disabled in popup; not analyzing'); return; }
     setBadge('reading captions', 'reading');
     attachPlayback();
+    askStored(videoId);
     requestCaptions(videoId);
   }
+
+  // Instant revisit. Reading the captions takes a few seconds, and only then can the server check its stored
+  // result against them. So ask by video id first: if the server has a finished result made by the current
+  // pipeline versions, draw it and skip by it right away. The caption read goes on in parallel; its validated
+  // answer confirms this one or replaces it (handleJob).
+  async function askStored(videoId) {
+    const state = current;
+    const res = await send({ type: 'stored', videoId });
+    if (current !== state || !res || !res.ok || !Array.isArray(res.segments)) return;
+    if (state.lastStatus) return;   // the validated answer got here first
+    state.instant = res.segments;
+    log(`cache: instant (${res.segments.length} segment(s)), before the captions were read`);
+    handleJob(videoId, { status: 'done', segments: res.segments, cached: true, instant: true });
+  }
+  const segmentsSignature = (segs) => (segs || []).map((s) => `${s.action}|${s.category}|${Number(s.start).toFixed(1)}|${Number(s.end).toFixed(1)}`).sort().join(',');
 
   // Stage 2: captions. page.js runs in the MAIN world and can reach the player;
   // we talk to it over window.postMessage and only accept replies for our video.
@@ -93,7 +109,7 @@
       if (d.error) {
         log('captions:', String(d.error).slice(0, 80));
         current.captionsNote = d.error === 'no captions' ? 'no captions' : 'captions unavailable';
-        setBadge(current.captionsNote, 'nocaptions');
+        if (!current.instant) setBadge(current.captionsNote, 'nocaptions');   // a stored result is already on screen
         return;
       }
       // Any page script can post a message shaped like this one, so validate before trusting it.
@@ -117,6 +133,8 @@
       current.analysisLines = validLines(d.analysisLines) ? d.analysisLines : null;
       current.analysisLang = typeof d.analysisLang === 'string' ? d.analysisLang.slice(0, 12) : d.lang;
       current.pageBuild = Number.isInteger(d.build) ? d.build : null;
+      // how page.js got the captions (track, path, request parameters, counts): diagnostics for the server's log
+      current.capture = d.capture && typeof d.capture === 'object' && JSON.stringify(d.capture).length <= 4000 ? d.capture : null;
       if (current.analysisLines) log(`analysis track: ${current.analysisLang}, ${current.analysisLines.length} lines`);
       log(`metadata from page.js (lengths): title=${current.title.length} creator=${current.creator.length} ` +
           `channelId=${current.channelId.length} description=${current.description.length} heat=${current.heat.length} ` +
@@ -160,6 +178,7 @@
       duration: v && isFinite(v.duration) && v.duration > 0 ? v.duration : null,
       position: v && isFinite(v.currentTime) ? v.currentTime : 0,
       analysisLines: state.analysisLines, analysisLang: state.analysisLang,
+      capture: state.capture || null,
       client: { page: state.pageBuild, content: BUILD },
     };
   }
@@ -167,7 +186,7 @@
   async function analyze(videoId) {
     const state = current;
     const alive = () => current === state && state.videoId === videoId;
-    setBadge('analyzing', 'busy');
+    if (!state.instant) setBadge('analyzing', 'busy');
     const res = await send({ type: 'analyze', payload: analyzePayload(state) });
     if (!alive()) return;
     if (!res.ok) { logErr('server:', res.error); serverErrorBadge(res.error); return; }
@@ -188,6 +207,16 @@
 
   function handleJob(videoId, job) {
     const state = current;
+    if (state.instant && !job.instant) {
+      // The stored result is on screen and the server is now checking it against the captions. An unfinished
+      // re-analysis must not wipe it (its first updates carry few or no segments): it stands until the
+      // validated answer is complete, and is then confirmed or replaced.
+      if (job.status !== 'done' && job.status !== 'error') return;
+      if (job.status === 'error') { state.instant = null; log('cache: instant result kept (it could not be validated: analysis failed)'); return; }
+      const same = segmentsSignature(state.instant) === segmentsSignature(job.segments);
+      log(same ? 'cache: confirmed' : `cache: replaced (${state.instant.length} -> ${(job.segments || []).length} segment(s))`);
+      state.instant = null;
+    }
     const prev = state.lastStatus;
     state.lastStatus = job.status;
     // A skip can be published again with an earlier start (the server's lead-in check). It is the same segment:

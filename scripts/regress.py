@@ -332,6 +332,33 @@ def unit_checks():
     eq("start: refine's segue start is kept when it is in the line before the word pass's start; not from two lines back",
        (server.prefer_start_anchor(chat_lines, 1, 2, ctx, at("today's"), at("Do")) == at("Do"),
         server.prefer_start_anchor(chat_lines, 1, 2, ctx, at("They"), at("Do")) == at("They")), (True, True))
+    # instant revisit: a result is served by video id only if it is complete and made by this pipeline and build
+    done = {"videoId": "storedVid00", "versions": server.versions(), "model": server.MODEL, "hash": "h", "inputs": "i",
+            "segments": [{"action": "skip", "category": "sponsor", "start": 100.0, "end": 150.0}], "transcript": [], "calls": {}}
+    for vid, change in (("storedVid00", {}), ("storedVid01", {"versions": {**server.versions(), "post": server.POST_VERSION - 1}}),
+                        ("storedVid02", {"partial": True, "versions": None}), ("storedVid03", {"model": "other:1b"})):
+        server.save_cache(vid, {**done, "videoId": vid, **change})
+    B = server.CLIENT_BUILD
+    eq("stored result: served for the current versions and build; not for another build, other versions, a partial "
+       "result, another model, or an unknown video",
+       [server.stored_result(v, b)[0] is not None for v, b in (("storedVid00", B), ("storedVid00", B - 1), ("storedVid00", None),
+                                                               ("storedVid01", B), ("storedVid02", B), ("storedVid03", B), ("storedVid99", B))],
+       [True, False, False, False, False, False, False])
+    said = []
+    keep_log, server.log = server.log, said.append
+    server.instant_served["storedVid00"] = server.segments_signature(done["segments"])
+    server.settle_instant("storedVid00", done["segments"], "test")
+    server.instant_served["storedVid00"] = server.segments_signature(done["segments"])
+    server.settle_instant("storedVid00", [{"action": "skip", "category": "sponsor", "start": 95.0, "end": 150.0}], "test")
+    server.settle_instant("storedVid00", [], "test")   # nothing was served: says nothing
+    server.log = keep_log
+    eq("stored result: the validated answer is logged as confirmed or replaced, once",
+       ["confirmed" in said[0], "replaced" in said[1], len(said)], [True, True, 2])
+    eq("capture report: kept small and flat, unknown content dropped",
+       server.clean_capture({"path": "B", "via": "as-is", "how": "cc click", "events": 807, "withOffset": 0, "tracks": ["en:asr", "ar:asr"],
+                             "request": {"params": {"lang": "en", "kind": "asr"}, "others": ["pot", "signature"]}, "junk": {"a": [1] * 999}}),
+       {"path": "B", "via": "as-is", "how": "cc click", "events": 807, "withOffset": 0, "tracks": ["en:asr", "ar:asr"],
+        "params": {"lang": "en", "kind": "asr"}, "others": ["pot", "signature"]})
     # description hints: only sponsor lines count; the creator's own links, socials and name do not
     h = server.extract_hints("Learn to code with Coddy (ad): https://fern.deals/coddy")
     eq("hints: (ad) line -> brand + link", (h["brands"], h["domains"]), (["Coddy"], ["fern.deals/coddy"]))
@@ -524,7 +551,7 @@ def main():
         results = unit_checks()
         bad = [m for ok, m in results if not ok]
         failures += 1 if bad else 0
-        rows.append(("rules", "server", "FAIL" if bad else "PASS", bad or [f"{len(results)} rule checks ok (cleaning, end snap, lead-in, ad markers, hints, halls, brands, codes, tier-2 quotes, disclosure)"], time.time() - t0))
+        rows.append(("rules", "server", "FAIL" if bad else "PASS", bad or [f"{len(results)} rule checks ok (cleaning, end snap, lead-in, stored result, ad markers, hints, halls, brands, codes, tier-2 quotes, disclosure)"], time.time() - t0))
     for e in entries:
         t0 = time.time()
         label = e.get("id", e["video"])
