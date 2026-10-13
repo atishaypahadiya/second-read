@@ -2193,6 +2193,30 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(200, public_job(job))
 
 
+def backfill_durations():
+    """Videos recorded before the client sent a duration have none; use the end of their cached transcript."""
+    fixed = 0
+    try:
+        for vid in stats.videos_without_duration():
+            cached = load_cache(vid)
+            lines = (cached or {}).get("transcript") or []
+            end = finite(lines[-1].get("end")) if lines and isinstance(lines[-1], dict) else None
+            if end and end > 0:
+                stats.set_duration(vid, end)
+                fixed += 1
+    except Exception as e:  # noqa: BLE001
+        log(f"stats: duration backfill failed: {e!r}")
+    if fixed:
+        log(f"stats: filled in the length of {fixed} video(s) from cached transcripts")
+    try:
+        channels, reset = stats.repair_legacy_rows(POST_VERSION)
+        if channels or reset:
+            log(f"stats: repaired older rows: {channels} video(s) got their channel from events, "
+                f"{reset} disclosure value(s) recorded without data reset to unknown")
+    except Exception as e:  # noqa: BLE001
+        log(f"stats: legacy repair failed: {e!r}")
+
+
 def model_present(name):
     try:
         with urllib.request.urlopen(f"{OLLAMA}/api/tags", timeout=2) as resp:
@@ -2209,6 +2233,7 @@ def main():
     stats.init()
     intel.init()
     intel.set_logger(log)
+    backfill_durations()
     DETECT_MODEL = DETECT_MODEL_PREF if model_present(DETECT_MODEL_PREF) else MODEL
     if DETECT_MODEL != MODEL:
         try:

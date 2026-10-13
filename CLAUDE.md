@@ -142,6 +142,10 @@ server adds the cached pipeline context and versions. Rows that predate validati
   `brand_raw` as the model spelled it and canonical `brand`), `events` (ts, kind, video, channel, segment times,
   playhead, saved seconds; kinds: skip, undo, seek_into, false_skip, missed_ad, allowlisted), `brand_aliases`.
   **User-agnostic**: no user identity in any row, so rows can later be pooled across users.
+- At startup the server repairs rows written by older builds (idempotent): a missing `duration_s` is filled from the
+  cached transcript's end, a missing channel from the video's own events, and disclosure columns recorded as 0
+  before the tri-state rule are reset to NULL. The position histogram only bins ads whose video length is known
+  and says how many it could not place.
 - Segment ids are stable across re-records (upsert on video + start + end), so stats are synced on every finished
   job, on cache hits, and when metadata arrives later, without orphaning ad metrics or analyses. `duration_s` falls
   back to the end of the transcript when the client sent none. Segments carry `brand_canonical` for the toast/tooltip.
