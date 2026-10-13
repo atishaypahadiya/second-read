@@ -17,6 +17,7 @@ API
   POST /event          {videoId, kind: skip|undo|seek_into|allowlisted, segment, playhead, saved} -> {ok}
   GET  /stats.json, GET /dashboard                                local stats (server/stats.py)
   GET  /ads.json                                                  ad intelligence per segment + insights (server/intel.py)
+  GET  /codes.json?q=                                             promo code / link / offer vault
   python3 server/server.py --feedback-report                      prints a summary for tuning sessions
 
 Status: queued -> classifying -> done | error  (+ paused:true while the video isn't being polled)
@@ -1592,6 +1593,9 @@ def finish_job(job):
     append_result(job, segments, job_time, calls, job["ttfs"])
     try:
         seg_ids = stats.record_video(job, segments, versions())
+        n_codes = stats.record_codes(job, segments)
+        if n_codes:
+            log(f"[{video_id}] codes: {n_codes} new code/link/offer row(s) in the vault")
         intel.compute_tier1(job, segments, seg_ids, job.get("terms", []))
         with work_available:
             work_available.notify()  # wake the worker for idle-time tier-2 analysis
@@ -1826,6 +1830,12 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as e:  # noqa: BLE001
                 log(f"intel: ads_json failed: {e!r}")
                 return self.send_json(500, {"error": "intel error"})
+        if u.path == "/codes.json":
+            try:
+                return self.send_json(200, stats.codes_json((parse_qs(u.query).get("q") or [""])[0][:100]))
+            except Exception as e:  # noqa: BLE001
+                log(f"stats: codes failed: {e!r}")
+                return self.send_json(500, {"error": "stats error"})
         if u.path == "/stats.json":
             try:
                 return self.send_json(200, stats.compute())

@@ -141,6 +141,9 @@ API:
   structure beats, and a better-placement suggestion (timestamp, reason, verbatim quote, flagged if not verbatim).
 - Dashboard "Ad cards": mini timeline (ad, chapters, heat, peaks), all metrics, tags, suggestion. "Insights":
   aggregates and distributions across all ads.
+- **Promo code vault** (`codes` table, `GET /codes.json?q=`, popup "Codes" tab with search + copy): every code,
+  link and offer from the description hints and from each sponsor read's text (incl. spoken "fern dot deals slash
+  coddy"), per brand, with the video and the ad's timestamp.
 - **Disclosure check:** page.js sends YouTube's "Includes paid promotion" flag (`paidContentOverlay` in the player
   response); the server also checks the description for an (ad)/sponsor/partner line. A sponsor read with neither is
   flagged `undisclosed: true` on the segment, counted per brand in the stats table, and marked on its ad card.
@@ -179,8 +182,10 @@ Every GET/POST for a video counts as a poll.
   header (so a misheard "Udo" can be matched to Odoo).
 - **Chapter fast path:** a description chapter whose title reads like an ad (sponsor, ad, advert, promo, partner,
   paid promotion, and common non-English equivalents) ≤ 4 min long becomes a `skip` segment from its bounds
-  immediately, snapped to pauses, `source: chapter`, no model call; the evidence is the chapter title. Detect
-  windows it covers are deferred like hint regions.
+  immediately, snapped to pauses but never past the chapter end, `source: chapter`, no model call; the evidence is
+  the chapter title. Detect windows it covers are deferred like hint regions. **Trade-off:** this trusts the
+  creator's own chapter label over the evidence gate (a description is page-supplied); it is bounded by the chapter
+  and the 4-minute cap.
 - **Hint fast path:** transcript lines that mention a hint term (brand/code/domain, ≥ 4 chars) are clustered (gap
   ≤ 120s) into regions that go **straight to refine** as candidates (`source: hint`); detect windows overlapping a
   region ± 60s are skipped. Regions run before any detect window.

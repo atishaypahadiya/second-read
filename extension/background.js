@@ -36,6 +36,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     case 'poll':
       p = call(`/analyze?v=${encodeURIComponent(msg.videoId)}`);
       break;
+    case 'codes':
+      p = call(`/codes.json?q=${encodeURIComponent(msg.q || '')}`);
+      break;
     case 'health':
       p = call('/health');
       break;

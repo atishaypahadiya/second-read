@@ -57,3 +57,12 @@ body.disabled .card, body.disabled .status, body.disabled .video { opacity: .45;
 .list .remove:hover { color: var(--accent); }
 .link { color: var(--muted); text-decoration: none; font-size: 12px; margin-right: 6px; }
 .link:hover { color: var(--fg); }
+
+.ptabs { display: flex; gap: 2px; margin: -4px 0 8px; border-bottom: 1px solid var(--line); }
+.ptab { all: unset; cursor: pointer; padding: 5px 10px; font-size: 12px; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.ptab.on { color: var(--fg); border-color: var(--accent); font-weight: 600; }
+#codeSearch { width: 100%; padding: 6px 9px; border: 1px solid var(--line); border-radius: 7px; background: var(--card); color: var(--fg); font: inherit; margin-bottom: 6px; }
+.codes li { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.codes .val { font-weight: 600; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+.codes .ctx { grid-column: 1 / -1; font-size: 11px; color: var(--muted); }
+.codes .kind { font-size: 10px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin-right: 6px; }

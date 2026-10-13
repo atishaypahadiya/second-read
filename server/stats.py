@@ -38,6 +38,12 @@ CREATE TABLE IF NOT EXISTS events (
 CREATE TABLE IF NOT EXISTS brand_aliases (
   alias TEXT PRIMARY KEY, brand TEXT NOT NULL, how TEXT
 );
+CREATE TABLE IF NOT EXISTS codes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  brand TEXT, video_id TEXT, channel_name TEXT, title TEXT, time_s REAL, kind TEXT, value TEXT, detail TEXT, created_at TEXT,
+  UNIQUE(video_id, kind, value)
+);
+CREATE INDEX IF NOT EXISTS idx_codes_brand ON codes(brand);
 CREATE INDEX IF NOT EXISTS idx_segments_brand ON segments(brand);
 CREATE INDEX IF NOT EXISTS idx_segments_video ON segments(video_id);
 CREATE INDEX IF NOT EXISTS idx_events_video ON events(video_id);
@@ -185,6 +191,72 @@ def record_video(job, segments, versions):
                        s.get("source", ""), now()))
             ids[(s["start"], s["end"])] = cur.lastrowid
         return ids
+
+
+CODE_IN_TEXT_RE = re.compile(r"\b(?:promo |discount |coupon )?code[:\s]+([A-Z0-9]{3,20})\b", re.I)
+DOMAIN_IN_TEXT_RE = re.compile(r"\b((?:[a-z0-9-]+\.)+(?:com|net|org|io|co|deals|gg|ai|app|tv|me|ly|fm|shop|store|xyz|dev|to)(?:/[\w.-]+)?)\b", re.I)
+SPOKEN_DOMAIN_RE = re.compile(r"\b([a-z0-9-]{3,})\s+dot\s+(com|net|org|io|co|deals|gg|ai|app|tv)(?:\s+slash\s+([a-z0-9-]+))?\b", re.I)
+OFFER_IN_TEXT = [(r"(\d{1,3})\s*(?:%|percent) off", "percent off"), (r"free (?:trial|month|week|year)", "free trial"),
+                 (r"(\d+)[- ]day(?:s)? (?:free|trial)", "free trial"), (r"money[- ]back guarantee", "guarantee"),
+                 (r"free shipping", "free shipping"), (r"(\d+)\s*(?:extra )?months? free", "months free"),
+                 (r"first (\d+) (?:people|months|users|customers)", "limited offer")]
+SOCIAL = ("youtube.", "youtu.be", "instagram.", "twitter.", "x.com", "tiktok.", "facebook.", "patreon.", "discord.", "twitch.",
+          "reddit.", "spotify.", "apple.", "bit.ly", "linktr.ee", "google.", "wikipedia.", "amazon.com/shop")
+
+
+def record_codes(job, segments):
+    """7d: every promo code, link and offer from the description hints and the ad text, per brand, with the ad's time."""
+    hints = job.get("hints") or {}
+    lines = job.get("lines") or []
+    sponsor = [s for s in segments if s.get("category") == "sponsor"]
+    first_t = sponsor[0]["start"] if sponsor else 0.0
+    found = []  # (brand, time, kind, value, detail)
+
+    def brand_at(t):
+        for s in sponsor:
+            if s["start"] - 5 <= t <= s["end"] + 5:
+                return s.get("brand_canonical") or s.get("brand") or ""
+        return (sponsor[0].get("brand_canonical") or sponsor[0].get("brand")) if len(sponsor) == 1 else ""
+    for c in hints.get("codes", []):
+        found.append((brand_at(first_t), first_t, "code", c.upper(), "description"))
+    for d in hints.get("domains", []):
+        if not d.lower().startswith(SOCIAL):
+            found.append((brand_at(first_t), first_t, "link", d, "description"))
+    for s in sponsor:
+        text = " ".join(l["text"] for l in lines if l["end"] > s["start"] and l["start"] < s["end"])
+        b = s.get("brand_canonical") or s.get("brand") or ""
+        for m in CODE_IN_TEXT_RE.finditer(text):
+            found.append((b, s["start"], "code", m.group(1).upper(), "spoken"))
+        for m in DOMAIN_IN_TEXT_RE.finditer(text):
+            if not m.group(1).lower().startswith(SOCIAL):
+                found.append((b, s["start"], "link", m.group(1).lower(), "spoken"))
+        for m in SPOKEN_DOMAIN_RE.finditer(text):
+            dom = f"{m.group(1)}.{m.group(2)}".lower() + (f"/{m.group(3)}" if m.group(3) else "")
+            found.append((b, s["start"], "link", dom, "spoken"))
+        for pat, label in OFFER_IN_TEXT:
+            for m in re.finditer(pat, text, re.I):
+                found.append((b, s["start"], "offer", m.group(0).lower(), label))
+    if not found:
+        return 0
+    n = 0
+    with _lock, connect() as c:
+        for brand, t, kind, value, detail in found:
+            cur = c.execute("""INSERT OR IGNORE INTO codes(brand, video_id, channel_name, title, time_s, kind, value, detail, created_at)
+                               VALUES (?,?,?,?,?,?,?,?,?)""",
+                            (brand, job["video_id"], job.get("creator", ""), job.get("title", ""), round(t, 1), kind, value[:120], detail, now()))
+            n += cur.rowcount
+    return n
+
+
+def codes_json(query=""):
+    q = f"%{query.strip().lower()}%" if query.strip() else None
+    with _lock, connect() as c:
+        if q:
+            rows = c.execute("SELECT * FROM codes WHERE lower(brand) LIKE ? OR lower(value) LIKE ? OR lower(channel_name) LIKE ? "
+                             "OR lower(title) LIKE ? ORDER BY created_at DESC, id DESC LIMIT 500", (q, q, q, q)).fetchall()
+        else:
+            rows = c.execute("SELECT * FROM codes ORDER BY created_at DESC, id DESC LIMIT 500").fetchall()
+    return {"count": len(rows), "codes": [dict(r) for r in rows]}
 
 
 def record_event(data):
