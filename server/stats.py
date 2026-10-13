@@ -25,7 +25,7 @@ def set_logger(fn):
     _log = fn
 
 
-EVENT_KINDS = ("skip", "undo", "seek_into", "false_skip", "missed_ad", "allowlisted")
+EVENT_KINDS = ("skip", "undo", "seek_into", "false_skip", "missed_ad", "allowlisted", "integration_played")
 HALL_MIN_SPOTS = 3  # spots a brand needs before it can enter the Hall of Shame or the Hall of Fame
 RULE_CATEGORIES = ("interaction", "intro", "outro", "recap")  # same as server.RULE_CATEGORIES: never carry a brand
 BRAND_RULES_VERSION = 2  # bump when canonical_brand's rules change: stored brands are re-derived once at startup
@@ -683,7 +683,9 @@ def compute():
         """Skips, undone skips and net seconds saved: the one definition the dashboard and the popup both show."""
         net = sum((e["saved_s"] or 0) for e in evs if e["kind"] == "skip") - sum((e["saved_s"] or 0) for e in evs if e["kind"] == "undo")
         return {"skips": sum(1 for e in evs if e["kind"] == "skip"), "undos": sum(1 for e in evs if e["kind"] == "undo"),
-                "saved_s": max(0, round(net))}
+                "saved_s": max(0, round(net)),
+                # sponsor integrations the viewer played through to the end (the client reports each once)
+                "integrations_played": sum(1 for e in evs if e["kind"] == "integration_played")}
     everything = totals(events)
     today = totals([e for e in events if (e["ts"] or "").startswith(time.strftime("%Y-%m-%d"))])
     with_sponsor = {s["video_id"] for s in sponsor}
@@ -698,7 +700,8 @@ def compute():
         "videos": len(videos), "videos_with_sponsor_pct": pct(len(with_sponsor), len(videos)),
         "ads_per_video": round(len(sponsor) / len(videos), 2) if videos else 0,
         "spots": len(sponsor), "brands": len(brand_rows), "creators": len(creator_rows),
-        "skips": everything["skips"], "saved_s": everything["saved_s"], "undos": everything["undos"], "today": today,
+        "skips": everything["skips"], "saved_s": everything["saved_s"], "undos": everything["undos"],
+        "integrations_played": everything["integrations_played"], "today": today,
         "wrong_skips": sum(1 for e in events if e["kind"] == "false_skip"),
         "missed_ads": sum(1 for e in events if e["kind"] == "missed_ad"),
         "position_hist": hist, "position_unplaced": unplaced, "avg_ad_s": round(sum(s["seg_end"] - s["seg_start"] for s in sponsor) / len(sponsor), 1) if sponsor else 0,

@@ -159,7 +159,7 @@ server adds the cached pipeline context and versions. Rows that predate validati
 ### Stats (server/stats.py, `server/cache/stats.local.db`, gitignored)
 - Tables: `videos` (id, channel, title, lang, duration, versions, hints), `segments` (every final segment with
   `brand_raw` as the model spelled it and canonical `brand`), `events` (ts, kind, video, channel, segment times,
-  playhead, saved seconds; kinds: skip, undo, seek_into, false_skip, missed_ad, allowlisted), `brand_aliases`.
+  playhead, saved seconds; kinds: skip, undo, seek_into, false_skip, missed_ad, allowlisted, integration_played), `brand_aliases`.
   **User-agnostic**: no user identity in any row, so rows can later be pooled across users.
 - At startup the server repairs rows written by older builds (idempotent): a missing `duration_s` is filled from the
   cached transcript's end, a missing channel from the video's own events, and disclosure columns recorded as 0
@@ -237,6 +237,8 @@ Every GET/POST for a video counts as a poll.
   - `REFINE_VERSION`: `SYSTEM_PROMPT`, `REFINE_INSTRUCTIONS`, `OUTPUT_SCHEMA` anchors, context size,
     `WORD_PROMPT`/`WORD_SCHEMA`;
   - `POST_VERSION`: evidence gate, thresholds, snapping, merge, filters (no model calls; re-process is < 1s).
+  - `LEADIN_VERSION`: the lead-in check (`LEADIN_PROMPT`, the sentences it is shown, its caps). Its outputs are
+    cached under their own version, so changing it re-runs one small call per skip and nothing else.
   A rubric change in `SYSTEM_PROMPT` affects both passes: bump DETECT and REFINE.
   **Inputs digest:** besides the transcript hash, a job/cache entry carries `inputs` = hash of (transcript, title,
   description, paid-promotion flag, analysis track, word timings; the transcript hash itself only covers line
@@ -284,6 +286,22 @@ Every GET/POST for a video counts as a poll.
   the ad's start and end). If each phrase occurs exactly once in the boundary context (±1 line) they are used as the
   word picks, saving the separate word pass; otherwise the labeled word pass runs as the retry. Non-English videos
   always use the labeled pass on the original track (the anchors are in the English analysis text).
+- **Start of a skip: the refine start, then the lead-in check.** The word pass tends to answer with the first
+  sponsor cue, not the segue that leads to it, so skips used to begin a few seconds into the ad.
+  (1) When the refine call's `first_words` were accepted (a cue follows them) but its `last_words` were not unique,
+  the word pass still runs for the end, and **the refine start is kept** if it is earlier and in the same caption
+  line as the word pass's start or the line right before it (`prefer_start_anchor`; "Do you actually know about
+  today's sponsor already?").
+  (2) **Lead-in check** (`check_leadin`, one small model call per skip): the 1–3 whole sentences before the cut,
+  none starting more than 8 s back (`sentences_before`), are each labeled content or lead-in; the start moves back
+  to the first sentence of the unbroken lead-in run that ends at the cut. A candidate that lies in the lines the
+  refine pass had already given the promotion is marked as such in the prompt. Whole sentences only, ≤ 8 s, never
+  into a previous segment. A failed or timed-out call (60 s), an unusable answer or "all content" leaves the start
+  alone. Not run on chapter skips or when the analysis track is a translation.
+  (3) **It never delays a skip:** the check is queued as the job's next unit *after* the skip was published
+  (`queue_leadin_checks`), and the segment is republished only if the start moved. Segments carry `lead_in_s` and
+  `lead_in` {from, sentences}; the tooltip says "incl. Ns lead-in". content.js moves a segment's handled state to
+  its new key when the start changes.
 - **Two tracks for non-English videos:** page.js also fetches the English auto-translation (`tlang=en` on the token
   URL). Prefilter, detect, refine, evidence and topic filter run on the English `analysisLines`; the result is mapped
   to the original track by time overlap and the word pass + snapping run on the original for exact cuts. No
@@ -389,9 +407,10 @@ Every GET/POST for a video counts as a poll.
   {channelId: name} (markers still show, nothing skips). The server's action stays in the tooltip when overridden.
   `chrome.storage.local.stats` holds, for today and all-time: `skips`, `undos`, net `saved` seconds (an undo is
   counted and its seconds are taken back; the skip still counts) and `kept` (integrations the playhead passed
-  through, once per page view). **The server's totals are the truth** (`/stats.json` `overall`, incl. `today`):
-  the popup asks for them on open (`stats` message) and overwrites the local copy, so popup and dashboard always
-  agree and a storage reset (new extension ID) loses nothing but `kept`. The popup
+  ran through to the end of without the viewer seeking out, once per page view; each is also sent as an
+  `integration_played` event). **The server's totals are the truth** (`/stats.json` `overall`, incl. `today` and
+  `integrations_played`): the popup asks for them on open (`stats` message) and overwrites the local copy, so
+  popup and dashboard always agree and a storage reset (new extension ID) loses nothing. The popup
   leads with the all-time time saved; `getState` gives it the video's duration and each segment's outcome (`done`).
 
 ## Build stages

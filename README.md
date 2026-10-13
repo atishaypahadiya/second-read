@@ -106,7 +106,7 @@ stateDiagram-v2
   refined --> labelOnly: sponsor read without a verbatim sponsor cue
   refined --> dropped: any other category without a verbatim quote
   evidenced --> bounded: first and last ad word picked
-  bounded --> snapped: start to a sentence start or a pause, never outward
+  bounded --> snapped: start to a sentence start or a pause
   bounded --> labelOnly: no valid word pick and under 3 s left inward
   snapped --> skip: sponsor read at confidence 0.85 or more
   snapped --> keep: sponsor integration
@@ -116,6 +116,7 @@ stateDiagram-v2
   labelOnly --> post
   post --> published
   post --> dropped: disclaimer, the video's subject, a sponsor label with no ad marker, or a label under 0.7
+  published --> published: lead-in check moves a skip's start up to 8 s earlier
   published --> [*]
   dropped --> [*]
 ```
@@ -131,7 +132,13 @@ skip. The end of a cut is the last ad word minus 0.3 s, and the snap never
 moves it past that word into the next sentence. Every fallback moves inward:
 if the word pick is invalid twice, the cut shrinks to the inside of the first
 and last ad lines, and if less than 3 s would remain the segment is only
-labeled. Post-filters can remove a label, never add a skip. The second rule is
+labeled. Post-filters can remove a label, never add a skip. One step moves a
+boundary outward on purpose: after a skip has been published, a small model
+call looks at the one to three sentences before it and, if they are a lead-in
+to the ad (a segue, a staged setup, a question about the sponsor), republishes
+the skip with an earlier start. It moves by whole sentences, by at most 8
+seconds, never before the skip is already out, and any failure, timeout or
+unclear answer leaves the start where it was. The second rule is
 to fail safe on missing information. A sponsor read is called undisclosed only
 when both disclosure signals (YouTube's paid-promotion flag and a sponsor line
 in the description) were received and are both negative; if either was not
@@ -229,14 +236,14 @@ at the time, including runs from before bugs were fixed. It drives the popup
 and the dashboard. It is diagnostic only and is never reported as a result.
 
 `scripts/regress.py` is a regression check, not an accuracy measurement. It
-replays the five videos of `server/testset.json` (plus three variants of one
+replays the ten videos of `server/testset.json` (plus three variants of one
 video with different request metadata, and one with a stand-in English
 analysis track) through the real pipeline from stored
 transcripts and stored model outputs, with zero model calls, and checks
 expected segments within 1.5 s, that must-not-skip videos have no skip, and
-that forbidden ranges stay empty. It also runs 45 rule checks and the
-extension wiring test. All eleven rows pass at versions detect 3, refine 3,
-post 5. The expectations were written from the same videos the prompt and
+that forbidden ranges stay empty. It also runs 51 rule checks and the
+extension wiring test. All sixteen rows pass at versions detect 3, refine 3,
+post 6, lead-in 1. The expectations were written from the same videos the prompt and
 thresholds were tuned on, so a pass says nothing has regressed and nothing
 about unseen videos.
 
@@ -268,7 +275,8 @@ served from the cache.
 | `vGoRpjE-svI` (Hindi, no sponsor) | 71 s / none / 6 | 0 s / none / 0 |
 
 Replayed transcripts without descriptions, 2026-10-13. The current versions
-(3/3/5) have not been re-timed on replays.
+(3/3/6, with one extra call of 4 to 7 seconds per skip for the lead-in check,
+after the skip is published) have not been re-timed on replays.
 
 Live first visits the same day, with real request metadata, at versions 3/3/3:
 
@@ -440,8 +448,13 @@ An unpacked extension's ID is derived from its folder path. Moving or renaming
 the folder resets the extension's settings and counters and makes the server
 refuse it until `.env` is updated and `install.sh` is run again.
 
+The lead-in check is a model judgement on a few sentences. It was shaped on
+ten sponsor reads and gets those right, which says little about the next
+hundred; when it is wrong in the costly direction it removes up to 8 seconds
+of content before an ad.
+
 The pipeline has been tested by one person on a small set of channels. The
-test set is five videos, the prompt and thresholds were tuned on them, and the
+test set is ten videos, the prompt and thresholds were tuned on them, and the
 held-out evaluation has not been run. Several categories have never been
 checked against a video by a human.
 

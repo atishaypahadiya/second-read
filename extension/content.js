@@ -6,7 +6,7 @@
 // (DESIGN.md); this file only builds the markup those classes expect.
 
 (() => {
-  const BUILD = 17; // keep equal to page.js, background.js and server.py CLIENT_BUILD
+  const BUILD = 18; // keep equal to page.js, background.js and server.py CLIENT_BUILD
   const TAG = '[SecondRead]';
   // Dev mode gates ordinary logs; errors always print.
   const log = (...args) => { if (settings.devMode) console.log(TAG, ...args); };
@@ -74,7 +74,7 @@
   }
 
   function setup(videoId) {
-    current = { videoId, cleanups: [], segments: [], handled: new Set(), outcome: new Map(), markerEls: new Map() };
+    current = { videoId, cleanups: [], segments: [], handled: new Set(), outcome: new Map(), markerEls: new Map(), inside: new Set() };
     log('video', videoId);
     if (!settings.enabled) { log('disabled in popup; not analyzing'); return; }
     setBadge('reading captions', 'reading');
@@ -190,7 +190,17 @@
     const state = current;
     const prev = state.lastStatus;
     state.lastStatus = job.status;
-    state.segments = job.segments || [];
+    // A skip can be published again with an earlier start (the server's lead-in check). It is the same segment:
+    // what already happened to it (skipped, undone, seeked into) moves to its new key.
+    const next = job.segments || [];
+    for (const s of next) {
+      const prev = state.handled.has(segKey(s)) ? null
+        : state.segments.find((p) => p.end === s.end && p.category === s.category && state.handled.has(segKey(p)));
+      if (!prev) continue;
+      state.handled.add(segKey(s));
+      if (state.outcome.has(segKey(prev))) state.outcome.set(segKey(s), state.outcome.get(segKey(prev)));
+    }
+    state.segments = next;
     if (job.status !== prev) log(`analysis ${job.status} (${state.segments.length} segment(s))${job.cached ? ' [cached]' : ''}`);
     const skips = state.segments.filter((s) => s.action === 'skip').length;
     if (job.status === 'done') {
@@ -214,6 +224,7 @@
   // ---------------------------------------------------------------------------
   const SKIP_GUARD_S = 0.5;   // don't trigger inside the last 0.5s of a segment
   const TOAST_MS = 6000;
+  const KEPT_GRACE_S = 2;   // playback "passed the end" of an integration if it is seen within this long after it
 
   const playerEl = () => document.getElementById('movie_player');
   const videoEl = () => document.querySelector('#movie_player video.html5-main-video');
@@ -357,7 +368,8 @@
     const done = eff === 'skip' && current ? current.outcome.get(segKey(s)) : '';
     const what = eff !== 'skip' ? 'plays' : done === 'skipped' ? 'skipped' : done ? 'plays' : 'will skip';
     const why = eff !== 'skip' && s.category === 'sponsor' && s.style !== 'integration' && low ? ` · below ${SKIP_CONF}` : '';
-    tip.append(head, el('span', 'sr-tooltip__time', `${fmtTime(s.start)} – ${fmtTime(s.end)} · ${what}${why}`));
+    const leadIn = s.lead_in_s ? ` · incl. ${Math.round(s.lead_in_s)}s lead-in` : '';
+    tip.append(head, el('span', 'sr-tooltip__time', `${fmtTime(s.start)} – ${fmtTime(s.end)} · ${what}${why}${leadIn}`));
     const quote = s.evidence ? `“${s.evidence}”` : (s.reason || '');
     if (quote) tip.append(el('span', 'sr-tooltip__quote', quote.length > 220 ? `${quote.slice(0, 217)}…` : quote));
     // keep the 320px card inside the player: clamp its centre to the lane
@@ -493,9 +505,17 @@
       if (!video || adShowing() || video.seeking) return;
       const t = video.currentTime;
       for (const s of state.segments) {
-        if (s.action === 'keep' && t >= s.start && t < s.end && !state.handled.has('kept:' + segKey(s))) {
-          state.handled.add('kept:' + segKey(s));
-          recordKept();
+        // A sponsor integration was "left playing" once playback runs through its end. Being inside it is
+        // remembered; a seek out of it (onSeeking) forgets it; reaching the end reports it, once per page view.
+        if (s.action === 'keep' && !state.handled.has('kept:' + segKey(s))) {
+          const key = 'kept:' + segKey(s);
+          if (t >= s.start && t < s.end) state.inside.add(key);
+          else if (state.inside.has(key) && t >= s.end && t < s.end + KEPT_GRACE_S) {
+            state.inside.delete(key);
+            state.handled.add(key);
+            recordKept();
+            sendEvent('integration_played', s, { playhead: t });
+          }
         }
         if (effectiveAction(s) !== 'skip') {
           if (s.action === 'skip' && state.channelId && settings.allowlist[state.channelId] &&
@@ -540,6 +560,9 @@
       if (ourSeek) { ourSeek = false; return; }
       // The user seeked. If they landed inside a skip segment, they want to watch it.
       const t = video.currentTime;
+      for (const s of state.segments) {   // seeking out of an integration: it was not played through
+        if (s.action === 'keep' && (t < s.start || t > s.end)) state.inside.delete('kept:' + segKey(s));
+      }
       for (const s of state.segments) {
         if (effectiveAction(s) === 'skip' && t >= s.start && t < s.end && !state.handled.has(segKey(s))) {
           state.handled.add(segKey(s));

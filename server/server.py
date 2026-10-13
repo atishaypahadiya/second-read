@@ -53,7 +53,7 @@ def env(name, default=""):
 
 
 HOST, PORT = "127.0.0.1", int(env("PORT", "8765"))  # SR_PORT: run a second instance for testing
-CLIENT_BUILD = 17  # extension build this server expects (page.js / content.js / background.js BUILD)
+CLIENT_BUILD = 18  # extension build this server expects (page.js / content.js / background.js BUILD)
 ALLOWED_HOSTS = {f"127.0.0.1:{PORT}", f"localhost:{PORT}", "127.0.0.1", "localhost"}
 # Optional: restrict to one extension. Unpacked extension IDs differ per machine, so this is opt-in:
 #   SR_EXTENSION_ID=abcdefghijklmnopabcdefghijklmnop python3 server/server.py
@@ -75,7 +75,8 @@ KEEP_ALIVE = -1                                       # keep the model loaded be
 # Rubric changes in SYSTEM_PROMPT affect both passes: bump DETECT and REFINE.
 DETECT_VERSION = 3
 REFINE_VERSION = 3
-POST_VERSION = 5
+POST_VERSION = 6
+LEADIN_VERSION = 1   # the lead-in check: LEADIN_PROMPT / LEADIN_SYSTEM, the sentences it is shown, its caps
 NUM_CTX = 8192
 LLM_TIMEOUT_S = 600
 MAX_BODY_BYTES = 8 * 1024 * 1024
@@ -97,6 +98,10 @@ TOPIC_MENTIONS = 3          # brand mentioned in this many lines outside the seg
 HINT_CLUSTER_GAP_S = 120.0  # transcript mentions of a description hint closer than this form one region
 HINT_REGION_PAD_S = 60.0    # detect windows overlapping a hint region (+- this) are skipped: refine runs directly
 ANCHOR_CUE_WORDS = 25       # a start anchor is trusted only if a sponsor cue follows within this many words
+LEADIN_MAX_S = 8.0          # the lead-in check may move a skip's start back by at most this much
+LEADIN_MAX_SENTENCES = 3    # ... and by at most this many whole sentences
+LEADIN_TIMEOUT_S = 60       # ... and gives up after this long: the start then stays where it is
+LEADIN_AD_WORDS = 45        # how much of the ad's opening the check is shown
 MAX_HINT_LINES = 8          # a hint term matching more lines than this is too common to be a sponsor marker
 MAX_HINT_REGION_S = 240.0   # a hint region longer than this is split (keeps refine windows inside the context)
 MAX_CHAPTER_AD_S = 240.0    # a "sponsor" chapter longer than this is not trusted as the ad's bounds
@@ -566,7 +571,7 @@ def format_window(lines, first, last, lang, title="", header=""):
     return "\n".join(out)
 
 
-def ollama_chat(user_content, schema=None, model=None, system=None):
+def ollama_chat(user_content, schema=None, model=None, system=None, timeout=None):
     payload = {
         "model": model or MODEL,
         "messages": [{"role": "system", "content": system or SYSTEM_PROMPT}, {"role": "user", "content": user_content}],
@@ -578,7 +583,7 @@ def ollama_chat(user_content, schema=None, model=None, system=None):
     }
     req = urllib.request.Request(f"{OLLAMA}/api/chat", data=json.dumps(payload).encode("utf-8"),
                                  headers={"Content-Type": "application/json"}, method="POST")
-    with urllib.request.urlopen(req, timeout=LLM_TIMEOUT_S) as resp:
+    with urllib.request.urlopen(req, timeout=timeout or LLM_TIMEOUT_S) as resp:
         data = json.loads(resp.read().decode("utf-8"))
     content = (data.get("message") or {}).get("content", "")
     return json.loads(content), data
@@ -926,13 +931,37 @@ def anchor_words(lines, s_line, e_line, seg):
             a = None
         else:
             log(f"  anchors: start accepted, cue(s) {cues[:3]} follow {s_words[a[0]][2]!r}")
+    if a and not b:
+        seg["_start_anchor"] = a[0]   # the start is good; the word pass is only needed for the end (refine_words)
     if not a or not b:
         return None
     return apply_picks(lines, s_line, e_line, s_words, a[0], e_words, b[1], "anchors from refine call")
 
 
-def refine_words(lines, s_line, e_line, seg, calls):
-    """Pass 2b: word-level boundaries. Returns (start, end, sure).
+def prefer_start_anchor(lines, s_line, e_line, s_words, fw, anchor):
+    """Which start word to use when the refine call's own start phrase was accepted (a sponsor cue follows it) but
+    its end phrase was not unique, so the word pass ran. The word pass tends to answer with the first cue word and
+    not with the segue that leads to it ("Do you actually know about today's sponsor already?"), and the snap then
+    moves forward to the next sentence. The refine start is kept when it is earlier and close: in the same caption
+    line as the start the word pass would give, or in the line right before it. Returns the word index."""
+    n = len(lines)
+    line_of = [i for i in range(max(0, s_line - BOUNDARY_LINES), min(n - 1, s_line + BOUNDARY_LINES) + 1)
+               for _ in lines[i]["words"]]
+    cur_t = snap_start(lines, s_line, e_line, s_words[fw][0])[0] if fw is not None else lines[s_line]["end"]
+    cur_line = max((i for i, l in enumerate(lines) if l["start"] <= cur_t + 1e-6), default=s_line)
+    a_t, a_line = s_words[anchor][0], line_of[anchor]
+    if a_t < cur_t - 1e-6 and a_line in (cur_line, cur_line - 1):
+        log(f"    start: keeping the refine call's start {s_words[anchor][2]!r} at {a_t:.2f} (L{a_line}) over the word "
+            f"pass's {cur_t:.2f} (L{cur_line})")
+        return anchor
+    log(f"    start: refine's start {s_words[anchor][2]!r} at {a_t:.2f} (L{a_line}) not used "
+        f"({'not earlier than' if a_t >= cur_t - 1e-6 else 'more than one line before'} the word pass's {cur_t:.2f}, L{cur_line})")
+    return fw
+
+
+def refine_words(lines, s_line, e_line, seg, calls, start_anchor=None):
+    """Pass 2b: word-level boundaries. Returns (start, end, sure). start_anchor: the word index (in the start
+    context) of the refine call's accepted start phrase, if it had one; see prefer_start_anchor.
     Invalid picks are retried once, then fall back INWARD only: start -> end of the first ad line,
     end -> start of the last ad line. Never outward to a line end."""
     n = len(lines)
@@ -979,7 +1008,12 @@ def refine_words(lines, s_line, e_line, seg, calls):
     log(f"  words   L{s_line}/L{e_line} in {time.time() - t0:.1f}s")
     log(f"    S ctx: {start_ctx}")
     log(f"    E ctx: {end_ctx}")
-    return apply_picks(lines, s_line, e_line, s_words, fw, e_words, lw, "labeled word pass")
+    how = "labeled word pass"
+    if start_anchor is not None and 0 <= start_anchor < len(s_words):
+        kept = prefer_start_anchor(lines, s_line, e_line, s_words, fw, start_anchor)
+        if kept != fw:
+            fw, how = kept, "start from the refine call, end from the labeled word pass"
+    return apply_picks(lines, s_line, e_line, s_words, fw, e_words, lw, how)
 
 
 def model_loaded(name):
@@ -1180,7 +1214,7 @@ def merge_segments(segs):
 
 def public_segment(seg):
     keys = ("start", "end", "category", "style", "brand", "confidence", "evidence", "reason", "action", "line_start", "line_end",
-            "source", "undisclosed", "disclosure", "brand_canonical")
+            "source", "undisclosed", "disclosure", "brand_canonical", "lead_in_s", "lead_in")
     return {k: seg[k] for k in keys if k in seg}
 
 
@@ -1226,7 +1260,7 @@ def refine_candidate(alines, lines, cand, lang, title, calls, header="", terms=(
             picked = anchor_words(lines, o_s, o_e, seg) if alines is lines else None
             if picked is None:
                 log("  anchors unresolved; running the labeled word pass")
-                picked = refine_words(lines, o_s, o_e, seg, calls)
+                picked = refine_words(lines, o_s, o_e, seg, calls, seg.get("_start_anchor"))
             start, end, sure = picked
             if not sure and end - start < MIN_SKIP_S:
                 log(f"  refine: boundaries uncertain and only {end - start:.1f}s left after inward fallback -> show")
@@ -1235,11 +1269,152 @@ def refine_candidate(alines, lines, cand, lang, title, calls, header="", terms=(
             else:
                 seg["start"], seg["end"] = start, end
         seg.pop("hint_terms", None)
+        seg.pop("_start_anchor", None)
         seg["source"] = cand.get("source", "detect")
         refined.append(seg)
     if not refined:
         log(f"  refine: candidate {fmt_time(cand['start'])}-{fmt_time(cand['end'])} {cand['brand']!r} withdrawn by model")
     return refined
+
+
+LEADIN_SYSTEM = ("You decide where the lead-in to a sponsor read begins in a YouTube transcript. "
+                 "Answer only with the JSON schema.")
+LEADIN_PROMPT = """Video title: {title}
+
+A sponsor read for {brand!r} is being cut out of this video. The cut starts at the text marked AD. Read what leads
+up to it.
+
+EARLIER (context only; it stays in the video):
+... {context}
+
+CANDIDATES, the sentences spoken right before the cut, in order:
+{sentences}
+AD: {opening} ...
+
+Label every candidate as "content" or "lead-in".
+
+content: the sentence is about the video's own subject. Explanation, story, facts, a conclusion, or the statement
+of a problem are content, even when the ad then builds on them ("...there are just so many of these companies." and
+then the ad "That's why I use X": the first sentence is content). So is a sentence that finishes a thought, and any
+sentence that would still belong in the video if the ad were deleted.
+
+lead-in: the sentence is only there because the ad follows. It is about the sponsor, or it stages the ad:
+- an announcement of, or a question about, the sponsor ("but first...", "do you know today's sponsor?");
+- a bridge whose only job is to turn toward the product ("speaking of which...", "so it's a happy coincidence that...");
+- a staged setup for a testimonial: introducing the person or the situation from which the product is then
+  recommended ("Look at Sam, one of our editors." / "Hey, I'm travelling right now." and then the ad begins
+  "When I travel I always use ..."): both of those sentences are lead-in;
+- small talk or an aside away from the video's subject that sets the product up.
+If the ad were deleted, a lead-in sentence would be left hanging, pointing at nothing.
+
+A candidate marked (in the ad's lines) was already counted as part of the promotion by an earlier pass that read
+the whole passage: label it content only if it is clearly about the video's subject. For a candidate without that
+mark, when it could be either, label it content.
+reason: one short sentence."""
+
+
+def sentences_before(lines, cut_t):
+    """The whole sentences that end where the cut begins, oldest first: [(start_time, text)]. At most
+    LEADIN_MAX_SENTENCES, each one starting no more than LEADIN_MAX_S before the cut. A sentence is what
+    sentence_start_index says it is (end punctuation, or a pause on tracks without punctuation). If the cut is
+    in the middle of a sentence, the part of that sentence before the cut is the last entry."""
+    hi = max((i for i, l in enumerate(lines) if l["start"] <= cut_t + 1e-6), default=None)
+    if hi is None:
+        return []
+    lo = min((i for i, l in enumerate(lines) if l["end"] > cut_t - 2 * LEADIN_MAX_S), default=hi)
+    words = all_words(lines, lo, hi)
+    end = next((i for i, w in enumerate(words) if w[0] >= cut_t - 1e-6), len(words))
+    out = []
+    while end > 0 and len(out) < LEADIN_MAX_SENTENCES:
+        i = sentence_start_index(words, end - 1)
+        if (i == 0 and lo > 0) or words[i][0] < cut_t - LEADIN_MAX_S - 1e-6:
+            break   # its real start is outside what we looked at, or further back than the cap
+        out.append((words[i][0], " ".join(w[2] for w in words[i:end])))
+        end = i
+    return out[::-1]
+
+
+def check_leadin(job, seg):
+    """One model call about the sentences right before a skip: are they a lead-in to the ad? If so the start moves
+    back to the earliest lead-in sentence, by whole sentences and by at most LEADIN_MAX_S. The segment was already
+    published with the start it had, so this can only improve a skip, never delay it. Anything short of a clear
+    answer (a failed or timed-out call, an unparseable or unknown label, "none") leaves the start where it is.
+    Returns True if the start moved."""
+    lines, cut = job["lines"], seg["start"]
+    rng = f"{fmt_time(seg['start'])}-{fmt_time(seg['end'])}"
+    seg["leadin"] = "checked"
+    if seg.get("action") != "skip":
+        return False
+    if job["alines"] is not lines:
+        log(f"  lead-in {rng}: not checked (the analysis runs on a translated track; the cut is on the original)")
+        return False
+    sents = sentences_before(lines, cut)
+    if not sents:
+        log(f"  lead-in {rng}: no whole sentence within {LEADIN_MAX_S:.0f}s before the cut")
+        return False
+    labels = "ABC"[:len(sents)]
+    after = [w[2] for l in lines if l["end"] > cut for w in l["words"] if w[0] >= cut - 1e-6][:LEADIN_AD_WORDS]
+    before = [w[2] for l in lines if l["start"] < sents[0][0] and l["end"] > sents[0][0] - 30 for w in l["words"]
+              if w[0] < sents[0][0] - 1e-6][-LEADIN_AD_WORDS:]
+    # The refine pass gave the promotion a line range that starts before the word-level cut. A candidate that lies
+    # in those lines (by its midpoint) was already called promotion once, by a pass that read a wider context.
+    ends = [t for t, _ in sents[1:]] + [cut]
+    in_ad = [(t + e) / 2 >= seg.get("line_start", cut) - 1e-6 for (t, _), e in zip(sents, ends)]
+    prompt = LEADIN_PROMPT.format(title=job.get("title", ""), brand=seg.get("brand", ""), context=" ".join(before),
+                                  sentences="\n".join(f"{lab}{' (in the ad\'s lines)' if inside else ''}: {text}"
+                                                      for lab, inside, (_, text) in zip(labels, in_ad, sents)),
+                                  opening=" ".join(after))
+    kinds = {"type": "string", "enum": ["content", "lead-in"]}
+    schema = {"type": "object", "properties": {**{lab: kinds for lab in labels}, "reason": {"type": "string"}},
+              "required": list(labels) + ["reason"]}
+    t0 = time.time()
+
+    def compute():
+        with llm_lock:
+            result, _meta = ollama_chat(prompt, schema, system=LEADIN_SYSTEM, timeout=LEADIN_TIMEOUT_S)
+        return {**{lab: result.get(lab) for lab in labels}, "reason": str(result.get("reason") or "")[:200]}
+
+    try:
+        out, reused = job["calls"].get("leadin|" + hashlib.sha1(prompt.encode("utf-8")).hexdigest()[:16], LEADIN_VERSION, compute)
+    except (OSError, ValueError, AttributeError) as e:   # offline, timed out, not JSON, not an object
+        log(f"  lead-in {rng}: check failed ({e!r}); start stays at {cut:.2f}")
+        return False
+    how = "REUSED from cache" if reused else f"in {time.time() - t0:.1f}s"
+    verdicts = [out.get(lab) for lab in labels] if isinstance(out, dict) else []
+    shown = " | ".join(f"{lab} [{v}]: {text}" for lab, v, (_, text) in zip(labels, verdicts or [None] * len(labels), sents))
+    why = out.get("reason", "") if isinstance(out, dict) else ""
+    if any(v not in ("content", "lead-in") for v in verdicts) or not verdicts:   # a missing or made-up label
+        log(f"  lead-in {rng}: unusable answer {out!r} {how}; start stays at {cut:.2f}")
+        return False
+    # the lead-in is the unbroken run of lead-in sentences that ends at the cut; a content sentence stops it
+    run = 0
+    while run < len(verdicts) and verdicts[-1 - run] == "lead-in":
+        run += 1
+    if not run:
+        log(f"  lead-in {rng}: none {how}; start stays at {cut:.2f}. {shown} -- {why}")
+        return False
+    pick = labels[len(labels) - run]
+    new_start = sents[labels.index(pick)][0]
+    floor = max([f["end"] for f in job["final"] if f is not seg and f.get("action") != "drop" and f["end"] <= cut] + [0.0])
+    if not (cut - LEADIN_MAX_S - 1e-6 <= new_start < cut) or new_start < floor:
+        log(f"  lead-in {rng}: answer {pick!r} would start at {new_start:.2f}, outside what is allowed; start stays at {cut:.2f}")
+        return False
+    added = [text for _, text in sents[labels.index(pick):]]
+    seg["start"] = round(new_start, 2)
+    seg["lead_in_s"] = round(cut - new_start, 1)
+    seg["lead_in"] = {"from": round(cut, 2), "sentences": added}
+    log(f"  lead-in {rng}: from {pick} {how}; start {cut:.2f} -> {new_start:.2f} (-{cut - new_start:.1f}s). {shown} -- {why}")
+    return True
+
+
+def queue_leadin_checks(job):
+    """Every new skip gets a lead-in check as the job's very next unit. It was published before this is called, so
+    the check never delays a skip; it can only republish it with an earlier start. Chapter skips keep the creator's
+    own bounds."""
+    new = [s for s in job["final"] if s.get("action") == "skip" and s.get("source") != "chapter" and "leadin" not in s]
+    for s in reversed(new):
+        s["leadin"] = "queued"
+        job["pending"].insert(0, ("leadin", s))
 
 
 DISCLAIMER_RE = re.compile(
@@ -1561,7 +1736,7 @@ def public_job(job):
 
 
 def versions():
-    return {"detect": DETECT_VERSION, "refine": REFINE_VERSION, "post": POST_VERSION}
+    return {"detect": DETECT_VERSION, "refine": REFINE_VERSION, "post": POST_VERSION, "leadin": LEADIN_VERSION}
 
 
 def inputs_digest(thash, title, description, paid, alines, lines=()):
@@ -1778,6 +1953,9 @@ def plan_job(job):
 
 
 def run_unit(job, unit):
+    if unit[0] == "leadin":
+        check_leadin(job, unit[1])
+        return
     if unit[0] == "hint":
         cand = unit[1]
         if any(overlaps(cand, f) for f in job["final"]):
@@ -2007,6 +2185,8 @@ def worker_step():
             job["work_s"] += time.time() - t0
             publish(job)
             save_partial(job)
+            if unit[0] != "leadin":
+                queue_leadin_checks(job)   # after the publish: a skip is out before its lead-in is looked at
     except Exception as e:  # noqa: BLE001
         raise JobError(job, e) from e
     return job

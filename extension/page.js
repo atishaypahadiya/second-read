@@ -19,7 +19,7 @@
 
   // Bumped together in page.js, content.js, background.js and server.py (CLIENT_BUILD). The server logs all three
   // and warns when they differ, which is how a half-reloaded extension shows up.
-  const BUILD = 17;
+  const BUILD = 18;
   const TAG = '[SecondRead:page]';
   const dbg = (...a) => console.log(TAG, ...a);
   const MAX_LINE_SECONDS = 8;

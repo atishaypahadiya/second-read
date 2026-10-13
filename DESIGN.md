@@ -105,7 +105,8 @@ accent never sits on YouTube's red. Each `.sr-marker[data-action]` is a round-ca
 only) white fill @ o4; `.is-low` hatches (white .7 / .12, 3px stripes; accent stripes on a skip
 candidate). `.is-done` on a skip marker (the segment was skipped, undone, or seeked into, so it will
 not skip again in this page view) drains the accent to the dim fill over `--sr-dur`; its tooltip
-reads "skipped" or "plays" instead of "will skip". Hover scales to 1.5× and shows `.sr-tooltip.sr-glass.sr-glass--solid` (320 wide, r16,
+reads "skipped" or "plays" instead of "will skip". When the server moved a skip's start back over the
+creator's lead-in, the tooltip's time line ends with "incl. 5s lead-in". Hover scales to 1.5× and shows `.sr-tooltip.sr-glass.sr-glass--solid` (320 wide, r16,
 padding 14 16): brand, chip, mono confidence, mono time line ("4:47 – 5:39 · will skip"), evidence
 quote mono 13 @ .85.
 
