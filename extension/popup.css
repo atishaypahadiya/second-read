@@ -18,7 +18,25 @@ body { width: 360px; background: var(--sr-sheet); }
 .sr-popup__foot { gap: var(--sr-s2); }
 
 /* paused: the numbers and the categories step back (DESIGN.md) */
-.sr-popup.is-paused .sr-hero, .sr-popup.is-paused .sr-rows { opacity: var(--sr-o3); }
+.sr-popup.is-paused .sr-hero, .sr-popup.is-paused .sr-rows, .sr-popup.is-paused .sr-video { opacity: var(--sr-o3); }
+
+/* hero: the all-time number, today as a chip, then one mono line of proof (skips, undone, integrations left playing) */
+.sr-hero__line { font-family: var(--sr-font-mono); font-weight: var(--sr-w-mono-light); font-size: var(--sr-fs-chip); opacity: var(--sr-o2); margin-top: 2px; text-wrap: balance; }
+
+/* this video: a hairline of the video with its sponsor segments, one row each, and the read's code or link.
+   Same meaning as the lane on the player: accent = this will skip, solid = skipped, dim = plays. */
+.sr-video { display: flex; flex-direction: column; gap: var(--sr-s2); }
+.sr-video .sr-hairline__span { min-width: 3px; }
+.sr-video .sr-hairline__span.is-quiet { background: rgba(var(--sr-fg-rgb), var(--sr-o3)); }
+.sr-popup .sr-video .sr-row { height: 24px; }
+.sr-video__name { text-transform: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sr-video .sr-list li { min-height: 32px; }
+
+/* the off switch is a setting at the end of the pane, so it is the small button, not the 56px one */
+.sr-popup .sr-toggle { height: var(--sr-button-h-sm); }
+
+/* the footer stays in reach while the pane scrolls: "Missed an ad here" is time-sensitive */
+.sr-popup__foot { position: sticky; bottom: 0; z-index: 1; background: var(--sr-sheet); }
 
 /* channel row: the button never squeezes the name */
 .sr-channel { min-height: 40px; }
@@ -42,15 +60,16 @@ body { width: 360px; background: var(--sr-sheet); }
 }
 .sr-input::placeholder { color: rgba(var(--sr-fg-rgb), var(--sr-o3)); }
 .sr-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sr-s1); }
-.sr-list li { display: flex; align-items: center; gap: var(--sr-s2); min-height: 36px; }
+.sr-list li { display: flex; align-items: center; gap: var(--sr-s2); min-height: 36px; flex: none; }   /* never squashed by a scrolling list */
 .sr-list__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sr-list__value { font-family: var(--sr-font-mono); font-weight: 400; }
 .sr-list__main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .sr-list__line { display: flex; align-items: center; gap: var(--sr-s2); min-width: 0; }
 .sr-list .sr-hint a { color: inherit; }
-.sr-scroll { max-height: 120px; overflow-y: auto; scrollbar-width: thin; }
+.sr-list__main .sr-hint { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }   /* one line of context per row */
+.sr-scroll { max-height: 208px; overflow-y: auto; scrollbar-width: thin; }
 /* the secondary pane scrolls inside itself so the popup stays within Chrome's 600px */
-#pane-more { max-height: 372px; overflow-y: auto; scrollbar-width: thin; }
+#pane-more { max-height: 452px; overflow-y: auto; scrollbar-width: thin; }
 #pane-more > * { flex: none; }   /* a scrolling flex column must not squash its children */
 html { scrollbar-width: thin; }
 .sr-channel__sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

@@ -137,6 +137,8 @@ const win = {
   },
 };
 const sent = [];
+const stored = {};   // chrome.storage.local
+const tabStateNow = () => { let st = null; for (const fn of contentRuntimeListeners) fn({ type: 'getState' }, {}, (r) => { st = r; }); return st; };
 const contentSandbox = {
   window: win,
   document: {
@@ -150,7 +152,8 @@ const contentSandbox = {
   console: { log() {}, warn() {}, error() {} },
   URL, setTimeout: () => 0, clearTimeout() {}, setInterval: () => 0, clearInterval() {},
   chrome: {
-    storage: { local: { get: (k, cb) => cb({}), set() {} }, onChanged: { addListener() {} } },
+    storage: { local: { get: (k, cb) => cb(JSON.parse(JSON.stringify(stored))), set: (o) => { Object.assign(stored, JSON.parse(JSON.stringify(o))); } },
+               onChanged: { addListener() {} } },
     runtime: {
       lastError: undefined,
       getManifest: () => ({ version: 'test' }),
@@ -213,6 +216,13 @@ setTimeout(() => {
   check(!!before && before.dataset.action === 'skip' && !hasClass(before, 'is-done'), `marker before the skip: ${before && before.className} / ${before && before.dataset.action}`);
   check(/· will skip$/.test(tooltipTime(SEG) || ''), `tooltip before the skip: ${tooltipTime(SEG)}`);
   if (videoHandlers.timeupdate) videoHandlers.timeupdate();
+  // what the popup shows: counters in chrome.storage, and this video's segments with their outcome
+  const all1 = (stored.stats || {}).all || {};
+  check(all1.skips === 1 && Math.abs(all1.saved - (SEG.end - PLAYHEAD)) < 1e-9 && !all1.undos, `stats after the skip: ${JSON.stringify(stored.stats)}`);
+  const st1 = tabStateNow() || {};
+  const seg1 = (st1.segments || []).find((x) => x.start === SEG.start) || {};
+  check(st1.duration === fakeVideo.duration && seg1.effective === 'skip' && seg1.done === 'skipped',
+        `getState after the skip: duration ${st1.duration}, segment ${JSON.stringify({ effective: seg1.effective, done: seg1.done })}`);
   const after = markerOf(SEG);
   check(!!after && hasClass(after, 'is-done') && after.dataset.action === 'skip', `marker after the skip is not marked done: ${after && after.className}`);
   check(/· skipped$/.test(tooltipTime(SEG) || ''), `tooltip after the skip: ${tooltipTime(SEG)}`);
@@ -236,6 +246,9 @@ setTimeout(() => {
   check(!!wrong && typeof wrong.handlers.click === 'function', 'toast has no "Wrong skip" button');
   if (wrong && wrong.handlers.click) wrong.handlers.click({ stopPropagation() {} });
   check(fakeVideo.currentTime === PLAYHEAD, `"Wrong skip" did not undo: currentTime ${fakeVideo.currentTime}, expected ${PLAYHEAD}`);
+  const all2 = (stored.stats || {}).all || {};
+  check(all2.skips === 0 && all2.saved === 0 && all2.undos === 1, `stats after the undo: ${JSON.stringify(stored.stats)}`);
+  check((((tabStateNow() || {}).segments || []).find((x) => x.start === SEG.start) || {}).done === 'plays', 'getState after the undo: the segment must read as playing');
   const undone = markerOf(SEG);
   check(!!undone && hasClass(undone, 'is-done'), 'marker went back to accent after the undo (the segment will not skip again, so it must stay quiet)');
   check(/· plays$/.test(tooltipTime(SEG) || ''), `tooltip after the undo: ${tooltipTime(SEG)}`);

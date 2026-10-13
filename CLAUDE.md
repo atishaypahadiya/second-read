@@ -53,7 +53,7 @@ second-read/                 (the folder may still be called sponsor-skipper on 
 │   ├── content.js       isolated world: video detection, server calls, markers, skipping, toast
 │   ├── content.css      markers, toast, status badge
 │   ├── background.js    service worker: the only thing that talks to localhost
-│   ├── popup.html/css/js  action popup: master toggle, hero stats, channel, categories (4 + disclosure), codes pane
+│   ├── popup.html/css/js  action popup: all-time hero, this video (segments + its code/link), channel, categories, toggle last; codes pane
 │   ├── ui/              the design system: tokens.css, components.css, fonts.css / fonts-content.css, fonts/
 │   └── icons/           16/32/48/128 png
 ├── design/              gallery.html (every state, next to the mockup crops), reference boards, screenshots
@@ -387,7 +387,9 @@ Every GET/POST for a video counts as a poll.
   re-analysis): `enabled` (off = no analysis, no markers), `actions.sponsor_read` skip|show,
   `actions.selfpromo` / `actions.interaction` skip|show|off (off = no marker), `devMode`, `allowlist`
   {channelId: name} (markers still show, nothing skips). The server's action stays in the tooltip when overridden.
-  `chrome.storage.local.stats` holds today's and all-time skip count and seconds saved (undo subtracts).
+  `chrome.storage.local.stats` holds, for today and all-time: skips and seconds saved (an undo takes its skip back
+  and counts as `undos`), and `kept` (integrations the playhead passed through, once per page view). The popup
+  leads with the all-time time saved; `getState` gives it the video's duration and each segment's outcome (`done`).
 
 ## Build stages
 

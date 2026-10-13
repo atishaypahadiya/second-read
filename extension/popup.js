@@ -35,6 +35,8 @@ const el = (tag, className, text) => {
 let settings = null;
 let tabState = null; // what content.js reports for the active tab
 let serverHint = ''; // what to do when the server or the model is not available (shown in the channel row)
+let serverStatus = ['sr-dot--faint', 'checking', '']; // [dot class, text, hint] from the last health check
+let dealFor = '';    // video id whose code / link is shown in the "this video" block
 
 function fmtDur(s) {
   s = Math.max(0, Math.round(s));
@@ -88,7 +90,9 @@ function render() {
   $('moreCount').hidden = !changed;
   $('moreCount').textContent = `${changed} changed`;
   $('devMode').checked = settings.devMode;
+  paintStatus();
   renderChannel();
+  renderVideo();
   renderAllowlist();
 }
 
@@ -111,9 +115,11 @@ function renderChannel() {
     return;
   }
   $('channelName').textContent = st.channelName || st.channelId || 'this video';
-  const skips = st.segments.filter((s) => s.effective === 'skip').length;
+  const toSkip = st.segments.filter((s) => s.effective === 'skip' && !s.done).length;
+  const skipped = st.segments.filter((s) => s.effective === 'skip' && s.done === 'skipped').length;
+  const ads = (k) => `${k} ad${k === 1 ? '' : 's'}`;
   let sub;
-  if (st.status === 'done') sub = skips ? `${skips} ad${skips === 1 ? '' : 's'} to skip` : 'nothing to skip';
+  if (st.status === 'done') sub = toSkip ? `${ads(toSkip)} to skip` : skipped ? `${ads(skipped)} skipped` : 'nothing to skip';
   else if (st.status === 'error') sub = 'analysis failed';
   else if (st.status) sub = 'analyzing…';
   else sub = st.captions || 'reading captions…';
@@ -127,6 +133,55 @@ function renderChannel() {
     btn.title = listed ? 'This channel is on your don’t-skip list. Markers still show; nothing is skipped.'
                        : 'Never skip on this channel. Markers still show.';
   }
+}
+
+// ---------------------------------------------------------------- this video: what was found, what happened to it
+function renderVideo() {
+  const st = tabState && tabState.videoId ? tabState : null;
+  const ads = st ? st.segments.filter((s) => s.category === 'sponsor' && s.effective !== 'off') : [];
+  $('video').hidden = !ads.length;
+  if (!ads.length) return;
+  const dur = st.duration > 0 ? st.duration : Math.max(...st.segments.map((s) => s.end));
+  $('videoLen').textContent = fmtDur(dur);
+  const track = $('videoTrack'), rows = $('videoRows');
+  track.textContent = '';
+  rows.textContent = '';
+  for (const s of ads) {
+    // same meaning as the lane on the player: accent = this will skip; anything else is quiet
+    const pending = s.effective === 'skip' && !s.done;
+    const span = el('span', `sr-hairline__span${pending ? ' sr-hairline__span--accent' : s.done === 'skipped' ? '' : ' is-quiet'}`);
+    span.style.left = `${Math.min(99, (s.start / dur) * 100)}%`;
+    span.style.width = `${Math.max(0, ((s.end - s.start) / dur) * 100)}%`;
+    track.appendChild(span);
+  }
+  for (const s of ads.slice(0, 3)) {
+    const row = el('div', 'sr-row');
+    const name = el('span', 'sr-row__label sr-video__name', s.brand_canonical || s.brand || 'sponsor');
+    let what;
+    if (s.effective !== 'skip') what = s.style === 'integration' ? 'integration · plays' : 'plays';
+    else if (s.done === 'skipped') what = `${fmtDur(s.end - s.start)} skipped`;
+    else if (s.done) what = 'plays';
+    else what = `skips at ${fmtDur(s.start)}`;
+    row.append(name, el('span', 'sr-hint', what));
+    rows.appendChild(row);
+  }
+  if (dealFor !== st.videoId) { dealFor = st.videoId; loadDeal(st.videoId); }
+}
+
+// The code or link from this video's sponsor read, with its offer: you skip the ad and keep the deal.
+function loadDeal(videoId) {
+  $('videoDeal').textContent = '';
+  chrome.runtime.sendMessage({ type: 'codes', q: '' }, (res) => {
+    if (!res || !res.ok || dealFor !== videoId) return;
+    const mine = (res.codes || []).filter((r) => r.video_id === videoId);
+    const best = mine.find((r) => r.kind === 'code') || mine.find((r) => r.kind === 'link');
+    if (!best) return;
+    const offers = [...new Set(mine.filter((r) => r.kind === 'offer').map((r) => r.value))].slice(0, 2);
+    const also = best.kind === 'code' ? mine.find((r) => r.kind === 'link') : null;
+    const note = [...offers, also ? also.value : ''].filter(Boolean).join(' · ');
+    $('videoDeal').textContent = '';
+    $('videoDeal').appendChild(codeItem(best, note));
+  });
 }
 
 function renderAllowlist() {
@@ -156,23 +211,33 @@ async function loadStats() {
   const today = new Date().toISOString().slice(0, 10);
   const t = stats && stats.today && stats.today.date === today ? stats.today : { skips: 0, saved: 0 };
   const a = (stats && stats.all) || { skips: 0, saved: 0 };
-  $('savedToday').textContent = fmtDur(t.saved);
-  $('skipsToday').textContent = `${t.skips} skip${t.skips === 1 ? '' : 's'}`;
-  $('skipsToday').title = 'Skips today';
-  $('savedAll').textContent = `all-time ${fmtDur(a.saved)}`;
-  $('skipsAll').textContent = `${a.skips} skip${a.skips === 1 ? '' : 's'}`;
-  $('skipsAll').title = 'Skips all-time';
+  const n = (count, one, many) => `${count} ${count === 1 ? one : many}`;
+  $('savedAll').textContent = fmtDur(a.saved);
+  $('savedToday').textContent = `today ${fmtDur(t.saved)}`;
+  $('savedToday').title = `${n(t.skips || 0, 'skip', 'skips')} today`;
+  const kept = a.kept || 0;
+  $('trust').textContent = [n(a.skips || 0, 'skip', 'skips'), `${a.undos || 0} undone`,
+                            kept ? `${n(kept, 'integration', 'integrations')} left playing` : ''].filter(Boolean).join(' · ');
+  $('trust').title = 'All-time. An undone skip is taken back out of the time saved.';
 }
 
 // ---------------------------------------------------------------- server status (head chip)
 // dot: ink = ready, pulsing = warming up, ring = something is off (DESIGN.md "Dot")
 function setStatus(dot, text, hint) {
-  $('statusDot').className = `sr-dot ${dot}`;
-  $('statusText').textContent = text;
-  $('status').title = hint || '';
+  serverStatus = [dot, text, hint || ''];
   serverHint = dot === 'sr-dot--ring' ? (hint || '') : '';
   $('channelSub').title = serverHint;
+  paintStatus();
   if (settings) renderChannel();
+}
+
+// The off switch is at the end of the pane, so the head chip says "paused" whenever skipping is off.
+function paintStatus() {
+  const paused = settings && !settings.enabled;
+  const [dot, text, hint] = paused ? ['sr-dot--ring', 'paused', 'Skipping is off. The switch is at the bottom.'] : serverStatus;
+  $('statusDot').className = `sr-dot ${dot}`;
+  $('statusText').textContent = text;
+  $('status').title = hint;
 }
 
 function checkServer() {
@@ -192,6 +257,7 @@ function askCurrentTab() {
       if (chrome.runtime.lastError || !st || !st.videoId) return;
       tabState = st;
       renderChannel();
+      renderVideo();
     });
   });
 }
@@ -206,26 +272,34 @@ function loadCodes(q) {
     if (!res || !res.ok) { $('codeHint').textContent = 'Server offline.'; return; }
     const rows = res.codes || [];
     $('codeHint').textContent = rows.length ? `${rows.length} item${rows.length === 1 ? '' : 's'}` : 'Nothing in the vault yet.';
-    for (const r of rows) {
-      const li = el('li');
-      const main = el('div', 'sr-list__main');
-      const line = el('div', 'sr-list__line');
-      line.append(el('span', 'sr-chip', r.kind), el('span', 'sr-list__name sr-list__value', r.value));
-      const ctx = el('div', 'sr-hint');
-      const link = el('a', '', `${r.channel_name || r.video_id} @ ${fmtT(r.time_s)}`);
-      link.href = `https://www.youtube.com/watch?v=${encodeURIComponent(r.video_id)}&t=${Math.floor(r.time_s || 0)}s`;
-      link.target = '_blank'; link.rel = 'noopener';
-      ctx.append(`${r.brand || '?'} · `, link, r.detail && r.kind === 'offer' ? ` · ${r.detail}` : '');
-      main.append(line, ctx);
-      const copy = el('button', 'sr-button--text', 'Copy');
-      copy.addEventListener('click', async () => {
-        try { await navigator.clipboard.writeText(r.value); copy.textContent = 'Copied'; setTimeout(() => { copy.textContent = 'Copy'; }, 1200); }
-        catch { copy.textContent = 'Failed'; }
-      });
-      li.append(main, copy);
-      ul.appendChild(li);
-    }
+    for (const r of rows) ul.appendChild(codeItem(r));
   });
+}
+
+// One vault row: kind chip, the value, a context line, Copy. With `note` the context line is that text (the
+// "this video" block); without it, the brand and a link to the moment in the video (the vault).
+function codeItem(r, note) {
+  const li = el('li');
+  const main = el('div', 'sr-list__main');
+  const line = el('div', 'sr-list__line');
+  line.append(el('span', 'sr-chip', r.kind), el('span', 'sr-list__name sr-list__value', r.value));
+  const ctx = el('div', 'sr-hint');
+  if (note !== undefined) ctx.textContent = note;
+  else {
+    const link = el('a', '', `${r.channel_name || r.video_id} @ ${fmtT(r.time_s)}`);
+    link.href = `https://www.youtube.com/watch?v=${encodeURIComponent(r.video_id)}&t=${Math.floor(r.time_s || 0)}s`;
+    link.target = '_blank'; link.rel = 'noopener';
+    ctx.append(`${r.brand || '?'} · `, link);
+  }
+  main.append(line);
+  if (ctx.textContent) main.append(ctx);
+  const copy = el('button', 'sr-button--text', 'Copy');
+  copy.addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(r.value); copy.textContent = 'Copied'; setTimeout(() => { copy.textContent = 'Copy'; }, 1200); }
+    catch { copy.textContent = 'Failed'; }
+  });
+  li.append(main, copy);
+  return li;
 }
 
 function showPane(name) {
@@ -237,7 +311,6 @@ function showPane(name) {
 
 async function init() {
   $('moreNav').addEventListener('click', () => showPane($('pane-more').hidden ? 'more' : 'main'));
-  $('backBtn').addEventListener('click', () => showPane('main'));
   $('moreBtn').addEventListener('click', () => setMoreOpen($('moreRows').hidden));
   $('codeSearch').addEventListener('input', () => { clearTimeout(codeTimer); codeTimer = setTimeout(() => loadCodes($('codeSearch').value), 150); });
   const stored = await chrome.storage.local.get('settings');
@@ -273,6 +346,8 @@ async function init() {
     render(); save();
   });
   chrome.storage.onChanged.addListener((changes) => { if (changes.stats) loadStats(); });
+  // while the popup is open, keep "this video" current (analysis finishing, a skip happening)
+  setInterval(askCurrentTab, 1500);
 }
 
 init();
