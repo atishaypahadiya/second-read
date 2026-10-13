@@ -300,9 +300,12 @@
     const payload = {
       videoId: state.videoId, channelId: state.channelId || '', channelName: state.creator || '',
       title: state.title || '', kind: fb.kind, playhead: Math.round((fb.playhead || 0) * 100) / 100,
+      // the whole segment as the server reported it, so the report stands on its own
       segment: fb.segment ? { start: fb.segment.start, end: fb.segment.end, category: fb.segment.category,
-                              style: fb.segment.style, brand: fb.segment.brand, action: fb.segment.action,
-                              confidence: fb.segment.confidence } : null,
+                              style: fb.segment.style, brand: fb.segment.brand, brand_canonical: fb.segment.brand_canonical || '',
+                              action: fb.segment.action, confidence: fb.segment.confidence,
+                              evidence: fb.segment.evidence || '', reason: fb.segment.reason || '', source: fb.segment.source || '',
+                              line_start: fb.segment.line_start, line_end: fb.segment.line_end } : null,
     };
     send({ type: 'feedback', payload }).then((r) => {
       if (r && r.ok) log(`feedback sent: ${fb.kind}`); else logErr('feedback failed:', r && r.error);
@@ -510,8 +513,9 @@
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg && msg.type === 'missedAd') {
       const v = videoEl();
-      sendFeedback({ kind: 'missed_ad', playhead: v ? v.currentTime : 0 });
-      sendResponse({ ok: true, playhead: v ? v.currentTime : 0 });
+      if (!current || !v || !Number.isFinite(v.currentTime)) { sendResponse({ ok: false, error: 'no video' }); return false; }
+      sendFeedback({ kind: 'missed_ad', playhead: v.currentTime });
+      sendResponse({ ok: true, playhead: v.currentTime });
       return false;
     }
     if (!msg || msg.type !== 'getState') return false;

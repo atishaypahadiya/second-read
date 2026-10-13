@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// Wiring test: does video metadata survive page.js -> content.js -> background.js -> POST /analyze ?
+// Wiring test: does video metadata survive page.js -> content.js -> background.js -> POST /analyze, and do the
+// skip / "Wrong skip" / "Missed an ad here" paths report the segment and the real playhead?
 //
 // Runs the real content.js and background.js in a sandbox with a stubbed page, chrome API and fetch, feeds
 // content.js the reply page.js would post, and inspects the request body background.js sends to the server.
@@ -35,19 +36,39 @@ const pageReply = {
   description: DESCRIPTION, heat: [[0, 10], [1, 20]], paidPromotion: true, analysisLines: null, analysisLang: 'en',
 };
 
+// The segment the fake server answers with: a sponsor read the extension will skip.
+const SEG = { start: 100, end: 150, category: 'sponsor', style: 'read', brand: 'Cody', brand_canonical: 'Coddy', action: 'skip',
+              confidence: 0.95, evidence: 'use code FERN20 for 20% off', reason: 'promo code and call to action', source: 'detect',
+              line_start: 99.5, line_end: 151.2 };
+
 // ---------------------------------------------------------------------------- sandbox
 let fetched = null;
+const posts = { '/feedback': [], '/event': [] };
 const bgListeners = [];
 const bgSandbox = {
   console: { log() {}, warn() {}, error() {} },
   chrome: { runtime: { onMessage: { addListener: (fn) => bgListeners.push(fn) } } },
-  fetch: async (url, init) => { fetched = { url, init }; return { ok: true, status: 200, json: async () => ({ status: 'done', segments: [] }) }; },
-  encodeURIComponent, JSON,
+  fetch: async (url, init) => {
+    const route = new URL(url).pathname;
+    if (route === '/analyze' && init && init.method === 'POST') fetched = { url, init };
+    if (posts[route] && init && init.method === 'POST') posts[route].push(JSON.parse(init.body));
+    return { ok: true, status: 200, json: async () => (route === '/analyze' ? { status: 'done', segments: [SEG] } : { ok: true }) };
+  },
+  encodeURIComponent, JSON, URL,
 };
 vm.runInNewContext(src.background, bgSandbox, { filename: 'background.js' });
 
 const messageListeners = [];
-const fakeVideo = { currentTime: 12.5, duration: 1012.4, seeking: false, addEventListener() {}, removeEventListener() {} };
+const videoHandlers = {};
+const fakeVideo = { currentTime: 12.5, duration: 1012.4, seeking: false,
+                    addEventListener: (type, fn) => { videoHandlers[type] = fn; }, removeEventListener() {} };
+// Minimal DOM: elements remember their children and click handlers so the test can press the toast's buttons.
+const makeEl = () => ({ style: {}, dataset: {}, children: [], handlers: {}, textContent: '', className: '',
+  classList: { add() {}, remove() {}, toggle() {}, contains: () => false },
+  append(...kids) { this.children.push(...kids); }, appendChild(k) { this.children.push(k); return k; },
+  addEventListener(type, fn) { this.handlers[type] = fn; }, remove() { this.removed = true; }, isConnected: true });
+const player = makeEl();
+const contentRuntimeListeners = [];
 const win = {
   addEventListener: (type, fn) => { if (type === 'message') messageListeners.push(fn); },
   removeEventListener: (type, fn) => { const i = messageListeners.indexOf(fn); if (i >= 0) messageListeners.splice(i, 1); },
@@ -62,9 +83,9 @@ const contentSandbox = {
   window: win,
   document: {
     addEventListener() {},
-    getElementById: () => null,
+    getElementById: (id) => (id === 'movie_player' ? player : null),
     querySelector: (sel) => (String(sel).includes('video.html5-main-video') ? fakeVideo : null),
-    createElement: () => ({ style: {}, dataset: {}, classList: { add() {}, remove() {}, toggle() {} }, append() {}, appendChild() {}, addEventListener() {}, remove() {} }),
+    createElement: makeEl,
   },
   location: { href: `https://www.youtube.com/watch?v=${VIDEO_ID}` },
   console: { log() {}, warn() {}, error() {} },
@@ -74,7 +95,7 @@ const contentSandbox = {
     runtime: {
       lastError: undefined,
       getManifest: () => ({ version: 'test' }),
-      onMessage: { addListener() {} },
+      onMessage: { addListener: (fn) => contentRuntimeListeners.push(fn) },
       sendMessage: (msg, cb) => {
         sent.push(JSON.parse(JSON.stringify(msg))); // structured-clone-ish, like the real channel
         let answered = false;
@@ -124,11 +145,50 @@ setTimeout(() => {
     check(Object.prototype.hasOwnProperty.call(body, f), `server reads "${f}" but the extension does not send it`);
   }
 
-  if (failures.length) {
-    console.log(`wiring: FAIL (${failures.length})`);
-    for (const f of failures) console.log(`  - ${f}`);
-    process.exit(1);
-  }
-  console.log(`wiring: PASS  metadata survives page.js -> content.js -> background.js -> POST /analyze ` +
-              `(${Object.keys(body).length} fields, builds ${builds.content}/${serverBuild})`);
+  // ---- playback: the skip fires, "Wrong skip" undoes it and reports the whole segment with the real playhead
+  const PLAYHEAD = 120.25;
+  fakeVideo.currentTime = PLAYHEAD;
+  check(typeof videoHandlers.timeupdate === 'function', 'content.js did not bind timeupdate on the video');
+  if (videoHandlers.timeupdate) videoHandlers.timeupdate();
+  check(fakeVideo.currentTime === SEG.end, `skip did not fire: currentTime ${fakeVideo.currentTime}, expected ${SEG.end}`);
+  const toast = player.children.find((c) => c.className === 'ss-toast' && !c.removed);
+  check(!!toast, 'no toast after the skip');
+  const wrong = toast && toast.children.find((c) => c.textContent === 'Wrong skip');
+  check(!!wrong && typeof wrong.handlers.click === 'function', 'toast has no "Wrong skip" button');
+  if (wrong && wrong.handlers.click) wrong.handlers.click({ stopPropagation() {} });
+  check(fakeVideo.currentTime === PLAYHEAD, `"Wrong skip" did not undo: currentTime ${fakeVideo.currentTime}, expected ${PLAYHEAD}`);
+
+  // ---- popup "Missed an ad here" -> content.js -> POST /feedback
+  fakeVideo.currentTime = 333.5;
+  let missedReply = null;
+  for (const fn of contentRuntimeListeners) fn({ type: 'missedAd' }, {}, (r) => { missedReply = r; });
+  check(missedReply && missedReply.ok === true && missedReply.playhead === 333.5, `missedAd reply = ${JSON.stringify(missedReply)}`);
+
+  setTimeout(() => {
+    const fs_ = posts['/feedback'].find((b) => b.kind === 'false_skip');
+    check(!!fs_, 'no false_skip POSTed to /feedback');
+    if (fs_) {
+      check(fs_.videoId === VIDEO_ID, `false_skip videoId = ${fs_.videoId}`);
+      check(fs_.playhead === PLAYHEAD, `false_skip playhead = ${fs_.playhead}, expected the pre-skip playhead ${PLAYHEAD}`);
+      const g = fs_.segment || {};
+      for (const k of ['start', 'end', 'category', 'style', 'brand', 'brand_canonical', 'action', 'confidence', 'evidence', 'reason', 'source']) {
+        check(g[k] === SEG[k], `false_skip segment.${k} = ${JSON.stringify(g[k])}, expected ${JSON.stringify(SEG[k])}`);
+      }
+      check(fs_.channelId === pageReply.channelId && fs_.channelName === 'fern', 'false_skip lost the channel');
+    }
+    const ma = posts['/feedback'].find((b) => b.kind === 'missed_ad');
+    check(!!ma && ma.playhead === 333.5 && ma.videoId === VIDEO_ID, `missed_ad body = ${JSON.stringify(ma)}`);
+    const kinds = posts['/event'].map((e) => e.kind);
+    check(kinds.includes('skip') && kinds.includes('undo'), `stats events sent: ${JSON.stringify(kinds)}, expected skip and undo`);
+    const sk = posts['/event'].find((e) => e.kind === 'skip');
+    check(sk && sk.playhead === PLAYHEAD && Math.abs(sk.saved - (SEG.end - PLAYHEAD)) < 1e-9, `skip event = ${JSON.stringify(sk)}`);
+
+    if (failures.length) {
+      console.log(`wiring: FAIL (${failures.length})`);
+      for (const f of failures) console.log(`  - ${f}`);
+      process.exit(1);
+    }
+    console.log(`wiring: PASS  metadata reaches POST /analyze (${Object.keys(body).length} fields, builds ${builds.content}/${serverBuild}); ` +
+                `skip, Wrong skip and Missed-ad reports carry the segment and the real playhead`);
+  }, 50);
 }, 50);
