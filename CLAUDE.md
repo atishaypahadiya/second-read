@@ -436,3 +436,6 @@ Debug: DevTools console filtered by `SecondRead`; server terminal for segments; 
 - [x] 5. Post-processing + cache
 - [x] 6. Playback UI
 - [ ] 7. Tuning pass
+
+
+Server runs as a LaunchAgent (com.second-read.server). Never start server.py manually. After editing server code, tell me to run: launchctl kickstart -k gui/$(id -u)/com.second-read.server
