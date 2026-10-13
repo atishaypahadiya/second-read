@@ -53,7 +53,7 @@ def env(name, default=""):
 
 
 HOST, PORT = "127.0.0.1", int(env("PORT", "8765"))  # SR_PORT: run a second instance for testing
-CLIENT_BUILD = 16  # extension build this server expects (page.js / content.js / background.js BUILD)
+CLIENT_BUILD = 17  # extension build this server expects (page.js / content.js / background.js BUILD)
 ALLOWED_HOSTS = {f"127.0.0.1:{PORT}", f"localhost:{PORT}", "127.0.0.1", "localhost"}
 # Optional: restrict to one extension. Unpacked extension IDs differ per machine, so this is opt-in:
 #   SR_EXTENSION_ID=abcdefghijklmnopabcdefghijklmnop python3 server/server.py
@@ -1526,13 +1526,17 @@ def versions():
     return {"detect": DETECT_VERSION, "refine": REFINE_VERSION, "post": POST_VERSION}
 
 
-def inputs_digest(thash, title, description, paid, alines):
-    """Everything besides the transcript that changes the analysis: title and description (hints, chapters,
-    disclosure), the paid-promotion flag, and the analysis track. A POST that brings a different digest for the
-    same transcript is re-processed (model calls are reused where their own inputs are unchanged), so a job or
-    cache entry created without metadata can never mask a later request that has it."""
+def inputs_digest(thash, title, description, paid, alines, lines=()):
+    """Everything besides the transcript text that changes the result: title and description (hints, chapters,
+    disclosure), the paid-promotion flag, the analysis track, and the word timings (the cuts are made of them, and
+    the transcript hash only covers line starts and text). A POST that brings a different digest for the same
+    transcript is re-processed (model calls are reused where their own inputs are unchanged), so a job or cache
+    entry created without metadata, or from an older build's word estimates, can never mask a later request."""
+    words = hashlib.sha1()
+    for l in lines:
+        words.update(json.dumps(l.get("words") or []).encode("utf-8"))
     h = hashlib.sha1()
-    h.update(json.dumps([thash, title, description, paid, transcript_hash(alines) if alines else ""],
+    h.update(json.dumps([thash, title, description, paid, transcript_hash(alines) if alines else "", words.hexdigest()],
                         ensure_ascii=False).encode("utf-8"))
     return h.hexdigest()[:12]
 
@@ -2079,7 +2083,7 @@ def start_or_get_job(video_id, lang, lines, title="", meta=None, alines=None, al
     meta = meta or {}
     thash = transcript_hash(lines)
     paid = meta.get("paid_promotion")
-    inputs = inputs_digest(thash, title, description, paid, alines)
+    inputs = inputs_digest(thash, title, description, paid, alines, lines)
     hints = extract_hints(description)
     terms = hint_terms(hints, meta.get("creator", ""))
     same = alines is None
@@ -2116,11 +2120,11 @@ def start_or_get_job(video_id, lang, lines, title="", meta=None, alines=None, al
             else:
                 why = ""
                 if job and job["hash"] == thash and job["status"] != "error":
-                    why = " (title/description/paid flag differ from the existing job: re-processing with them)"
+                    why = " (title/description/paid flag/word timing differ from the existing job: re-processing with them)"
                 elif job:
                     why = " (transcript changed; replacing running job)" if job["status"] != "error" else " (previous attempt errored)"
                 elif cached and cached.get("hash") == thash and cached.get("versions") == versions() and cached.get("model") == MODEL:
-                    why = " (cached result was made with different title/description/paid flag: re-processing, reusing model calls where valid)"
+                    why = " (cached result was made with different title/description/paid flag/word timing: re-processing, reusing model calls where valid)"
                 elif cached:
                     why = (" (cache versions %s/%s; now %s/%s: re-processing, reusing model calls where valid)"
                            % (cached.get("versions"), cached.get("model"), versions(), MODEL)
