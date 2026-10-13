@@ -368,7 +368,7 @@ def extract_hints(description):
                 parts = [int(x) for x in tm.group(1).split(":")]
                 secs = parts[0] * 60 + parts[1] if len(parts) == 2 else parts[0] * 3600 + parts[1] * 60 + parts[2]
                 hints.setdefault("chapter_times", []).append([secs, m.group(1).strip()[:60]])
-        codes = CODE_RE.findall(line)
+        codes = [c for c in CODE_RE.findall(line) if stats.looks_like_code(c, line)]  # "code BELOW" is not a code
         hints["codes"].extend(codes)
         marked = is_ad_line(line)
         sponsor_line = marked or bool(codes) or bool(OFFER_LINE_RE.search(line))
@@ -2354,6 +2354,10 @@ def backfill_durations():
                 f"{reset} disclosure value(s) recorded without data reset to unknown")
     except Exception as e:  # noqa: BLE001
         log(f"stats: legacy repair failed: {e!r}")
+    try:
+        stats.purge_bad_codes()  # logs each row it drops
+    except Exception as e:  # noqa: BLE001
+        log(f"stats: code vault clean-up failed: {e!r}")
     try:
         redone = stats.renormalize_brands()
         if redone:
