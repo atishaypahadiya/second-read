@@ -40,13 +40,22 @@ ALLOWED_HOSTS = {f"127.0.0.1:{PORT}", f"localhost:{PORT}", "127.0.0.1", "localho
 EXTENSION_ID = os.environ.get("SS_EXTENSION_ID", "").strip()
 OLLAMA = "http://localhost:11434"
 MODEL = "qwen3:14b"
-# Bump whenever the prompt, schema, threshold or post-processing changes: cached results from an
-# older pipeline are then ignored and the video is re-analyzed.
-PIPELINE_VERSION = 8
+# Staged cache versions. Each model call's raw output is cached per video and keyed by its inputs, so a
+# change only re-runs what it affects:
+#   DETECT_VERSION  pass 1 (SYSTEM_PROMPT rubric, OUTPUT_SCHEMA, window size/overlap)
+#   REFINE_VERSION  pass 2 (SYSTEM_PROMPT, REFINE_INSTRUCTIONS, REFINE_CONTEXT_S, WORD_PROMPT, WORD_SCHEMA)
+#   POST_VERSION    everything after the model: evidence gate, thresholds, snapping, merge, filters
+# A POST-only change re-processes a cached video from stored model outputs with zero Ollama calls.
+# Rubric changes in SYSTEM_PROMPT affect both passes: bump DETECT and REFINE.
+DETECT_VERSION = 1
+REFINE_VERSION = 1
+POST_VERSION = 1
 NUM_CTX = 8192
 LLM_TIMEOUT_S = 600
 MAX_BODY_BYTES = 8 * 1024 * 1024
 MAX_LINES = 20000
+MAX_ACTIVE_JOBS = 4          # queued/running jobs; more -> 429 (the extension retries on next poll/nav)
+MAX_JOBS_IN_MEMORY = 200     # oldest finished jobs are evicted (results stay on disk)
 SKIP_THRESHOLD = 0.85
 SHOW_THRESHOLD = 0.7        # drop 'show' segments below this: low-confidence noise
 WINDOW_S, OVERLAP_S = 240.0, 30.0
@@ -264,14 +273,20 @@ def segments_of(result):
     return [x for x in (segs or []) if isinstance(x, dict)]
 
 
-def classify_window(lines, first, last, lang, title=""):
+def classify_window(lines, first, last, lang, title, calls):
     """Pass 1: raw model segments (global line indices) for lines[first..last]."""
     t0 = time.time()
-    result, meta = ollama_chat_retry(format_window(lines, first, last, lang, title), label=f"window L{first}-L{last}")
-    segs = segments_of(result)
-    log(f"  detect  L{first}-L{last} ({fmt_time(lines[first]['start'])}-{fmt_time(lines[last]['end'])}): "
-        f"{len(segs)} raw segment(s) in {time.time() - t0:.1f}s, "
-        f"{meta.get('prompt_eval_count', '?')}+{meta.get('eval_count', '?')} tokens")
+    rng = f"{fmt_time(lines[first]['start'])}-{fmt_time(lines[last]['end'])}"
+
+    def compute():
+        with llm_lock:
+            result, meta = ollama_chat_retry(format_window(lines, first, last, lang, title), label=f"window L{first}-L{last}")
+        return {"segs": segments_of(result), "tokens": f"{meta.get('prompt_eval_count', '?')}+{meta.get('eval_count', '?')}"}
+
+    out, reused = calls.get(f"detect|{first}|{last}|{lang}|{title}", DETECT_VERSION, compute)
+    segs = [x for x in out.get("segs", []) if isinstance(x, dict)]
+    how = "REUSED from cache" if reused else f"in {time.time() - t0:.1f}s, {out.get('tokens', '?')} tokens"
+    log(f"  detect  L{first}-L{last} ({rng}): {len(segs)} raw segment(s) {how}")
     return segs
 
 
@@ -285,7 +300,7 @@ reflection this is not a promotion at all, return no segments. Do not label anyt
 this candidate."""
 
 
-def refine_candidate_lines(lines, cand, lang, title=""):
+def refine_candidate_lines(lines, cand, lang, title, calls):
     """Pass 2a: re-ask with ~REFINE_CONTEXT_S of context either side. Returns raw segs + window bounds."""
     lo, hi = cand["start"] - REFINE_CONTEXT_S, cand["end"] + REFINE_CONTEXT_S
     idx = [i for i, l in enumerate(lines) if lo <= l["start"] <= hi]
@@ -294,11 +309,17 @@ def refine_candidate_lines(lines, cand, lang, title=""):
         category=cand["category"], style=cand["style"], brand=cand["brand"],
         a=cand["start_line"], b=cand["end_line"])
     t0 = time.time()
-    result, meta = ollama_chat_retry(prompt, label=f"refine L{cand['start_line']}-L{cand['end_line']}")
-    segs = segments_of(result)
-    log(f"  refine  L{cand['start_line']}-L{cand['end_line']} in L{first}-L{last}: "
-        f"{len(segs)} segment(s) in {time.time() - t0:.1f}s, "
-        f"{meta.get('prompt_eval_count', '?')}+{meta.get('eval_count', '?')} tokens")
+
+    def compute():
+        with llm_lock:
+            result, meta = ollama_chat_retry(prompt, label=f"refine L{cand['start_line']}-L{cand['end_line']}")
+        return {"segs": segments_of(result), "tokens": f"{meta.get('prompt_eval_count', '?')}+{meta.get('eval_count', '?')}"}
+
+    key = f"refine|{first}|{last}|{cand['start_line']}|{cand['end_line']}|{cand['category']}|{cand['style']}|{cand['brand']}"
+    out, reused = calls.get(key, REFINE_VERSION, compute)
+    segs = [x for x in out.get("segs", []) if isinstance(x, dict)]
+    how = "REUSED from cache" if reused else f"in {time.time() - t0:.1f}s, {out.get('tokens', '?')} tokens"
+    log(f"  refine  L{cand['start_line']}-L{cand['end_line']} in L{first}-L{last}: {len(segs)} segment(s) {how}")
     return segs, first, last
 
 
@@ -400,10 +421,28 @@ def gap_before(words, i):
     return words[i][0] - words[i - 1][1] if i > 0 else 0.0
 
 
+def sentence_start_index(words, p):
+    """Index of the first word of the sentence containing words[p] (sentence start or pause boundary)."""
+    i = p
+    while i > 0 and not is_sentence_start(words, i) and gap_before(words, i) < SNAP_GAP_S:
+        i -= 1
+    return i
+
+
+def sentence_end_index(words, q):
+    """Index of the last word of the sentence containing words[q]."""
+    i = q
+    while i + 1 < len(words) and not is_sentence_start(words, i + 1) and gap_before(words, i + 1) < SNAP_GAP_S:
+        i += 1
+    return i
+
+
 def snap_start(lines, s_line, e_line, picked_t):
-    """Move the start to a natural cut. Forward (later) to the nearest sentence start, else the largest
-    pause >= SNAP_GAP_S, within SNAP_FORWARD_MAX_S and inside the ad lines. Otherwise backward to the
-    start of the sentence containing the pick, if that sentence starts inside the ad's first line.
+    """Move the start to a natural cut.
+    1. If the sentence containing the pick begins inside the ad lines (refine says the ad starts there), snap
+       BACKWARD to that sentence start: it's still ad, and the viewer won't hear half a sentence.
+    2. Else forward (later) to the nearest sentence start, else the largest pause >= SNAP_GAP_S, within
+       SNAP_FORWARD_MAX_S and inside the ad lines.
     Returns (time, note)."""
     words = all_words(lines, max(0, s_line - 1), e_line)
     idx = [i for i, w in enumerate(words) if w[0] >= picked_t - 1e-6]
@@ -412,40 +451,47 @@ def snap_start(lines, s_line, e_line, picked_t):
     p = idx[0]
     if is_sentence_start(words, p) or gap_before(words, p) >= SNAP_GAP_S:
         return words[p][0], "pick is already a sentence start/pause"
-    # forward: nearest sentence start
+    i = sentence_start_index(words, p)
+    if words[i][3] >= s_line:
+        return words[i][0], f"backward to sentence start {words[i][2]!r} (-{picked_t - words[i][0]:.2f}s, inside ad lines)"
     limit_t = picked_t + SNAP_FORWARD_MAX_S
-    for i in range(p + 1, len(words)):
-        if words[i][0] > limit_t or words[i][3] > e_line:
+    for j in range(p + 1, len(words)):
+        if words[j][0] > limit_t or words[j][3] > e_line:
             break
-        if is_sentence_start(words, i):
-            return words[i][0], f"forward to sentence start {words[i][2]!r} (+{words[i][0] - picked_t:.2f}s)"
-    # forward: largest pause
+        if words[j][3] < s_line:
+            continue  # forward targets must be inside the ad lines
+        if is_sentence_start(words, j):
+            return words[j][0], f"forward to sentence start {words[j][2]!r} (+{words[j][0] - picked_t:.2f}s)"
     best, best_gap = None, 0.0
-    for i in range(p + 1, len(words)):
-        if words[i][0] > limit_t or words[i][3] > e_line:
+    for j in range(p + 1, len(words)):
+        if words[j][0] > limit_t or words[j][3] > e_line:
             break
-        g = gap_before(words, i)
+        if words[j][3] < s_line:
+            continue
+        g = gap_before(words, j)
         if g >= SNAP_GAP_S and g > best_gap:
-            best, best_gap = i, g
+            best, best_gap = j, g
     if best is not None:
         return words[best][0], f"forward to pause {best_gap:.2f}s before {words[best][2]!r} (+{words[best][0] - picked_t:.2f}s)"
-    # backward: start of the sentence containing the pick, if inside the ad's first line
-    i = p
-    while i > 0 and not is_sentence_start(words, i) and gap_before(words, i) < SNAP_GAP_S:
-        i -= 1
-    if words[i][3] >= s_line:
-        return words[i][0], f"backward to sentence start {words[i][2]!r} (-{picked_t - words[i][0]:.2f}s)"
-    return picked_t, "no clean cut found; keeping pick"
+    return picked_t, "sentence starts before the ad and no clean cut ahead; keeping pick"
 
 
 def snap_end(lines, s_line, e_line, picked_end_t):
-    """End on the largest pause (>= SNAP_GAP_S) that begins within SNAP_END_WINDOW_S after the last ad
-    word; the end is the start of that pause. Returns (time, note), time None if no pause was found."""
+    """Move the end to a natural cut.
+    1. If the sentence containing the last ad word ENDS inside the ad lines, extend to that sentence end
+       (still ad; avoids cutting mid-sentence).
+    2. Then end on the largest pause (>= SNAP_GAP_S) that begins within SNAP_END_WINDOW_S after that word;
+       the end is the start of the pause (no inset needed).
+    Returns (time, note); time None if nothing to snap to (caller keeps pick - inset)."""
     words = all_words(lines, s_line, min(len(lines) - 1, e_line + 1))
-    # the picked last word is the one whose end (before inset) is nearest picked_end_t
-    q = min(range(len(words)), key=lambda i: abs(words[i][1] - picked_end_t)) if words else None
-    if q is None:
+    if not words:
         return None, "no words"
+    q = min(range(len(words)), key=lambda i: abs(words[i][1] - picked_end_t))
+    notes = []
+    se = sentence_end_index(words, q)
+    if se > q and words[se][3] <= e_line:
+        notes.append(f"extended to sentence end {words[se][2]!r} (+{se - q} word(s), inside ad lines)")
+        q = se
     best, best_gap = None, 0.0
     for i in range(q, len(words) - 1):
         if words[i][1] > words[q][1] + SNAP_END_WINDOW_S:
@@ -455,11 +501,14 @@ def snap_end(lines, s_line, e_line, picked_end_t):
             best, best_gap = i, g
     if best is not None:
         extra = f", +{best - q} word(s)" if best > q else ""
-        return words[best][1], f"pause {best_gap:.2f}s after {words[best][2]!r}{extra}"
+        notes.append(f"pause {best_gap:.2f}s after {words[best][2]!r}{extra}")
+        return words[best][1], "; ".join(notes)
+    if notes:  # extended but no pause: end at the sentence's last word, keep the inset
+        return max(words[q][0], words[q][1] - END_INSET_S), "; ".join(notes) + "; no pause, inset applied"
     return None, "no pause found; keeping pick"
 
 
-def refine_words(lines, s_line, e_line, seg):
+def refine_words(lines, s_line, e_line, seg, calls):
     """Pass 2b: word-level boundaries. Returns (start, end, sure).
     Invalid picks are retried once, then fall back INWARD only: start -> end of the first ad line,
     end -> start of the last ad line. Never outward to a line end."""
@@ -477,20 +526,34 @@ def refine_words(lines, s_line, e_line, seg):
     rule_s = rule_e = "no answer"
     ok_s = ok_e = False
     t0 = time.time()
-    for attempt in (1, 2):
-        try:
-            result, _meta = ollama_chat_retry(prompt, WORD_SCHEMA, label=f"words L{s_line}/L{e_line}")
-        except (OSError, ValueError) as e:
-            log(f"  words   L{s_line}/L{e_line}: model call failed ({e!r})")
-            break
+
+    def compute():
+        """Up to two attempts; returns the last answer (resolved or not) so it can be cached."""
+        answer = None
+        for attempt in (1, 2):
+            with llm_lock:
+                result, _meta = ollama_chat_retry(prompt, WORD_SCHEMA, label=f"words L{s_line}/L{e_line}")
+            answer = {k: result.get(k) for k in ("first", "first_word", "last", "last_word")}
+            a, _ = resolve_pick(answer["first"], answer["first_word"], s_words, "S")
+            b, _ = resolve_pick(answer["last"], answer["last_word"], e_words, "E")
+            if a is not None and b is not None:
+                break
+            log(f"  words   L{s_line}/L{e_line}: unresolved pick (attempt {attempt})")
+        return answer
+
+    key = f"words|{s_line}|{e_line}|{seg['category']}|{seg['style']}|{seg['brand']}"
+    try:
+        result, reused = calls.get(key, REFINE_VERSION, compute)
+    except (OSError, ValueError) as e:
+        log(f"  words   L{s_line}/L{e_line}: model call failed ({e!r})")
+        result, reused = None, False
+    if result:
         fw, rule_s = resolve_pick(result.get("first"), result.get("first_word"), s_words, "S")
         lw, rule_e = resolve_pick(result.get("last"), result.get("last_word"), e_words, "E")
         ok_s, ok_e = fw is not None, lw is not None
         log(f"  words   L{s_line}/L{e_line}: answer first={result.get('first')!r}/{result.get('first_word')!r} "
-            f"last={result.get('last')!r}/{result.get('last_word')!r} -> start rule: {rule_s}; end rule: {rule_e}")
-        if ok_s and ok_e:
-            break
-        log(f"  words   L{s_line}/L{e_line}: unresolved pick (attempt {attempt})")
+            f"last={result.get('last')!r}/{result.get('last_word')!r} -> start rule: {rule_s}; end rule: {rule_e}"
+            f"{' (REUSED from cache)' if reused else ''}")
 
     start = s_words[fw][0] if ok_s else inward_start
     end = (e_words[lw][1] - END_INSET_S) if ok_e else inward_end
@@ -681,9 +744,9 @@ def public_segment(seg):
     return {k: seg[k] for k in keys if k in seg}
 
 
-def refine_candidate(lines, cand, lang, title=""):
+def refine_candidate(lines, cand, lang, title, calls):
     """Pass 2 for one sponsor candidate -> list of refined segments (possibly empty)."""
-    raw, first, last = refine_candidate_lines(lines, cand, lang, title)
+    raw, first, last = refine_candidate_lines(lines, cand, lang, title, calls)
     refined = []
     for r in raw:
         seg = to_segment(r, lines, first, last)
@@ -696,7 +759,7 @@ def refine_candidate(lines, cand, lang, title=""):
         seg["line_start"], seg["line_end"] = seg["start"], seg["end"]
         require_evidence(seg, lines)
         if seg["action"] == "skip":
-            start, end, sure = refine_words(lines, seg["start_line"], seg["end_line"], seg)
+            start, end, sure = refine_words(lines, seg["start_line"], seg["end_line"], seg, calls)
             if not sure and end - start < MIN_SKIP_S:
                 log(f"  refine: boundaries uncertain and only {end - start:.1f}s left after inward fallback -> show")
                 seg["action"] = "show"
@@ -823,16 +886,45 @@ def public_job(job):
     return out
 
 
+def versions():
+    return {"detect": DETECT_VERSION, "refine": REFINE_VERSION, "post": POST_VERSION}
+
+
 def cache_valid(cached, thash):
-    return (cached and cached.get("hash") == thash and cached.get("version") == PIPELINE_VERSION
-            and cached.get("model") == MODEL)
+    """Final segments can be served as-is only if nothing changed."""
+    return (bool(cached) and cached.get("hash") == thash and cached.get("model") == MODEL
+            and cached.get("versions") == versions())
+
+
+class CallCache:
+    """Per-video cache of raw model outputs keyed by call inputs. Counts reuse for the log."""
+
+    def __init__(self, stored):
+        self.calls = dict(stored or {})
+        self.reused = 0
+        self.computed = 0
+
+    def get(self, key, version, compute):
+        hit = self.calls.get(key)
+        if hit and hit.get("v") == version and hit.get("model") == MODEL:
+            self.reused += 1
+            return hit["out"], True
+        out = compute()
+        self.calls[key] = {"v": version, "model": MODEL, "out": out}
+        self.computed += 1
+        return out, False
 
 
 def run_job(video_id):
     with jobs_lock:
         job = jobs[video_id]
         lines, lang, thash, title = job["lines"], job["lang"], job["hash"], job.get("title", "")
+    t_job = time.time()
     try:
+        prior = load_cache(video_id)
+        calls = CallCache(prior.get("calls") if prior and prior.get("hash") == thash and prior.get("model") == MODEL else None)
+        if calls.calls:
+            log(f"[{video_id}] {len(calls.calls)} cached model call(s) available (versions {prior.get('versions')}; now {versions()})")
         wins = windows(lines)
         final = []
 
@@ -849,8 +941,7 @@ def run_job(video_id):
                 job["status"] = status
             cands = []
             for first, last in win_slice:
-                with llm_lock:
-                    raw = classify_window(lines, first, last, lang, title)
+                raw = classify_window(lines, first, last, lang, title, calls)
                 for r in raw:
                     seg = to_segment(r, lines, first, last)
                     if seg:
@@ -863,8 +954,7 @@ def run_job(video_id):
                 if cand["category"] != "sponsor":
                     final.append(cand)  # selfpromo/interaction are 'show'; boundaries don't matter
                     continue
-                with llm_lock:
-                    final.extend(refine_candidate(lines, cand, lang, title))
+                final.extend(refine_candidate(lines, cand, lang, title, calls))
             publish()
 
         phase(wins[:1], "classifying")
@@ -878,12 +968,14 @@ def run_job(video_id):
             log(f"[{video_id}] job superseded by a newer transcript; discarding result")
             return
         log_segments(video_id, segments)
-        save_cache(video_id, {"videoId": video_id, "version": PIPELINE_VERSION, "hash": thash, "lang": lang,
-                              "title": title, "model": MODEL, "segments": segments, "transcript": lines})
+        save_cache(video_id, {"videoId": video_id, "versions": versions(), "hash": thash, "lang": lang,
+                              "title": title, "model": MODEL, "segments": segments,
+                              "calls": calls.calls, "transcript": lines})
         with jobs_lock:
             job["segments"] = segments
             job["status"] = "done"
-        log(f"[{video_id}] done: {len(segments)} segment(s), {len(wins)} window(s), cached")
+        log(f"[{video_id}] done: {len(segments)} segment(s), {len(wins)} window(s), "
+            f"model calls: {calls.reused} reused / {calls.computed} computed, {time.time() - t_job:.1f}s, cached")
     except urllib.error.URLError as e:
         log(f"[{video_id}] error: cannot reach Ollama at {OLLAMA}: {e.reason}")
         with jobs_lock:
@@ -915,8 +1007,16 @@ def start_or_get_job(video_id, lang, lines, title=""):
         if job:
             why = " (transcript changed; replacing running job)" if job["status"] != "error" else " (previous attempt errored)"
         elif cached:
-            why = (" (cache is from pipeline v%s/%s; now v%s/%s)" % (cached.get("version"), cached.get("model"), PIPELINE_VERSION, MODEL)
+            why = (" (cache versions %s/%s; now %s/%s: re-processing, reusing model calls where valid)"
+                   % (cached.get("versions"), cached.get("model"), versions(), MODEL)
                    if cached.get("hash") == thash else " (cached transcript hash differs)")
+        active = sum(1 for j in jobs.values() if j["status"] not in ("done", "error"))
+        if active >= MAX_ACTIVE_JOBS and not (job and job["status"] not in ("done", "error")):
+            log(f"[{video_id}] rejected: {active} jobs already active")
+            return None
+        if len(jobs) >= MAX_JOBS_IN_MEMORY:
+            for vid in [v for v, j in jobs.items() if j["status"] in ("done", "error")][: len(jobs) - MAX_JOBS_IN_MEMORY + 1]:
+                del jobs[vid]
         job = {"status": "queued", "segments": [], "hash": thash, "lang": lang, "lines": lines, "title": title}
         jobs[video_id] = job
     log(f"[{video_id}] new job: {len(lines)} lines, lang={lang}, hash={thash}, title={title!r}{why}")
@@ -974,7 +1074,7 @@ class Handler(BaseHTTPRequestHandler):
                 job = jobs.get(vid)
             if not job:
                 cached = load_cache(vid)
-                if cached and cached.get("version") == PIPELINE_VERSION and cached.get("model") == MODEL:
+                if cached and cached.get("versions") == versions() and cached.get("model") == MODEL:
                     return self.send_json(200, {"status": "done", "segments": cached.get("segments", []), "cached": True})
                 return self.send_json(404, {"error": "unknown"})
             return self.send_json(200, public_job(job))
@@ -1004,6 +1104,8 @@ class Handler(BaseHTTPRequestHandler):
         lang = str(data.get("lang") or "und")[:12]
         title = re.sub(r"\s+", " ", str(data.get("title") or "")).strip()[:300]
         job = start_or_get_job(vid, lang, lines, title)
+        if job is None:
+            return self.send_json(429, {"error": "busy"})
         with jobs_lock:
             return self.send_json(200, public_job(job))
 
