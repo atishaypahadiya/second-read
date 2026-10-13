@@ -8,6 +8,7 @@ const DEFAULT_SETTINGS = {
 const $ = (id) => document.getElementById(id);
 
 let settings = null;
+let tabState = null; // what content.js reports for the active tab
 
 function fmtDur(s) {
   s = Math.max(0, Math.round(s));
@@ -23,6 +24,32 @@ function render() {
     for (const b of seg.querySelectorAll('button')) b.classList.toggle('on', b.dataset.value === settings.actions[key]);
   }
   $('devMode').checked = settings.devMode;
+  renderChannels();
+}
+
+function renderChannels() {
+  const ch = tabState && tabState.channelId ? tabState : null;
+  const listed = ch && settings.allowlist[ch.channelId];
+  $('channelName').textContent = ch ? (ch.channelName || ch.channelId) : 'open a YouTube video';
+  $('allowBtn').disabled = !ch;
+  $('allowBtn').textContent = listed ? 'Skip on this channel again' : "Don't skip on this channel";
+  $('allowBtn').classList.toggle('danger', !!listed);
+  const ul = $('allowlist');
+  ul.textContent = '';
+  const ids = Object.keys(settings.allowlist);
+  for (const id of ids) {
+    const li = document.createElement('li');
+    const name = document.createElement('span');
+    name.textContent = settings.allowlist[id] || id;
+    name.title = id;
+    const rm = document.createElement('button');
+    rm.className = 'remove'; rm.textContent = '✕'; rm.title = 'Remove from allowlist';
+    rm.addEventListener('click', () => { delete settings.allowlist[id]; render(); save(); });
+    li.append(name, rm);
+    ul.appendChild(li);
+  }
+  $('allowHint').textContent = ids.length ? 'On allowlisted channels markers still show but nothing is skipped.'
+                                          : 'No allowlisted channels yet.';
 }
 
 function save() {
@@ -60,6 +87,8 @@ function askCurrentTab() {
     if (!tab) return;
     chrome.tabs.sendMessage(tab.id, { type: 'getState' }, (st) => {
       if (chrome.runtime.lastError || !st || !st.videoId) return;
+      tabState = st;
+      renderChannels();
       const skips = st.segments.filter((s) => s.effective === 'skip').length;
       const parts = [];
       if (st.status === 'done') parts.push(skips ? `${skips} to skip` : 'nothing to skip');
@@ -92,6 +121,12 @@ async function init() {
       render(); save();
     });
   }
+  $('allowBtn').addEventListener('click', () => {
+    if (!tabState || !tabState.channelId) return;
+    if (settings.allowlist[tabState.channelId]) delete settings.allowlist[tabState.channelId];
+    else settings.allowlist[tabState.channelId] = tabState.channelName || tabState.channelId;
+    render(); save();
+  });
   chrome.storage.onChanged.addListener((changes) => { if (changes.stats) loadStats(); });
 }
 
