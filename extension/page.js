@@ -23,6 +23,8 @@
   const PLAYER_WAIT_MS = 15000;
   const CLICK_CAPTURE_WAIT_MS = 3000;
   const CC_ON_CAPTURE_WAIT_MS = 8000;
+  const SETTLE_MS = 1500;            // let YouTube apply its saved CC preference before we touch anything
+  const EMPTY_RETRY_DELAY_MS = 2000; // retry once after a 0-byte response
 
   // ---------------------------------------------------------------------------
   // Path B infrastructure: capture /api/timedtext request URLs as they START.
@@ -85,6 +87,27 @@
     return !!b && !b.disabled && b.getAttribute('aria-disabled') !== 'true' && b.style.display !== 'none';
   };
 
+  // The user's selected caption track (may include translationLanguage when auto-translating).
+  function getTrack() {
+    try {
+      const p = player();
+      const t = p && typeof p.getOption === 'function' ? p.getOption('captions', 'track') : null;
+      return t && typeof t === 'object' ? t : null;
+    } catch { return null; }
+  }
+  function trackKey(t) {
+    if (!t) return '(none)';
+    const tl = t.translationLanguage && t.translationLanguage.languageCode;
+    return `${t.languageCode || '?'}${t.kind === 'asr' ? '/asr' : ''}${tl ? `→${tl}` : ''}`;
+  }
+  function setTrack(t) {
+    try {
+      const p = player();
+      if (p && typeof p.setOption === 'function') { p.setOption('captions', 'track', t); return true; }
+    } catch (e) { dbg('setOption(track) threw', e); }
+    return false;
+  }
+
   async function waitForPlayerResponse(videoId) {
     const deadline = Date.now() + PLAYER_WAIT_MS;
     while (Date.now() < deadline) {
@@ -146,13 +169,39 @@
     return u.href;
   }
 
+  // URL params for the log with token-like values redacted to their length.
+  function describeUrl(url) {
+    const u = new URL(url);
+    const parts = [];
+    for (const [k, v] of u.searchParams) {
+      parts.push(/pot|token|sig|signature|key/i.test(k) ? `${k}=<${v.length} chars>` : `${k}=${v}`);
+    }
+    return parts.join('&');
+  }
+
+  async function fetchOnce(url) {
+    const res = await origFetch(url, { credentials: 'include' });
+    const body = await res.text();
+    dbg(`fetch ${res.status} ${res.type}${res.redirected ? ' (redirected)' : ''}, ${body.length} bytes`);
+    if (body.length === 0 || !res.ok) {
+      dbg(`  url params: ${describeUrl(url)}`);
+      const headers = [];
+      for (const [k, v] of res.headers) headers.push(`${k}: ${v}`);
+      dbg(`  response headers: ${headers.join(' | ') || '(none visible)'}`);
+    }
+    return { ok: res.ok, body };
+  }
+
   async function fetchJson3(url) {
     try {
-      const res = await origFetch(url, { credentials: 'include' });
-      const body = await res.text();
-      dbg(`fetch ${res.status}, ${body.length} bytes`);
-      if (!res.ok) return null;
-      return parseJson3(body);
+      let r = await fetchOnce(url);
+      if (r.ok && r.body.length === 0) {
+        dbg(`empty body; retrying once in ${EMPTY_RETRY_DELAY_MS}ms`);
+        await sleep(EMPTY_RETRY_DELAY_MS);
+        r = await fetchOnce(url);
+      }
+      if (!r.ok) return null;
+      return parseJson3(r.body);
     } catch (e) { dbg('fetch threw', e); return null; }
   }
 
@@ -164,23 +213,64 @@
     } catch { return null; }
   }
 
+  // Diagnostics: what shape did the json3 come in? (Some tracks have one seg per event and no
+  // tOffsetMs, which means no word timing downstream.)
+  function describeJson3(data) {
+    const evs = data.events || [];
+    let withSegs = 0, multiSeg = 0, withOffset = 0, appends = 0;
+    for (const ev of evs) {
+      if (!ev || !Array.isArray(ev.segs)) continue;
+      withSegs++;
+      if (ev.aAppend) appends++;
+      if (ev.segs.length > 1) multiSeg++;
+      if (ev.segs.some((sg) => sg && typeof sg.tOffsetMs === 'number')) withOffset++;
+    }
+    dbg(`json3: ${evs.length} events, ${withSegs} with segs, ${multiSeg} multi-seg, ${withOffset} with tOffsetMs, ${appends} aAppend`);
+    const sample = evs.filter((ev) => ev && Array.isArray(ev.segs) && ev.segs.some((sg) => sg && sg.utf8 && sg.utf8.trim())).slice(0, 2);
+    dbg(`json3 sample: ${JSON.stringify(sample).slice(0, 400)}`);
+  }
+
   // ---------------------------------------------------------------------------
   // Parse: json3 events -> cues -> merged lines
   // ---------------------------------------------------------------------------
+  // Each cue carries its words with timing. Auto tracks have one seg per word with tOffsetMs.
+  // Manual tracks usually have one multi-word seg per cue with no word timing; we then spread
+  // the words across the seg's span by character position (an estimate) and mark the line
+  // timed=false so the server can log/treat it as approximate.
   function eventsToCues(events) {
     const cues = [];
     for (const ev of events) {
       if (!ev || !Array.isArray(ev.segs) || typeof ev.tStartMs !== 'number') continue;
-      const text = ev.segs.map((s) => (s && s.utf8) || '').join('').replace(/\s+/g, ' ').trim();
-      if (!text) continue;
       const start = ev.tStartMs / 1000;
-      const end = (ev.tStartMs + (ev.dDurationMs || 0)) / 1000;
-      cues.push({ start, end: Math.max(end, start), text });
+      const end = Math.max(start, (ev.tStartMs + (ev.dDurationMs || 0)) / 1000);
+      const segs = ev.segs
+        .map((seg) => ({
+          text: seg && typeof seg.utf8 === 'string' ? seg.utf8 : '',
+          at: (ev.tStartMs + (seg && typeof seg.tOffsetMs === 'number' ? seg.tOffsetMs : 0)) / 1000,
+          timed: !!(seg && typeof seg.tOffsetMs === 'number'),
+        }))
+        .filter((x) => x.text.trim());
+      if (segs.length === 0) continue;
+      const timed = segs.some((x) => x.timed);
+      const words = [];
+      for (let i = 0; i < segs.length; i++) {
+        const segStart = segs[i].at;
+        const segEnd = i + 1 < segs.length ? Math.max(segStart, segs[i + 1].at) : Math.max(segStart, end);
+        const parts = segs[i].text.split(/\s+/).filter(Boolean);
+        const totalChars = parts.reduce((n, w) => n + w.length, 0) + Math.max(0, parts.length - 1);
+        let pos = 0;
+        for (const w of parts) {
+          const frac = totalChars > 0 ? pos / totalChars : 0;
+          words.push({ start: segStart + (segEnd - segStart) * frac, text: w });
+          pos += w.length + 1;
+        }
+      }
+      cues.push({ start, end, words, timed, text: words.map((w) => w.text).join(' ') });
     }
     cues.sort((a, b) => a.start - b.start);
     // Auto captions often overlap the next cue; clamp so lines don't bleed into each other.
     for (let i = 0; i < cues.length - 1; i++) {
-      if (cues[i].end > cues[i + 1].start) cues[i].end = cues[i + 1].start;
+      if (cues[i].end > cues[i + 1].start) cues[i].end = Math.max(cues[i].start, cues[i + 1].start);
     }
     return cues;
   }
@@ -190,16 +280,26 @@
     let cur = null;
     const round = (n) => Math.round(n * 100) / 100;
     const flush = () => {
-      if (cur) lines.push({ start: round(cur.start), end: round(cur.end), text: cur.text });
+      if (cur) lines.push({ start: round(cur.start), end: round(cur.end), text: cur.text, words: cur.words, timed: cur.timed });
       cur = null;
     };
     for (const cue of cues) {
       if (cur && cue.end - cur.start > MAX_LINE_SECONDS) flush();
-      if (!cur) cur = { start: cue.start, end: cue.end, text: cue.text };
-      else { cur.text += ' ' + cue.text; cur.end = Math.max(cur.end, cue.end); }
+      if (!cur) cur = { start: cue.start, end: cue.end, text: cue.text, words: cue.words.slice(), timed: cue.timed };
+      else { cur.text += ' ' + cue.text; cur.end = Math.max(cur.end, cue.end); cur.words.push(...cue.words); cur.timed = cur.timed && cue.timed; }
       if (/[.!?…][)"'”’]*$/.test(cur.text)) flush();
     }
     flush();
+    // Word end = next word's start (across lines too), capped at the line end. Emit compact triples.
+    for (let i = 0; i < lines.length; i++) {
+      const ws = lines[i].words;
+      const nextStart = i + 1 < lines.length && lines[i + 1].words.length ? lines[i + 1].words[0].start : Infinity;
+      lines[i].words = ws.map((w, j) => {
+        const rawEnd = j + 1 < ws.length ? ws[j + 1].start : Math.min(lines[i].end, nextStart);
+        const end = Math.max(w.start, Math.min(rawEnd, lines[i].end));
+        return [round(w.start), round(end), w.text];
+      });
+    }
     return lines;
   }
 
@@ -214,14 +314,49 @@
     dbg(`${label}: CC click on done`);
     const entry = await waitForCapture(videoId, CLICK_CAPTURE_WAIT_MS);
     // Turn it back off immediately, before the response arrives, so nothing renders.
-    if (subtitlesOn()) { const b = subtitlesButton(); if (b) b.click(); dbg(`${label}: CC restored off`); }
+    if (subtitlesOn()) { const b = subtitlesButton(); if (b) b.click(); dbg(`${label}: CC clicked back off`); }
     if (entry) dbg(`${label}: URL captured ${Math.round(entry.at - t0)}ms after click`);
     else dbg(`${label}: no timedtext request within ${CLICK_CAPTURE_WAIT_MS}ms`);
     return entry;
   }
 
+  // YouTube applies the saved CC preference asynchronously after load. Give it SETTLE_MS; if the
+  // player fires its own timedtext request meanwhile, use that and never click.
+  async function settle(videoId) {
+    const t0 = performance.now();
+    let state = subtitlesOn();
+    let flips = 0;
+    while (performance.now() - t0 < SETTLE_MS) {
+      const existing = captured.get(videoId);
+      if (existing) return existing;
+      const now = subtitlesOn();
+      if (now !== state) { flips++; state = now; }
+      await sleep(100);
+    }
+    if (flips) dbg(`CC state changed ${flips}x while settling`);
+    return null;
+  }
+
+  // Make sure CC state and track are exactly what they were before we touched the player.
+  async function verifyRestore(ccWasOn, trackBefore) {
+    for (const delay of [300, 1200]) {
+      await sleep(delay);
+      const on = subtitlesOn();
+      if (on !== ccWasOn) {
+        const b = subtitlesButton();
+        if (b) b.click();
+        dbg(`CC state was ${on ? 'on' : 'off'} after ${delay}ms, expected ${ccWasOn ? 'on' : 'off'}; corrected`);
+      }
+    }
+    const trackAfter = getTrack();
+    if (trackBefore && trackAfter && trackKey(trackAfter) !== trackKey(trackBefore)) {
+      const ok = setTrack(trackBefore);
+      dbg(`track was ${trackKey(trackAfter)} after, expected ${trackKey(trackBefore)}; ${ok ? 'restored' : 'could not restore'}`);
+    }
+    dbg(`CC restored: state=${subtitlesOn() ? 'on' : 'off'} track=${trackKey(getTrack())}`);
+  }
+
   async function obtainTimedtextUrl(videoId, stale) {
-    // The player may already have requested captions for this video (CC on, or user toggled).
     const existing = captured.get(videoId);
     if (existing) { dbg('URL already captured from the player\'s own request'); return existing; }
 
@@ -229,33 +364,41 @@
     if (stale()) return null;
     dbg(`player ready: ${ready} (readyState=${videoEl() && videoEl().readyState}, CC button enabled=${subtitlesButtonEnabled()})`);
 
+    const settled = await settle(videoId);
+    if (stale()) return null;
+    if (settled) { dbg('URL captured from the player\'s own request while settling; not clicking'); return settled; }
+
     const ccWasOn = subtitlesOn();
-    dbg(`CC state before: ${ccWasOn ? 'on' : 'off'}`);
+    const trackBefore = getTrack();
+    dbg(`CC state before: ${ccWasOn ? 'on' : 'off'}, track=${trackKey(trackBefore)}`);
 
     if (ccWasOn) {
-      // Don't touch anything; the player will request captions on its own.
       const entry = await waitForCapture(videoId, CC_ON_CAPTURE_WAIT_MS);
       dbg(entry ? 'URL captured from the player (CC was on)' : `no timedtext request within ${CC_ON_CAPTURE_WAIT_MS}ms with CC on`);
       return entry;
     }
 
-    let entry = await clickOnCaptureClickOff(videoId, 'click 1');
-    if (stale()) return null;
-    if (!entry) entry = await clickOnCaptureClickOff(videoId, 'click 2');
-    if (stale()) return null;
+    let entry = null;
+    try {
+      entry = await clickOnCaptureClickOff(videoId, 'click 1');
+      if (stale()) return null;
+      if (!entry) entry = await clickOnCaptureClickOff(videoId, 'click 2');
+      if (stale()) return null;
 
-    if (!entry) {
-      const p = player();
-      if (p && typeof p.loadModule === 'function') {
-        dbg('fallback: loadModule(captions)');
-        try { p.loadModule('captions'); } catch (e) { dbg('loadModule threw', e); }
-        entry = await waitForCapture(videoId, CLICK_CAPTURE_WAIT_MS);
-        try { p.unloadModule('captions'); dbg('unloadModule(captions) done'); } catch (e) { dbg('unloadModule threw', e); }
-        if (subtitlesOn()) { const b = subtitlesButton(); if (b) b.click(); dbg('CC restored off after module fallback'); }
-        dbg(entry ? 'URL captured via loadModule' : 'loadModule produced no timedtext request');
-      } else {
-        dbg('fallback unavailable: player.loadModule missing');
+      if (!entry) {
+        const p = player();
+        if (p && typeof p.loadModule === 'function') {
+          dbg('fallback: loadModule(captions)');
+          try { p.loadModule('captions'); } catch (e) { dbg('loadModule threw', e); }
+          entry = await waitForCapture(videoId, CLICK_CAPTURE_WAIT_MS);
+          try { p.unloadModule('captions'); dbg('unloadModule(captions) done'); } catch (e) { dbg('unloadModule threw', e); }
+          dbg(entry ? 'URL captured via loadModule' : 'loadModule produced no timedtext request');
+        } else {
+          dbg('fallback unavailable: player.loadModule missing');
+        }
       }
+    } finally {
+      verifyRestore(ccWasOn, trackBefore); // runs in the background; don't delay the fetch
     }
     return entry;
   }
@@ -297,6 +440,11 @@
       const entry = await obtainTimedtextUrl(videoId, stale);
       if (stale()) return;
       if (entry) {
+        const cu = new URL(entry.url);
+        if (cu.searchParams.has('tlang')) {
+          dbg(`path B: player's request was for a TRANSLATED track (lang=${cu.searchParams.get('lang')} tlang=${cu.searchParams.get('tlang')})`);
+        }
+        dbg(`path B: captured params: ${describeUrl(entry.url)}`);
         dbg('path B: fetching captured URL retargeted at picked track');
         data = await fetchJson3(buildFetchUrl(entry.url, track));
         if (stale()) return;
@@ -310,8 +458,10 @@
 
     if (!data) return reply({ error: 'caption fetch failed' });
 
+    describeJson3(data);
     const lines = mergeCues(eventsToCues(data.events));
-    dbg(`path ${path}: ${lines.length} lines`);
+    const timed = lines.filter((l) => l.timed).length;
+    dbg(`path ${path}: ${lines.length} lines, ${timed} with word timing`);
     if (lines.length === 0) return reply({ error: 'no captions' });
     reply({ lang, kind, path, lines });
   }

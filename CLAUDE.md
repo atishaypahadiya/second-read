@@ -48,8 +48,9 @@ sponsor-skipper/
 [3] page.js      json3 cues → merged lines {start, end, text}
 [4] content.js → background.js → POST localhost:8765/analyze
 [5] server.py    transcript hash → cache hit? return it
-[6] server.py    Qwen 14B over windows (first 4 min first) → line-range segments
-[7] server.py    lines → seconds, skip/keep/show, merge overlaps, cache
+[6] server.py    pass 1: Qwen 14B over windows (first 4 min first) → candidate line ranges
+                 pass 2: per sponsor candidate, re-ask with ±90s context → full extent; then pick first/last ad word
+[7] server.py    words → seconds (end − 0.3s), skip/keep/show, merge overlaps, cache
 [8] content.js   polls GET /analyze every 2s → markers on the progress bar
 [9] content.js   playback enters a skip segment → seek to its end → toast with Undo
 ```
@@ -77,7 +78,9 @@ sponsor-skipper/
 ### [3] Parse (page.js)
 - json3 `events[]`: `tStartMs`, `dDurationMs`, `segs[].utf8`. Skip events without `segs` or with whitespace-only text.
 - Merge cues into lines: close a line at sentence-ending punctuation or when it would exceed ~8s.
-- Output: `[{start, end, text}]` in seconds, 2 decimals.
+- Keep word timing: `segs[].tOffsetMs` relative to `tStartMs`; word end = next word's start. Manual tracks
+  (one seg per cue) give every word the cue's span, which degrades to cue-level timing on the server.
+- Output: `[{start, end, text, words: [[start, end, word], …]}]` in seconds, 2 decimals.
 
 ### [4] Handoff
 - content.js → `chrome.runtime.sendMessage` → background.js → `fetch('http://127.0.0.1:8765/...')`.
@@ -101,7 +104,7 @@ Status values: `queued → classifying → classifying_rest → done` (or `error
 - **Prompt input:** `Transcript language: xx` then lines formatted `L{i} [m:ss] text` (global line indices).
 - **Ollama call:** `/api/chat`, `stream: false`, `format: <JSON schema>`, `temperature: 0`, `num_ctx: 8192`,
   `think: false` for qwen3.
-- **Output schema:** `{"segments": [{start_line, end_line, category, style, brand, confidence, reason}]}`
+- **Output schema:** `{"segments": [{start_line, end_line, category, style, brand, confidence, evidence, reason}]}`
   - category: `sponsor | selfpromo | interaction`
   - style: `read | integration`
 - **Rubric (system prompt):**
@@ -110,13 +113,27 @@ Status values: `queued → classifying → classifying_rest → done` (or `error
   - mixed (integration that ends in a promo-code pitch) → two segments; only the pitch is a read.
   - start at the transition line ("but first, a word from…"); end at the last promo line, not where content resumes.
   - transcripts may be auto-generated (no punctuation, misheard brands) and in any language; reasons in English.
+- **Two passes.** Pass 1 (detect) runs the windows above; its segments are candidates only (window edges cut
+  ads, line ends overshoot). Pass 2 (refine), for each `sponsor` candidate: build a window from ~90s before to
+  ~90s after it and ask for the full extent of that one promotion (model may return two for mixed, or none to
+  withdraw it). Then offer the words of ±1 line around each boundary line as numbered words (`S0..`, `E0..`)
+  and ask for the first and last ad word. `selfpromo`/`interaction` candidates are kept as-is (they're `show`).
 - **Post-processing:**
   - Drop any segment whose lines fall outside the window it was given (hallucinated indices).
-  - start = start of `start_line`; end = start of the line after `end_line` (or `end_line`'s end if last).
-  - Action: sponsor+read with confidence ≥ `SKIP_THRESHOLD` (0.75) → `skip`; sponsor+integration → `keep`;
+  - start = start of the first ad word; end = end of the last ad word − 0.3s (round inward). If the word
+    pick is invalid, fall back to the boundary lines' start/end.
+  - Action: sponsor+read with confidence ≥ `SKIP_THRESHOLD` (0.85) → `skip`; sponsor+integration → `keep`;
     low-confidence reads, selfpromo, interaction → `show`.
-  - Merge overlapping segments with the same action.
-- Log every final segment to the terminal: action, time range, category/style, brand, confidence, reason.
+  - **Evidence gate:** a `skip` must carry an `evidence` field that quotes a sponsor cue verbatim from the
+    segment's lines (±1 line): "sponsored by"/"thanks to X for sponsoring", promo code, link/URL call-to-action,
+    scripted pitch with an offer. Line labels/timestamps, quotes and ellipses are stripped from the evidence
+    first; a full match (≥3 words) or any verbatim run of ≥6 words passes. Otherwise → downgraded to `show`.
+  - Word pass fallback is inward only: invalid pick → retry once → start = end of first ad line, end = start of
+    last ad line; if < 3s remains, downgrade to `show`. Never fall back outward to a line end.
+  - Merge overlapping or touching (gap ≤ 1s) segments with the same action and brand.
+  - Each segment also carries `line_start`/`line_end` (pre-refinement times) for the log and tooltip.
+- Log every final segment to the terminal: action, refined time range, line-level range, category/style, brand,
+  confidence, reason. Also log each detect/refine/words call with its timing.
 
 ### [8]–[9] Playback (content.js + content.css)
 - After POST, poll GET every 2s until `done`/`error`. Redraw markers on each update.
@@ -154,10 +171,23 @@ Each stage ends with a "done when" check on a real video.
    tune prompt and threshold until wrong skips are ~zero.
    *Open from stage 2 (not yet verified on a real video):*
    - a video with no captions reports `no captions` and does nothing.
+   *Test set so far:*
+   - `dU7gCt-7kKk` fern — Odoo read ~9:17–9:55 (asr mishears brand as "Udo"). End boundary must not overshoot.
+   - `O7LvhSQ5Te4` Johnny Harris — Incogni read ~10:27–11:52 with promo code; newpress.com selfpromo → `show`.
+   - `vGoRpjE-svI` Hindi vlog — **must NOT skip** anything. Falsely skipped 9:10–9:25 ("Adoni", conf 0.75) before
+     the evidence gate and 0.85 threshold.
+   - `qv9BD1AnojQ` — returned 0 segments (unverified).
+   *Known performance note:* Hindi transcripts are ~2x tokens per window and ~3–4x slower. Not addressed yet.
+   *Tuning ideas parked for this stage:*
+   - drop `show` segments below ~0.7 confidence (Hindi vlog produced a selfpromo `show` at 0.60 that was noise);
+   - asr mishears brand names ("Udo" for Odoo); consider a brand-normalization step or just display as-is.
+   - evidence should be a short sponsor CUE, not the whole ad: the model once quoted ~300 words (matched, but a
+     verbatim match of the whole ad proves nothing, and refine took 38s instead of 17s). Later: cap evidence at
+     ~25 words and require it to contain a cue (sponsored by / thanks to X for sponsoring / code / link / offer).
 
 ## Open decisions (ask Atishay)
 
-- Skip threshold: starting at 0.75.
+- Skip threshold: 0.85 (raised from 0.75 on 2026-10-13 after a false skip on a Hindi vlog; ask before changing again).
 - Self-promo and like/subscribe: `show` (current) or `skip`?
 - Line merge size: ~8s. Window size: 240s.
 - Videos without captions: do nothing (current) vs. a later fallback.
@@ -179,7 +209,7 @@ Debug: DevTools console filtered by `SponsorSkipper`; server terminal for segmen
 - [x] 1. Extension skeleton + video detection
 - [x] 2. Caption fetch + parse
 - [x] 3. Server skeleton + relay
-- [ ] 4. Qwen classification
+- [x] 4. Qwen classification
 - [ ] 5. Post-processing + cache
 - [ ] 6. Playback UI
 - [ ] 7. Tuning pass
