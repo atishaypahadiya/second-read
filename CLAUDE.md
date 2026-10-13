@@ -166,7 +166,10 @@ server adds the cached pipeline context and versions. Rows that predate validati
   lines (≥ 0.55, e.g. "Udo" → Odoo) → the single written brand if there is only one (sponsor segments) → fuzzy
   against brands already in the DB (≥ 0.8) → raw spelling. Learned aliases are stored with how they were made.
   **The spoken name beats a domain label:** a sponsor link names the brand only when the model gave none and the
-  description wrote none, and then without affixes and TLDs (`headspace-web.app` → Headspace). Rule segments
+  description wrote none, and then without affixes and TLDs (`headspace-web.app` → Headspace). **A link corrects
+  a close match only:** a sponsor's spoken or written name whose letters are ≥ 0.75 alike with the link's name, or
+  that sounds the same (vowel-blind key: "Udo"/"Udu" ↔ odoo), takes the link's spelling for that video (never
+  learned as an alias); a name that differs substantially is left alone. Rule segments
   (recap, outro, intro, interaction) never get a brand; a non-sponsor segment never borrows the video's hint.
   **Generic words are never a brand** (`GENERIC_WORDS`: tech, pro, plan, sound, …): as a hint they are ignored, and
   as the model's brand they count as "no name". **An alias is learned** only when neither side is generic, the

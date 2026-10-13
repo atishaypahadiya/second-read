@@ -28,7 +28,7 @@ def set_logger(fn):
 EVENT_KINDS = ("skip", "undo", "seek_into", "false_skip", "missed_ad", "allowlisted")
 HALL_MIN_SPOTS = 3  # spots a brand needs before it can enter the Hall of Shame or the Hall of Fame
 RULE_CATEGORIES = ("interaction", "intro", "outro", "recap")  # same as server.RULE_CATEGORIES: never carry a brand
-BRAND_RULES_VERSION = 1  # bump when canonical_brand's rules change: stored brands are re-derived once at startup
+BRAND_RULES_VERSION = 2  # bump when canonical_brand's rules change: stored brands are re-derived once at startup
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS videos (
@@ -198,13 +198,48 @@ def hint_link_names(hints):
     return _uniq(out)
 
 
+LINK_MATCH_MIN = 0.75  # a spoken or written name this close to the sponsor link's name is that brand, misheard
+
+
+def _letters(s):
+    return re.sub(r"[^a-z0-9]", "", (s or "").lower())
+
+
+def _sound(s):
+    """Sound-alike key for a misheard name: k for c/q, s for z, f for ph, one 'a' for every run of vowels, doubled
+    letters single. "Udo", "Udu" and "Odoo" all give 'ada'."""
+    t = re.sub(r"[cq]", "k", _letters(s).replace("ph", "f")).replace("z", "s")
+    return re.sub(r"(.)\1+", r"\1", re.sub(r"[aeiouy]+", "a", t))
+
+
+def link_spelling(conn, name, hints):
+    """The sponsor link's spelling of a name, as (brand, how), when the two are a close match: letters >=
+    LINK_MATCH_MIN alike, or the same sound ("Udo"/"Udu" -> Odoo from odoo.com). None when the link already spells it
+    the same way (the name keeps its own capitals) or when they differ substantially."""
+    best, best_r, best_how = None, 0.0, ""
+    for c in hint_link_names(hints):
+        a, b = _letters(name), _letters(c)
+        if a == b:
+            return None
+        r, how = difflib.SequenceMatcher(None, a, b).ratio(), "letters"
+        if r < LINK_MATCH_MIN and len(_sound(c)) >= 3 and _sound(name) == _sound(c):
+            r, how = 1.0, "same sound"
+        if r > best_r:
+            best, best_r, best_how = c, r, how
+    if best_r < LINK_MATCH_MIN:
+        return None
+    row = conn.execute("SELECT brand FROM brand_aliases WHERE alias = ?", (_norm(best),)).fetchone()
+    return (row["brand"] if row else best), f"link match {best_r:.2f} ({best_how}; this video only)"
+
+
 def canonical_brand(conn, raw, hints=None, evidence="", category="sponsor", source=""):
     """Resolve a model-emitted brand spelling (the name as spoken in the transcript) to a canonical brand. Order:
     1. alias table (learned + builtin); 2. fuzzy match against the brands written in the description's sponsor
     lines (the video's own sponsor) and record the alias; 3. exactly one written brand -> that (sponsor segments);
     4. fuzzy match against brands already in the DB (>= 0.8); 5. the raw spelling, trimmed.
-    The spoken name always beats a name derived from a sponsor link: a link names the brand only when the model
-    gave none and the description wrote none ("headspace-web.app" -> Headspace).
+    A name derived from a sponsor link ("headspace-web.app" -> Headspace) never replaces a different spoken name.
+    It names the brand when the model gave none and the description wrote none, and it corrects the spelling of a
+    sponsor's spoken or written name that is a close match (link_spelling: "Udo" -> Odoo), for that video only.
     A rule segment (recap, outro, intro, interaction) never gets a brand, and a segment the model gave no brand
     borrows the video's single hint only if it is a sponsor segment."""
     raw = (raw or "").strip()
@@ -233,9 +268,13 @@ def canonical_brand(conn, raw, hints=None, evidence="", category="sponsor", sour
         # weaker ones resolve for this video only and are re-derived from its own hints next time.
         if best_r >= 0.8:
             learn_alias(conn, key, best, f"hint fuzzy {best_r:.2f}", hints, evidence)
-        return best, f"hint fuzzy {best_r:.2f}"
-    if len(cands) == 1 and category == "sponsor":
-        return cands[0], "single hint (this video only)"
+        return (link_spelling(conn, best, hints) if category == "sponsor" else None) or (best, f"hint fuzzy {best_r:.2f}")
+    if category == "sponsor":
+        linked = link_spelling(conn, raw, hints)
+        if linked:
+            return linked
+        if len(cands) == 1:
+            return cands[0], "single hint (this video only)"
     known = [r["brand"] for r in conn.execute("SELECT DISTINCT brand FROM segments WHERE brand != ''")]
     best, best_r = None, 0.0
     for b in known:
