@@ -1,86 +1,60 @@
-:root {
-  --bg: #ffffff; --fg: #1f1f1f; --muted: #6b6b6b; --line: #e6e6e6; --card: #f6f6f7;
-  --accent: #e53935; --green: #43a047; --amber: #f9a825; --red: #e53935; --seg: #e9e9ea; --seg-on: #1f1f1f;
+/* Second Read — popup. Looks come from ui/tokens.css + ui/components.css (DESIGN.md "Popup").
+   This file holds what is specific to the real popup: fitting Chrome's 600px height cap, and the pieces the
+   mockup does not have (the "more categories" disclosure, the codes vault, the allowlist, dev mode). They use
+   the same tokens: opacity for hierarchy, tone for depth, no borders, no shadows. */
+
+html, body { margin: 0; }
+body { width: 360px; background: var(--ss-sheet); }
+[hidden] { display: none !important; }
+
+/* Chrome caps a popup at 600px tall; the mockup board is 720. Tighter vertical rhythm so the default state
+   (four category rows) shows without scrolling: 12px gaps, 36px rows and text buttons, 16px hero padding. */
+.ss-popup { min-height: 0; gap: var(--ss-s3); }
+.ss-pane { display: flex; flex-direction: column; gap: var(--ss-s3); }
+.ss-popup .ss-hero { padding: var(--ss-s4) var(--ss-s5); }
+.ss-popup .ss-row { height: 36px; }
+.ss-popup .ss-button--text { height: 36px; }
+.ss-popup .ss-button--text:disabled { opacity: var(--ss-o4); cursor: default; }
+.ss-popup__foot { gap: var(--ss-s2); }
+
+/* paused: the numbers and the categories step back (DESIGN.md) */
+.ss-popup.is-paused .ss-hero, .ss-popup.is-paused .ss-rows { opacity: var(--ss-o3); }
+
+/* channel row: the button never squeezes the name */
+.ss-channel { min-height: 40px; }
+.ss-channel__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ss-channel #allowBtn { flex: none; max-width: 170px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-block; line-height: 36px; text-align: right; }
+.ss-channel__thumb.is-empty { background: var(--ss-chip-sheet); }
+
+/* mono hint line (same voice as .ss-channel__sub) */
+.ss-hint { font-family: var(--ss-font-mono); font-weight: var(--ss-w-mono-light); font-size: var(--ss-fs-chip); opacity: 0.6; }
+
+/* categories header: section label on the left, the disclosure on the right */
+.ss-rows__head { display: flex; align-items: center; justify-content: space-between; gap: var(--ss-s2); min-height: 20px; }
+.ss-popup .ss-more { height: 20px; gap: 6px; padding: 0; font-family: var(--ss-font-mono); font-size: var(--ss-fs-chip); text-transform: lowercase; }
+.ss-more[aria-expanded="true"] { opacity: var(--ss-o1); }
+#mainRows, #moreRows { display: flex; flex-direction: column; gap: var(--ss-s1); }
+
+/* codes vault + allowlist */
+.ss-input {
+  width: 100%; height: 36px; padding: 0 14px; border: 0; border-radius: var(--ss-r-pill);
+  background: var(--ss-chip-bg); color: inherit; font: inherit; appearance: none; outline-offset: 2px;
 }
-@media (prefers-color-scheme: dark) {
-  :root { --bg: #1e1e1e; --fg: #f1f1f1; --muted: #a0a0a0; --line: #333; --card: #2a2a2a; --seg: #3a3a3a; --seg-on: #f1f1f1; }
-}
-* { box-sizing: border-box; }
-body { width: 320px; margin: 0; padding: 12px 14px 10px; background: var(--bg); color: var(--fg);
-       font: 13px/1.35 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-h1 { flex: 1; margin: 0; font-size: 15px; font-weight: 600; }
-h2 { margin: 0 0 6px; font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
-.row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 5px 0; }
-.label { color: var(--fg); }
-.card { background: var(--card); border-radius: 10px; padding: 10px 12px; margin: 8px 0; }
-.hint { margin: 6px 0 0; font-size: 11px; color: var(--muted); }
-.hidden { display: none; }
+.ss-input::placeholder { color: rgba(var(--ss-fg-rgb), var(--ss-o3)); }
+.ss-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--ss-s1); }
+.ss-list li { display: flex; align-items: center; gap: var(--ss-s2); min-height: 36px; }
+.ss-list__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ss-list__value { font-family: var(--ss-font-mono); font-weight: 400; }
+.ss-list__main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ss-list__line { display: flex; align-items: center; gap: var(--ss-s2); min-width: 0; }
+.ss-list .ss-hint a { color: inherit; }
+.ss-scroll { max-height: 120px; overflow-y: auto; scrollbar-width: thin; }
+/* the secondary pane scrolls inside itself so the popup stays within Chrome's 600px */
+#pane-more { max-height: 372px; overflow-y: auto; scrollbar-width: thin; }
+#pane-more > * { flex: none; }   /* a scrolling flex column must not squash its children */
+html { scrollbar-width: thin; }
+.ss-channel__sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-.status { font-size: 12px; color: var(--muted); padding: 2px 0; }
-.dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); flex: none; }
-.dot.green { background: var(--green); } .dot.amber { background: var(--amber); } .dot.red { background: var(--red); }
-.video { font-size: 12px; color: var(--muted); padding: 0 0 4px; }
-
-.seg { display: inline-flex; background: var(--seg); border-radius: 7px; padding: 2px; }
-.seg button { all: unset; cursor: pointer; padding: 3px 9px; border-radius: 5px; font-size: 12px; color: var(--muted); }
-.seg button.on { background: var(--bg); color: var(--fg); box-shadow: 0 1px 2px rgba(0,0,0,.15); font-weight: 600; }
-.seg button[data-value="skip"].on { color: var(--accent); }
-
-.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; }
-.stats div { display: flex; flex-direction: column; }
-.num { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
-.cap { font-size: 11px; color: var(--muted); }
-
-footer { padding-top: 4px; font-size: 12px; }
-.check { display: flex; align-items: center; gap: 6px; cursor: pointer; }
-.check .hint { margin: 0; }
-.version { color: var(--muted); font-size: 11px; }
-
-.switch { position: relative; width: 36px; height: 20px; flex: none; }
-.switch input { opacity: 0; width: 0; height: 0; }
-.slider { position: absolute; inset: 0; background: #bdbdbd; border-radius: 20px; transition: background .15s; }
-.slider::before { content: ""; position: absolute; width: 16px; height: 16px; left: 2px; top: 2px; background: #fff;
-                  border-radius: 50%; transition: transform .15s; box-shadow: 0 1px 2px rgba(0,0,0,.3); }
-.switch input:checked + .slider { background: var(--green); }
-.switch input:checked + .slider::before { transform: translateX(16px); }
-body.disabled .card, body.disabled .status, body.disabled .video { opacity: .45; }
-
-.btn { all: unset; cursor: pointer; padding: 4px 9px; border-radius: 6px; font-size: 12px; background: var(--seg); color: var(--fg); white-space: nowrap; }
-.btn:hover { filter: brightness(.95); }
-.btn:disabled { opacity: .45; cursor: default; }
-.btn.danger { color: var(--accent); }
-.list { list-style: none; margin: 4px 0 0; padding: 0; }
-.list li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 3px 0; font-size: 12px; }
-.list li span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.list .remove { all: unset; cursor: pointer; color: var(--muted); font-size: 12px; padding: 0 4px; }
-.list .remove:hover { color: var(--accent); }
-.link { color: var(--muted); text-decoration: none; font-size: 12px; margin-right: 6px; }
-.link:hover { color: var(--fg); }
-
-.ptabs { display: flex; gap: 2px; margin: -4px 0 8px; border-bottom: 1px solid var(--line); }
-.ptab { all: unset; cursor: pointer; padding: 5px 10px; font-size: 12px; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; }
-.ptab.on { color: var(--fg); border-color: var(--accent); font-weight: 600; }
-#codeSearch { width: 100%; padding: 6px 9px; border: 1px solid var(--line); border-radius: 7px; background: var(--card); color: var(--fg); font: inherit; margin-bottom: 6px; }
-.codes li { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); }
-.codes .val { font-weight: 600; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
-.codes .ctx { grid-column: 1 / -1; font-size: 11px; color: var(--muted); }
-.codes .kind { font-size: 10px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin-right: 6px; }
-
-.cat { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
-.cat .sw { width: 10px; height: 10px; border-radius: 3px; flex: none; }
-.cat .label { flex: 1; font-size: 12px; }
-.cat .seg button { padding: 2px 7px; font-size: 11px; }
-
-/* Rows that pair free text with a button stack at popup width: the text gets the full line, the button its own. */
-#channelCard .row, .video { flex-direction: column; align-items: stretch; gap: 6px; }
-#channelCard #channelName { font-weight: 600; overflow-wrap: anywhere; }
-#channelCard .btn, .video .btn { box-sizing: border-box; text-align: center; padding: 6px 9px; }
-.video #videoText { overflow-wrap: anywhere; }
-.status { align-items: flex-start; justify-content: flex-start; }
-.status .dot { margin-top: 4px; }
-.list li span { min-width: 0; }
-#channelCard #channelName.placeholder { font-weight: 400; color: var(--muted); }
-footer.row { align-items: center; gap: 8px; }
-footer .check, footer .check .hint, footer > span { white-space: nowrap; }
-footer .check { min-width: 0; }
+/* dev mode: a quiet checkbox; ink, not the accent (the accent means live or skip) */
+.ss-check { display: inline-flex; align-items: center; gap: 6px; font-size: var(--ss-fs-body); cursor: pointer; }
+.ss-check input { accent-color: var(--ss-ink); margin: 0; }
