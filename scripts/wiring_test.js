@@ -247,7 +247,7 @@ setTimeout(() => {
   if (wrong && wrong.handlers.click) wrong.handlers.click({ stopPropagation() {} });
   check(fakeVideo.currentTime === PLAYHEAD, `"Wrong skip" did not undo: currentTime ${fakeVideo.currentTime}, expected ${PLAYHEAD}`);
   const all2 = (stored.stats || {}).all || {};
-  check(all2.skips === 0 && all2.saved === 0 && all2.undos === 1, `stats after the undo: ${JSON.stringify(stored.stats)}`);
+  check(all2.skips === 1 && all2.saved === 0 && all2.undos === 1, `stats after the undo (the skip still counts, its seconds do not): ${JSON.stringify(stored.stats)}`);
   check((((tabStateNow() || {}).segments || []).find((x) => x.start === SEG.start) || {}).done === 'plays', 'getState after the undo: the segment must read as playing');
   const undone = markerOf(SEG);
   check(!!undone && hasClass(undone, 'is-done'), 'marker went back to accent after the undo (the segment will not skip again, so it must stay quiet)');

@@ -387,8 +387,11 @@ Every GET/POST for a video counts as a poll.
   re-analysis): `enabled` (off = no analysis, no markers), `actions.sponsor_read` skip|show,
   `actions.selfpromo` / `actions.interaction` skip|show|off (off = no marker), `devMode`, `allowlist`
   {channelId: name} (markers still show, nothing skips). The server's action stays in the tooltip when overridden.
-  `chrome.storage.local.stats` holds, for today and all-time: skips and seconds saved (an undo takes its skip back
-  and counts as `undos`), and `kept` (integrations the playhead passed through, once per page view). The popup
+  `chrome.storage.local.stats` holds, for today and all-time: `skips`, `undos`, net `saved` seconds (an undo is
+  counted and its seconds are taken back; the skip still counts) and `kept` (integrations the playhead passed
+  through, once per page view). **The server's totals are the truth** (`/stats.json` `overall`, incl. `today`):
+  the popup asks for them on open (`stats` message) and overwrites the local copy, so popup and dashboard always
+  agree and a storage reset (new extension ID) loses nothing but `kept`. The popup
   leads with the all-time time saved; `getState` gives it the video's duration and each segment's outcome (`done`).
 
 ## Build stages

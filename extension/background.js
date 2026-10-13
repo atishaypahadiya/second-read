@@ -51,6 +51,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     case 'health':
       p = call('/health');
       break;
+    case 'stats':   // the popup's numbers: the same totals the dashboard shows
+      p = call('/stats.json').then((r) => (r.ok ? { ok: true, overall: r.overall } : r));
+      break;
     case 'event':
       p = call('/event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(msg.payload || {}) });
       break;

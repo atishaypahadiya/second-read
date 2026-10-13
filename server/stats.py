@@ -679,7 +679,13 @@ def compute():
     creator_rows.sort(key=lambda r: -(r["ad_density"] or 0))
 
     # overall
-    saved = sum((e["saved_s"] or 0) for e in events if e["kind"] == "skip") - sum((e["saved_s"] or 0) for e in events if e["kind"] == "undo")
+    def totals(evs):
+        """Skips, undone skips and net seconds saved: the one definition the dashboard and the popup both show."""
+        net = sum((e["saved_s"] or 0) for e in evs if e["kind"] == "skip") - sum((e["saved_s"] or 0) for e in evs if e["kind"] == "undo")
+        return {"skips": sum(1 for e in evs if e["kind"] == "skip"), "undos": sum(1 for e in evs if e["kind"] == "undo"),
+                "saved_s": max(0, round(net))}
+    everything = totals(events)
+    today = totals([e for e in events if (e["ts"] or "").startswith(time.strftime("%Y-%m-%d"))])
     with_sponsor = {s["video_id"] for s in sponsor}
     hist, unplaced = [0] * 10, 0
     for s in sponsor:
@@ -692,8 +698,8 @@ def compute():
         "videos": len(videos), "videos_with_sponsor_pct": pct(len(with_sponsor), len(videos)),
         "ads_per_video": round(len(sponsor) / len(videos), 2) if videos else 0,
         "spots": len(sponsor), "brands": len(brand_rows), "creators": len(creator_rows),
-        "skips": sum(1 for e in events if e["kind"] == "skip"), "saved_s": max(0, round(saved)),
-        "undos": sum(1 for e in events if e["kind"] == "undo"), "wrong_skips": sum(1 for e in events if e["kind"] == "false_skip"),
+        "skips": everything["skips"], "saved_s": everything["saved_s"], "undos": everything["undos"], "today": today,
+        "wrong_skips": sum(1 for e in events if e["kind"] == "false_skip"),
         "missed_ads": sum(1 for e in events if e["kind"] == "missed_ad"),
         "position_hist": hist, "position_unplaced": unplaced, "avg_ad_s": round(sum(s["seg_end"] - s["seg_start"] for s in sponsor) / len(sponsor), 1) if sponsor else 0,
     }

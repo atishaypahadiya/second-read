@@ -208,9 +208,10 @@ specified here but not built; nothing in the product opens it yet.
   rows and text buttons and 16px hero padding (overrides in `popup.css`) and scrolls when it is longer. Four categories are always visible
   (sponsor read, sponsor integration, self-promo, like & subscribe); the other eight are behind a
   *more categories* disclosure that shows a mono chip (*2 changed*) when any of them is off its default.
-  *Sponsor integration* is a static *always plays* chip: it is not a setting. The numbers are what the extension
-  stores itself (today and all-time: skips, seconds saved, undone skips, integrations left to play), so they show
-  with the server offline. Codes, the don't-skip list, dev mode and the version are a second pane (*Codes & more*);
+  *Sponsor integration* is a static *always plays* chip: it is not a setting. The numbers are the server's
+  totals, the same ones the dashboard shows (skips, undone skips, net seconds saved, today and all-time); the
+  extension's own counters are the copy shown while the server is offline and are brought in line each time the
+  popup opens. Integrations left to play are counted by the extension only. Codes, the don't-skip list, dev mode and the version are a second pane (*Codes & more*);
   its list rows never shrink (a scrolling flex column used to squash them into each other).
   A server problem replaces the channel row's sub line with what to do (*start it: python3 server/server.py*).
 - **Dashboard.** Tabs are a `.sr-seg` in the header. Beyond the mockup: ad cards (`.sr-adcard` with a hairline

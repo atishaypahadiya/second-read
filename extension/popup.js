@@ -123,6 +123,9 @@ function renderChannel() {
   else if (st.status === 'error') sub = 'analysis failed';
   else if (st.status) sub = 'analyzing…';
   else sub = st.captions || 'reading captions…';
+  // A tab whose content script predates this popup (the extension's files changed, the tab was not refreshed)
+  // answers without the newer fields; say so instead of showing half the picture.
+  if (st.duration === undefined) sub = 'refresh this tab to finish updating';
   $('channelSub').textContent = serverHint || sub;   // a server problem explains why nothing is happening
   const btn = $('allowBtn');
   btn.hidden = !ch;
@@ -141,12 +144,15 @@ function renderVideo() {
   const ads = st ? st.segments.filter((s) => s.category === 'sponsor' && s.effective !== 'off') : [];
   $('video').hidden = !ads.length;
   if (!ads.length) return;
-  const dur = st.duration > 0 ? st.duration : Math.max(...st.segments.map((s) => s.end));
-  $('videoLen').textContent = fmtDur(dur);
+  // Without the video's real length there is no honest scale for a timeline: show the rows alone. (Guessing the
+  // length from the last segment drew a read in the middle of a video as if it ran to the end.)
+  const dur = st.duration > 0 ? st.duration : 0;
+  $('videoLen').textContent = dur ? fmtDur(dur) : '';
   const track = $('videoTrack'), rows = $('videoRows');
+  track.parentElement.hidden = !dur;
   track.textContent = '';
   rows.textContent = '';
-  for (const s of ads) {
+  for (const s of dur ? ads : []) {
     // same meaning as the lane on the player: accent = this will skip; anything else is quiet
     const pending = s.effective === 'skip' && !s.done;
     const span = el('span', `sr-hairline__span${pending ? ' sr-hairline__span--accent' : s.done === 'skipped' ? '' : ' is-quiet'}`);
@@ -206,9 +212,30 @@ function save() {
 }
 
 // ---------------------------------------------------------------- stats (hero card)
+// One set of numbers, the server's: it is what the dashboard shows, and it survives what resets the extension's
+// own storage (a new extension ID after the folder moves, a reinstall). chrome.storage is the copy shown while
+// the server cannot be asked, and it is brought in line every time the popup opens.
+const todayKey = () => new Date().toISOString().slice(0, 10);
+
+function syncStats() {
+  chrome.runtime.sendMessage({ type: 'stats' }, async (res) => {
+    const o = res && res.ok && res.overall;
+    if (!o) return;   // server offline: keep showing the local copy
+    const { stats } = await chrome.storage.local.get('stats');
+    const local = stats || {};
+    const lt = local.today && local.today.date === todayKey() ? local.today : {};
+    const st = o.today || { skips: lt.skips || 0, undos: lt.undos || 0, saved_s: lt.saved || 0 };   // an older server has no "today"
+    const next = {
+      today: { date: todayKey(), skips: st.skips, undos: st.undos, saved: st.saved_s, kept: lt.kept || 0 },
+      all: { skips: o.skips, undos: o.undos, saved: o.saved_s, kept: (local.all && local.all.kept) || 0 },
+    };
+    if (JSON.stringify(next) !== JSON.stringify({ today: local.today, all: local.all })) chrome.storage.local.set({ stats: next });   // repaints through onChanged
+  });
+}
+
 async function loadStats() {
   const { stats } = await chrome.storage.local.get('stats');
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayKey();
   const t = stats && stats.today && stats.today.date === today ? stats.today : { skips: 0, saved: 0 };
   const a = (stats && stats.all) || { skips: 0, saved: 0 };
   const n = (count, one, many) => `${count} ${count === 1 ? one : many}`;
@@ -218,7 +245,7 @@ async function loadStats() {
   const kept = a.kept || 0;
   $('trust').textContent = [n(a.skips || 0, 'skip', 'skips'), `${a.undos || 0} undone`,
                             kept ? `${n(kept, 'integration', 'integrations')} left playing` : ''].filter(Boolean).join(' · ');
-  $('trust').title = 'All-time. An undone skip is taken back out of the time saved.';
+  $('trust').title = 'All-time, the same totals as the dashboard. An undone skip still counts as a skip; its seconds are taken back out.';
 }
 
 // ---------------------------------------------------------------- server status (head chip)
@@ -320,6 +347,7 @@ async function init() {
   buildCategoryRows();
   render();
   loadStats();
+  syncStats();
   checkServer();
   askCurrentTab();
   $('version').textContent = `v${chrome.runtime.getManifest().version}`;
