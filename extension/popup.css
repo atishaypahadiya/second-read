@@ -71,3 +71,16 @@ body.disabled .card, body.disabled .status, body.disabled .video { opacity: .45;
 .cat .sw { width: 10px; height: 10px; border-radius: 3px; flex: none; }
 .cat .label { flex: 1; font-size: 12px; }
 .cat .seg button { padding: 2px 7px; font-size: 11px; }
+
+/* Rows that pair free text with a button stack at popup width: the text gets the full line, the button its own. */
+#channelCard .row, .video { flex-direction: column; align-items: stretch; gap: 6px; }
+#channelCard #channelName { font-weight: 600; overflow-wrap: anywhere; }
+#channelCard .btn, .video .btn { box-sizing: border-box; text-align: center; padding: 6px 9px; }
+.video #videoText { overflow-wrap: anywhere; }
+.status { align-items: flex-start; justify-content: flex-start; }
+.status .dot { margin-top: 4px; }
+.list li span { min-width: 0; }
+#channelCard #channelName.placeholder { font-weight: 400; color: var(--muted); }
+footer.row { align-items: center; gap: 8px; }
+footer .check, footer .check .hint, footer > span { white-space: nowrap; }
+footer .check { min-width: 0; }
