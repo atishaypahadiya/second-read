@@ -38,6 +38,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     case 'health':
       p = call('/health');
       break;
+    case 'event':
+      p = call('/event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(msg.payload || {}) });
+      break;
     case 'feedback':
       p = call('/feedback', {
         method: 'POST',

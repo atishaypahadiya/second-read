@@ -14,6 +14,8 @@ API
   GET  /health                                                    -> {ok, model, ollama, loaded}
   POST /feedback       {videoId, kind: false_skip|missed_ad, playhead, segment?} -> {ok}
   GET  /feedback                                                  -> {count, recent}
+  POST /event          {videoId, kind: skip|undo|seek_into|allowlisted, segment, playhead, saved} -> {ok}
+  GET  /stats.json, GET /dashboard                                local stats (server/stats.py)
   python3 server/server.py --feedback-report                      prints a summary for tuning sessions
 
 Status: queued -> classifying -> done | error  (+ paused:true while the video isn't being polled)
@@ -31,6 +33,8 @@ import urllib.error
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
+
+import stats  # server/stats.py: SQLite store, brand normalization, metrics, dashboard
 
 # Threat model: the transcript, title and words come from whatever the YouTube page handed the
 # extension, so they are untrusted. They are only ever (a) hashed into the cache key, so a bogus
@@ -1232,6 +1236,11 @@ def record_feedback(data):
         f.write(json.dumps(entry, ensure_ascii=False) + "\n")
     where = f"{fmt_time(seg['start'])}-{fmt_time(seg['end'])} {seg['brand']!r}" if seg else f"at {fmt_time(playhead)}"
     log(f"[{vid}] FEEDBACK {kind}: {where}")
+    try:
+        stats.record_event({"kind": kind, "videoId": vid, "channelId": entry["channelId"], "segment": seg,
+                            "playhead": playhead, "channelName": entry["channelName"], "title": entry["title"]})
+    except Exception as e:  # noqa: BLE001
+        log(f"stats: event failed: {e!r}")
     return entry, None
 
 
@@ -1516,6 +1525,10 @@ def finish_job(job):
         f"model calls: {calls.reused} reused / {calls.computed} computed, {job_time:.1f}s wall "
         f"({job['work_s']:.1f}s working), first skip at {'%.1fs' % job['ttfs'] if job['ttfs'] is not None else '-'}, cached")
     append_result(job, segments, job_time, calls, job["ttfs"])
+    try:
+        stats.record_video(job, segments, versions())
+    except Exception as e:  # noqa: BLE001 - stats must never break analysis
+        log(f"[{video_id}] stats: record failed: {e!r}")
 
 
 def fail_job(job, e):
@@ -1654,7 +1667,8 @@ def start_or_get_job(video_id, lang, lines, title="", meta=None, alines=None, al
         job = {"status": "queued", "segments": [], "hash": thash, "lang": lang, "lines": lines, "title": title,
                "alines": lines if same else alines, "alang": lang if same else (alang or "en"),
                "video_id": video_id, "kind": meta.get("kind", ""), "creator": meta.get("creator", ""),
-               "tag": meta.get("tag", ""), "position": position, "hints": hints, "terms": terms,
+               "tag": meta.get("tag", ""), "channel_id": meta.get("channel_id", ""), "duration": meta.get("duration"),
+               "position": position, "hints": hints, "terms": terms,
                "header": hints_header(hints), "calls": CallCache(prior_calls), "final": [], "pending": None,
                "n_windows": 0, "n_sent": 0, "ttfs": None, "t_start": time.time(), "work_s": 0.0,
                "last_poll": time.time(), "paused": False}
@@ -1712,6 +1726,21 @@ class Handler(BaseHTTPRequestHandler):
         if u.path == "/feedback":
             fb = load_feedback()
             return self.send_json(200, {"count": len(fb), "recent": fb[-20:]})
+        if u.path == "/stats.json":
+            try:
+                return self.send_json(200, stats.compute())
+            except Exception as e:  # noqa: BLE001
+                log(f"stats: compute failed: {e!r}")
+                return self.send_json(500, {"error": "stats error"})
+        if u.path in ("/dashboard", "/dashboard/"):
+            body = stats.DASHBOARD_HTML.encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Content-Security-Policy", "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'")
+            self.end_headers()
+            self.wfile.write(body)
+            return
         if u.path == "/health":
             ok = ollama_available()
             return self.send_json(200, {"ok": True, "model": MODEL, "ollama": ok, "loaded": ok and model_loaded(MODEL)})
@@ -1735,7 +1764,7 @@ class Handler(BaseHTTPRequestHandler):
         if not self.allowed_origin():
             return
         u = urlparse(self.path)
-        if u.path not in ("/analyze", "/feedback"):
+        if u.path not in ("/analyze", "/feedback", "/event"):
             return self.send_json(404, {"error": "not found"})
         try:
             n = int(self.headers.get("Content-Length") or 0)
@@ -1744,6 +1773,15 @@ class Handler(BaseHTTPRequestHandler):
             data = scrub(json.loads(self.rfile.read(n) or b"{}"))
         except (ValueError, TypeError):
             return self.send_json(400, {"error": "bad json"})
+        if u.path == "/event":
+            if not isinstance(data, dict) or not VIDEO_ID_RE.match(str(data.get("videoId") or "")):
+                return self.send_json(400, {"error": "bad event"})
+            try:
+                ok, err = stats.record_event(data)
+            except Exception as e:  # noqa: BLE001
+                log(f"stats: event failed: {e!r}")
+                ok, err = False, "stats error"
+            return self.send_json(200 if ok else 400, {"ok": ok, **({"error": err} if err else {})})
         if u.path == "/feedback":
             if not isinstance(data, dict):
                 return self.send_json(400, {"error": "bad json"})
@@ -1762,7 +1800,8 @@ class Handler(BaseHTTPRequestHandler):
         lang = str(data.get("lang") or "und")[:12]
         title = re.sub(r"\s+", " ", str(data.get("title") or "")).strip()[:300]
         meta = {"kind": str(data.get("kind") or "")[:10], "creator": str(data.get("creator") or "")[:100],
-                "tag": str(data.get("tag") or "")[:40]}  # free-text note for results.md (e.g. BASELINE)
+                "tag": str(data.get("tag") or "")[:40],  # free-text note for results.md (e.g. BASELINE)
+                "channel_id": str(data.get("channelId") or "")[:40], "duration": finite(data.get("duration"))}
         description = str(data.get("description") or "")[:5000]
         try:
             position = max(0.0, float(data.get("position") or 0.0))
@@ -1790,6 +1829,7 @@ def main():
     global DETECT_MODEL
     os.makedirs(CACHE_DIR, exist_ok=True)
     srv = ThreadingHTTPServer((HOST, PORT), Handler)
+    stats.init()
     DETECT_MODEL = DETECT_MODEL_PREF if model_present(DETECT_MODEL_PREF) else MODEL
     if DETECT_MODEL != MODEL:
         try:
