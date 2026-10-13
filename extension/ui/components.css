@@ -14,7 +14,7 @@
   text-rendering: optimizeLegibility;
   font-feature-settings: "tnum" 1, "cv11" 1; /* tabular numerals; single-storey a */
 }
-.ss-ui button { font: inherit; color: inherit; }
+.ss-ui button { font: inherit; }
 .ss-mono {
   font-family: var(--ss-font-mono);
   font-weight: var(--ss-w-mono-light);
@@ -450,8 +450,8 @@
 .ss-chips { display: flex; flex-wrap: wrap; gap: var(--ss-s1); }
 
 /* ad-position histogram: hairline-weight bars, no axes */
-.ss-bars { display: grid; grid-template-columns: repeat(10, 1fr); gap: var(--ss-s2); align-items: end; height: 96px; padding: 0 var(--ss-s2); }
-.ss-bar { position: relative; border-radius: var(--ss-r-pill); background: rgba(var(--ss-fg-rgb), var(--ss-o4)); min-height: 2px; }
+.ss-bars { display: grid; grid-template-columns: repeat(10, 1fr); gap: var(--ss-s2); align-items: end; height: 96px; padding: var(--ss-s4) var(--ss-s2) 0; }
+.ss-bar { position: relative; width: 100%; max-width: 16px; justify-self: center; border-radius: var(--ss-r-pill); background: rgba(var(--ss-fg-rgb), var(--ss-o4)); min-height: 2px; }
 .ss-bar.is-peak { background: var(--ss-accent); }
 .ss-bar span { position: absolute; bottom: calc(100% + var(--ss-s1)); left: 0; right: 0; text-align: center; font-family: var(--ss-font-mono); font-weight: 400; font-size: var(--ss-fs-chip); opacity: var(--ss-o3); }
 .ss-axis { display: flex; justify-content: space-between; margin-top: var(--ss-s2); padding: 0 var(--ss-s2); font-family: var(--ss-font-mono); font-weight: 400; font-size: var(--ss-fs-chip); opacity: var(--ss-o3); }
