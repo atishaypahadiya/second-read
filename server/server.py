@@ -16,8 +16,6 @@ API
   GET  /feedback                                                  -> {count, recent}
   POST /event          {videoId, kind: skip|undo|seek_into|allowlisted, segment, playhead, saved} -> {ok}
   GET  /stats.json, GET /dashboard                                local stats (server/stats.py)
-  POST /client-state   {installId, settings, stats}               snapshot of the extension's storage, per install
-  GET  /client-state?not=<installId>                              {candidates}: latest snapshot per extension (restore offer)
   GET  /ui/tokens.css | components.css | fonts.css | fonts/*.woff2  the design system, for the dashboard
   GET  /ads.json                                                  ad intelligence per segment + insights (server/intel.py)
   GET  /codes.json?q=                                             promo code / link / offer vault
@@ -55,7 +53,7 @@ def env(name, default=""):
 
 
 HOST, PORT = "127.0.0.1", int(env("PORT", "8765"))  # SR_PORT: run a second instance for testing
-CLIENT_BUILD = 15  # extension build this server expects (page.js / content.js / background.js BUILD)
+CLIENT_BUILD = 16  # extension build this server expects (page.js / content.js / background.js BUILD)
 ALLOWED_HOSTS = {f"127.0.0.1:{PORT}", f"localhost:{PORT}", "127.0.0.1", "localhost"}
 # Optional: restrict to one extension. Unpacked extension IDs differ per machine, so this is opt-in:
 #   SR_EXTENSION_ID=abcdefghijklmnopabcdefghijklmnop python3 server/server.py
@@ -1514,88 +1512,6 @@ def feedback_report():
         print("wrong skips by brand: " + ", ".join(f"{b}={n}" for b, n in sorted(brands.items(), key=lambda x: -x[1])))
 
 
-# ---------------------------------------------------------------------------
-# Extension settings backup: one snapshot per extension install, so a new install (the unpacked extension's ID
-# changes when its folder is renamed or moved) can adopt the previous one's settings, don't-skip list and stats.
-# ---------------------------------------------------------------------------
-CLIENT_STATE = os.path.join(CACHE_DIR, "client-state.local.json")
-INSTALL_ID_RE = re.compile(r"^[a-f0-9]{8,40}$")
-EXTENSION_ORIGIN_RE = re.compile(r"^chrome-extension://([a-p]{32})$")
-# Snapshots are partitioned by the extension that wrote them (its ID, taken from the Origin header, which another
-# extension cannot forge). One extension can only ever fill or replace its own few slots, so it can neither push
-# out nor crowd out anyone else's snapshot.
-MAX_INSTALLS_PER_EXTENSION = 3
-MAX_EXTENSIONS = 50
-MAX_CLIENT_STATE_BYTES = 200_000
-client_state_lock = threading.Lock()
-
-
-def load_client_state():
-    try:
-        with open(CLIENT_STATE, "r", encoding="utf-8") as f:
-            data = json.load(f)
-    except (OSError, ValueError):
-        return {"extensions": {}}
-    if isinstance(data, dict) and isinstance(data.get("extensions"), dict):
-        return data
-    if isinstance(data, dict) and isinstance(data.get("installs"), dict):  # first format: one shared pool
-        return {"extensions": {"legacy": {"installs": data["installs"]}}}
-    return {"extensions": {}}
-
-
-def save_client_snapshot(ext_id, install_id, settings, stats_):
-    """Store this install's snapshot under its extension. Returns an error string or None."""
-    if not INSTALL_ID_RE.match(install_id or ""):
-        return "bad install id"
-    if settings is not None and not isinstance(settings, dict) or stats_ is not None and not isinstance(stats_, dict):
-        return "bad state"
-    if settings is None and stats_ is None:
-        return "empty state"
-    snap = {"settings": settings, "stats": stats_, "saved_at": time.strftime("%Y-%m-%dT%H:%M:%S"), "ts": time.time()}
-    if len(json.dumps(snap)) > MAX_CLIENT_STATE_BYTES:
-        return "state too large"
-    with client_state_lock:
-        state = load_client_state()
-        exts = state["extensions"]
-        if ext_id not in exts and len(exts) >= MAX_EXTENSIONS:
-            log(f"client-state: refused extension {ext_id}: {MAX_EXTENSIONS} extensions already have snapshots in {CLIENT_STATE}")
-            return "too many extensions"
-        installs = exts.setdefault(ext_id, {"installs": {}})["installs"]
-        new = install_id not in installs
-        installs[install_id] = snap
-        for old_id in sorted(installs, key=lambda k: installs[k].get("ts", 0))[:-MAX_INSTALLS_PER_EXTENSION]:
-            del installs[old_id]  # only ever this extension's own older snapshots
-        os.makedirs(os.path.dirname(CLIENT_STATE), exist_ok=True)
-        tmp = CLIENT_STATE + ".tmp"
-        with open(tmp, "w", encoding="utf-8") as f:
-            json.dump(state, f, ensure_ascii=False, indent=1)
-        os.replace(tmp, CLIENT_STATE)
-    if new:
-        log(f"client-state: first snapshot from install {install_id} of extension {ext_id}")
-    return None
-
-
-MAX_RESTORE_CANDIDATES = 5
-
-
-def restore_candidates(not_install):
-    """Snapshots a new install may be offered: the latest one of each extension, newest first, excluding the asking
-    install itself. More than one is returned so that a newer snapshot written by some other extension cannot hide
-    the one the user is looking for; the popup lets the user step through them."""
-    with client_state_lock:
-        exts = load_client_state()["extensions"]
-    out = []
-    for ext, e in exts.items():
-        snaps = [(v.get("ts", 0), k, v) for k, v in ((e or {}).get("installs") or {}).items()
-                 if k != not_install and isinstance(v, dict)]
-        if snaps:
-            ts, key, snap = max(snaps, key=lambda x: x[0])
-            out.append((ts, {"from": key, "extension": ext, "settings": snap.get("settings"), "stats": snap.get("stats"),
-                             "saved_at": snap.get("saved_at")}))
-    out.sort(key=lambda x: -x[0])
-    return [c for _ts, c in out[:MAX_RESTORE_CANDIDATES]]
-
-
 def public_job(job):
     out = {"status": job["status"], "segments": job["segments"]}
     if job.get("cached"):
@@ -2280,17 +2196,6 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def extension_origin(self):
-        """Settings snapshots are for extensions only. Returns the extension ID from the chrome-extension:// Origin
-        (the browser sets it; another extension or a web page cannot forge it), or None after answering 403.
-        A local process can send any header, but it can also edit the snapshot file directly; that is outside what
-        this check is for."""
-        m = EXTENSION_ORIGIN_RE.match(self.headers.get("Origin") or "")
-        if m:
-            return m.group(1)
-        self.send_json(403, {"error": "extension only"})
-        return None
-
     def allowed_origin(self):
         """Only the extension (host_permissions, no CORS needed) or non-browser clients like curl.
         - Host must be localhost/127.0.0.1: defeats DNS rebinding (evil.example -> 127.0.0.1).
@@ -2314,17 +2219,6 @@ class Handler(BaseHTTPRequestHandler):
         if not self.allowed_origin():
             return
         u = urlparse(self.path)
-        if u.path == "/client-state":
-            if not self.extension_origin():
-                return
-            not_id = (parse_qs(u.query).get("not") or [""])[0]
-            if not INSTALL_ID_RE.match(not_id):
-                return self.send_json(400, {"error": "bad install id"})
-            cands = restore_candidates(not_id)
-            if cands:
-                log(f"client-state: install {not_id} was offered {len(cands)} snapshot(s) "
-                    f"(from extension(s) {', '.join(c['extension'] for c in cands)}); the user decides in the popup")
-            return self.send_json(200, {"candidates": cands})
         if u.path == "/feedback":
             fb = load_feedback()
             return self.send_json(200, {"count": len(fb), "recent": fb[-20:]})
@@ -2381,7 +2275,7 @@ class Handler(BaseHTTPRequestHandler):
         if not self.allowed_origin():
             return
         u = urlparse(self.path)
-        if u.path not in ("/analyze", "/feedback", "/event", "/client-state"):
+        if u.path not in ("/analyze", "/feedback", "/event"):
             return self.send_json(404, {"error": "not found"})
         try:
             n = int(self.headers.get("Content-Length") or 0)
@@ -2390,14 +2284,6 @@ class Handler(BaseHTTPRequestHandler):
             data = scrub(json.loads(self.rfile.read(n) or b"{}"))
         except (ValueError, TypeError):
             return self.send_json(400, {"error": "bad json"})
-        if u.path == "/client-state":
-            ext_id = self.extension_origin()
-            if not ext_id:
-                return
-            if not isinstance(data, dict):
-                return self.send_json(400, {"error": "bad json"})
-            err = save_client_snapshot(ext_id, str(data.get("installId") or ""), data.get("settings"), data.get("stats"))
-            return self.send_json(400 if err else 200, {"error": err} if err else {"ok": True})
         if u.path == "/event":
             if not isinstance(data, dict) or not VIDEO_ID_RE.match(str(data.get("videoId") or "")):
                 return self.send_json(400, {"error": "bad event"})

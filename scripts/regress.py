@@ -194,7 +194,6 @@ def main():
     stats.DB_PATH = os.path.join(tmp, "stats.db")
     server.RESULTS_MD = os.path.join(tmp, "results.md")
     server.FEEDBACK_JSONL = os.path.join(tmp, "feedback.jsonl")
-    server.CLIENT_STATE = os.path.join(tmp, "client-state.json")
     intel._embed_available = False  # no embedding calls during regression
     server.log = lambda *a: None  # quiet; set SR_REGRESS_VERBOSE=1 to see the pipeline log
     if os.environ.get("SR_REGRESS_VERBOSE") or os.environ.get("SS_REGRESS_VERBOSE"):
