@@ -15,7 +15,7 @@ automatic rows live in `server/cache/results.local.md` (gitignored: it records w
 | tdIUMkXxtHg | Howtown | en | asr | SKIP the Headspace read from its lead-in ("I've been moving between two different continents. So, it's a happy coincidence that...") | SKIP 7:27–8:37 (was 7:31) | | cached transcript still has pre-build-17 word times; "I'm like distracted by the news." stays |
 | 5ZqolNRkxvM | fern | en | asr | SKIP the Displate read from the segue question ("Do you actually know about today's sponsor already?") | SKIP 4:47–5:56 (was 4:49) | | refine's start kept over the word pass; the banter before it stays |
 | HauQtcj7UTM | fern | en | asr | SKIP the Brilliant read from "A much better deal..."; NOTHING cut before it | SKIP 9:40–10:32, start unchanged | ok | "By late 2023, BMW had dropped the idea..." is content |
-| it5G_rIan6g | Daniel Steiner | en | asr | SKIP the Ground News read from "This has gone back and forth in the courts..."; NOTHING cut before it | SKIP 8:01–9:29, start unchanged | | the sentence before is content (and longer than the 8 s cap) |
+| it5G_rIan6g | Daniel Steiner | en | asr | SKIP the Ground News read from "This has gone back and forth in the courts..."; NOTHING cut before it | SKIP 8:01–9:29, start unchanged | | the sentence before is content (and longer than the 6 s cap) |
 
 Rule-based categories currently expected by `testset.json` (label-only, guard against regressions):
 fern dU7gCt-7kKk outro 46:29–46:35 ("byebye"); Hindi vlog intro 0:00–0:15 (no speech); Sidemen outro + selfpromo above.

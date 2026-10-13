@@ -116,7 +116,7 @@ stateDiagram-v2
   labelOnly --> post
   post --> published
   post --> dropped: disclaimer, the video's subject, a sponsor label with no ad marker, or a label under 0.7
-  published --> published: lead-in check moves a skip's start up to 8 s earlier
+  published --> published: lead-in check moves a skip's start up to 6 s earlier
   published --> [*]
   dropped --> [*]
 ```
@@ -136,7 +136,7 @@ labeled. Post-filters can remove a label, never add a skip. One step moves a
 boundary outward on purpose: after a skip has been published, a small model
 call looks at the one to three sentences before it and, if they are a lead-in
 to the ad (a segue, a staged setup, a question about the sponsor), republishes
-the skip with an earlier start. It moves by whole sentences, by at most 8
+the skip with an earlier start. It moves by whole sentences, by at most 6
 seconds, never before the skip is already out, and any failure, timeout or
 unclear answer leaves the start where it was. The second rule is
 to fail safe on missing information. A sponsor read is called undisclosed only
@@ -243,7 +243,7 @@ transcripts and stored model outputs, with zero model calls, and checks
 expected segments within 1.5 s, that must-not-skip videos have no skip, and
 that forbidden ranges stay empty. It also runs 51 rule checks and the
 extension wiring test. All sixteen rows pass at versions detect 3, refine 3,
-post 6, lead-in 1. The expectations were written from the same videos the prompt and
+post 6, lead-in 2. The expectations were written from the same videos the prompt and
 thresholds were tuned on, so a pass says nothing has regressed and nothing
 about unseen videos.
 
@@ -450,7 +450,7 @@ refuse it until `.env` is updated and `install.sh` is run again.
 
 The lead-in check is a model judgement on a few sentences. It was shaped on
 ten sponsor reads and gets those right, which says little about the next
-hundred; when it is wrong in the costly direction it removes up to 8 seconds
+hundred; when it is wrong in the costly direction it removes up to 6 seconds
 of content before an ad.
 
 The pipeline has been tested by one person on a small set of channels. The

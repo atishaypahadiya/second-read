@@ -293,9 +293,9 @@ Every GET/POST for a video counts as a poll.
   line as the word pass's start or the line right before it (`prefer_start_anchor`; "Do you actually know about
   today's sponsor already?").
   (2) **Lead-in check** (`check_leadin`, one small model call per skip): the 1–3 whole sentences before the cut,
-  none starting more than 8 s back (`sentences_before`), are each labeled content or lead-in; the start moves back
+  none starting more than 6 s back (`sentences_before`), are each labeled content or lead-in; the start moves back
   to the first sentence of the unbroken lead-in run that ends at the cut. A candidate that lies in the lines the
-  refine pass had already given the promotion is marked as such in the prompt. Whole sentences only, ≤ 8 s, never
+  refine pass had already given the promotion is marked as such in the prompt. Whole sentences only, ≤ 6 s, never
   into a previous segment. A failed or timed-out call (60 s), an unusable answer or "all content" leaves the start
   alone. Not run on chapter skips or when the analysis track is a translation.
   (3) **It never delays a skip:** the check is queued as the job's next unit *after* the skip was published
