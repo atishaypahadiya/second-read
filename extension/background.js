@@ -4,7 +4,7 @@
 // send messages here and we relay them over fetch. host_permissions covers this.
 
 const SERVER = 'http://127.0.0.1:8765';
-const BUILD = 15; // keep equal to page.js, content.js and server.py CLIENT_BUILD
+const BUILD = 16; // keep equal to page.js, content.js and server.py CLIENT_BUILD
 
 async function call(path, init) {
   let res;
@@ -19,154 +19,10 @@ async function call(path, init) {
   return { ok: true, ...body };
 }
 
-// ---------------------------------------------------------------------------------------------------------
-// Settings backup. chrome.storage belongs to the extension ID, and an unpacked extension's ID is derived from
-// its folder path: renaming or moving the folder (or loading it on another profile) gives a new ID whose storage
-// is empty. So the local server keeps a snapshot of `settings` (categories, don't-skip list) and `stats` per
-// install. A new install finds the most recent snapshot of a previous one and OFFERS it: nothing is adopted until
-// the user presses Restore in the popup, where they see what it contains. The offer is validated first.
-// ---------------------------------------------------------------------------------------------------------
-const BACKUP_KEYS = ['settings', 'stats'];
-const DEFAULT_ACTION = (key) => (key === 'sponsor_read' ? 'skip' : 'label');
-
-function newInstallId() {
-  const a = new Uint8Array(8);
-  crypto.getRandomValues(a);
-  return Array.from(a, (b) => b.toString(16).padStart(2, '0')).join('');
-}
-
-// A snapshot comes back from the local server, which any local extension could have written to, so it is treated
-// as untrusted: only known fields with allowed values survive. Nothing in it can do more than what the popup
-// itself lets the user choose.
-const CATEGORY_KEYS = ['sponsor_read', 'affiliate', 'selfpromo', 'membership', 'crosspromo', 'charity', 'giveaway', 'interaction', 'intro', 'outro', 'recap'];
-const MAX_ALLOWLIST = 500;
-function sanitizeSnapshot(snap) {
-  const out = {};
-  const s = snap && snap.settings;
-  if (s && typeof s === 'object' && !Array.isArray(s)) {
-    const settings = {};
-    if (typeof s.enabled === 'boolean') settings.enabled = s.enabled;
-    if (typeof s.devMode === 'boolean') settings.devMode = s.devMode;
-    settings.actions = {};
-    if (s.actions && typeof s.actions === 'object') {
-      for (const k of CATEGORY_KEYS) {
-        const allowed = k === 'sponsor_read' ? ['skip', 'label'] : ['skip', 'label', 'off'];
-        if (allowed.includes(s.actions[k])) settings.actions[k] = s.actions[k];
-      }
-    }
-    settings.allowlist = {};
-    if (s.allowlist && typeof s.allowlist === 'object' && !Array.isArray(s.allowlist)) {
-      for (const [id, name] of Object.entries(s.allowlist).slice(0, MAX_ALLOWLIST)) {
-        if (/^[A-Za-z0-9_-]{10,40}$/.test(id) && typeof name === 'string') settings.allowlist[id] = name.slice(0, 100);
-      }
-    }
-    out.settings = settings;
-  }
-  const t = snap && snap.stats;
-  if (t && typeof t === 'object' && !Array.isArray(t)) {
-    const count = (x) => (Number.isFinite(x) && x >= 0 && x < 1e9 ? x : 0);
-    const stats = { all: { skips: Math.floor(count(t.all && t.all.skips)), saved: count(t.all && t.all.saved) } };
-    if (t.today && typeof t.today.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(t.today.date)) {
-      stats.today = { date: t.today.date, skips: Math.floor(count(t.today.skips)), saved: count(t.today.saved) };
-    }
-    out.stats = stats;
-  }
-  return out;
-}
-
-// What this install has (possibly nothing, possibly a few changes made before the server was reachable) combined
-// with the previous install's snapshot. Local, non-default choices win; lists are united; counters add up.
-function mergeState(local, prev) {
-  const out = {};
-  const ls = local.settings, ps = prev.settings;
-  if (ls || ps) {
-    const s = { ...(ps || {}), ...(ls || {}) };
-    s.actions = { ...((ps && ps.actions) || {}) };
-    for (const [k, v] of Object.entries((ls && ls.actions) || {})) {
-      if (!(k in s.actions) || v !== DEFAULT_ACTION(k)) s.actions[k] = v;
-    }
-    s.allowlist = { ...((ps && ps.allowlist) || {}), ...((ls && ls.allowlist) || {}) };
-    out.settings = s;
-  }
-  const lt = local.stats, pt = prev.stats;
-  if (lt || pt) {
-    const num = (x) => (Number.isFinite(x) ? x : 0);
-    const add = (a, b) => ({ skips: num(a && a.skips) + num(b && b.skips), saved: num(a && a.saved) + num(b && b.saved) });
-    const st = { all: add(lt && lt.all, pt && pt.all) };
-    const ld = lt && lt.today, pd = pt && pt.today;
-    if (ld && pd && ld.date === pd.date) st.today = { date: ld.date, ...add(ld, pd) };
-    else st.today = [ld, pd].filter(Boolean).sort((a, b) => String(b.date).localeCompare(String(a.date)))[0] || undefined;
-    if (!st.today) delete st.today;
-    out.stats = st;
-  }
-  return out;
-}
-
-function offerSummary(clean) {
-  const all = (clean.stats && clean.stats.all) || { skips: 0, saved: 0 };
-  const actions = (clean.settings && clean.settings.actions) || {};
-  return { channels: Object.keys((clean.settings && clean.settings.allowlist) || {}).length, skips: all.skips, saved: all.saved,
-           changed: Object.keys(actions).filter((k) => actions[k] !== DEFAULT_ACTION(k)).length };
-}
-// A snapshot with nothing in it is not worth offering (and must not hide one that has something).
-const isEmptySummary = (m) => !m.channels && !m.skips && !m.saved && !m.changed;
-
-async function syncBackup() {
-  const st = await chrome.storage.local.get([...BACKUP_KEYS, 'installId', 'restoreChecked']);
-  let { installId } = st;
-  if (!installId) { installId = newInstallId(); await chrome.storage.local.set({ installId }); }
-  if (!st.restoreChecked) {
-    const prev = await call(`/client-state?not=${installId}`);
-    if (!prev.ok) return; // server not reachable: look again next time
-    const update = { restoreChecked: true };
-    // One candidate per extension that has ever stored a snapshot here, newest first. Usually exactly one: this
-    // extension under its previous ID. Each is validated; empty ones are dropped; the user picks in the popup.
-    const offers = (Array.isArray(prev.candidates) ? prev.candidates : []).slice(0, 5).map((c) => {
-      const clean = sanitizeSnapshot(c);
-      return { from: String((c && c.extension) || '').slice(0, 40), saved_at: String((c && c.saved_at) || '').slice(0, 25),
-               summary: offerSummary(clean), snapshot: clean };
-    }).filter((o) => !isEmptySummary(o.summary));
-    if (offers.length) {
-      update.restoreOffer = { ...offers[0], index: 0, all: offers };
-      console.log('[SecondRead:bg] a previous install left settings and stats; open the popup to restore them');
-    }
-    await chrome.storage.local.set(update);
-    showOfferBadge(!!update.restoreOffer);
-  }
-  if (!st.settings && !st.stats) return;
-  await call('/client-state', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-                               body: JSON.stringify({ installId, settings: st.settings || null, stats: st.stats || null }) });
-}
-
-function showOfferBadge(on) {
-  try { if (chrome.action && chrome.action.setBadgeText) chrome.action.setBadgeText({ text: on ? '1' : '' }); } catch { /* cosmetic */ }
-}
-
-// The popup's answer to the offer. Restore merges it with whatever this install already has; either way it is gone.
-async function decideRestore(accept, index) {
-  const st = await chrome.storage.local.get([...BACKUP_KEYS, 'restoreOffer']);
-  const all = (st.restoreOffer && Array.isArray(st.restoreOffer.all)) ? st.restoreOffer.all : (st.restoreOffer ? [st.restoreOffer] : []);
-  const offer = all[Number.isInteger(index) && index >= 0 && index < all.length ? index : 0];
-  await chrome.storage.local.remove('restoreOffer');
-  showOfferBadge(false);
-  if (!accept || !offer || !offer.snapshot) return { ok: true, restored: false };
-  const merged = mergeState({ settings: st.settings, stats: st.stats }, sanitizeSnapshot(offer.snapshot));
-  const update = {};
-  if (merged.settings) update.settings = merged.settings;
-  if (merged.stats) update.stats = merged.stats;
-  await chrome.storage.local.set(update);
-  return { ok: true, restored: true };
-}
-
-let syncChain = Promise.resolve();
-let syncTimer = null;
-const queueSync = () => { syncChain = syncChain.then(syncBackup, syncBackup).catch(() => {}); return syncChain; };
-chrome.storage.onChanged.addListener((changes, area) => {
-  if (area !== 'local' || !BACKUP_KEYS.some((k) => changes[k])) return;
-  clearTimeout(syncTimer);
-  syncTimer = setTimeout(queueSync, 1500);
-});
-queueSync(); // every time the service worker starts
+// Leftovers of the settings backup that was tried and removed: its storage keys, and the toolbar badge it may
+// have left showing. Harmless to run every time the worker starts.
+chrome.storage.local.remove(['installId', 'restoreChecked', 'restoreOffer']);
+if (chrome.action && chrome.action.setBadgeText) chrome.action.setBadgeText({ text: '' });
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (!msg || typeof msg.type !== 'string') return false;
@@ -194,9 +50,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       break;
     case 'health':
       p = call('/health');
-      break;
-    case 'restore':
-      p = decideRestore(msg.accept === true, msg.index);
       break;
     case 'event':
       p = call('/event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(msg.payload || {}) });

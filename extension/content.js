@@ -6,7 +6,7 @@
 // (DESIGN.md); this file only builds the markup those classes expect.
 
 (() => {
-  const BUILD = 15; // keep equal to page.js, background.js and server.py CLIENT_BUILD
+  const BUILD = 16; // keep equal to page.js, background.js and server.py CLIENT_BUILD
   const TAG = '[SecondRead]';
   // Dev mode gates ordinary logs; errors always print.
   const log = (...args) => { if (settings.devMode) console.log(TAG, ...args); };

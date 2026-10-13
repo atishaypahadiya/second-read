@@ -117,20 +117,11 @@ second-read/                 (the folder may still be called sponsor-skipper on 
   lines, title, creator, channelId, kind, description, paidPromotion, heat, duration, position, analysisLines,
   analysisLang, client builds). background.js sends `msg.payload` as is and only stamps its own build. Never re-list
   fields in background.js: that is how `channelId` and `duration` were silently dropped.
-- **Settings survive a new extension ID.** `chrome.storage` belongs to the extension ID, and an unpacked
-  extension's ID is derived from its folder path, so renaming or moving the folder starts with empty storage. The
-  service worker keeps a snapshot of `settings` (categories, don't-skip list, dev mode) and `stats` on the local
-  server, one per install (`installId`). On its first contact with the server a new install fetches the restore
-  candidates and stores them as `restoreOffer`; **nothing is adopted until the user presses Restore in the popup**,
-  which shows what the snapshot contains (channels, time saved, categories changed). Restore merges: local
-  non-default choices win, lists are united, counters add up.
-  Trust model: any extension in the browser can reach the local server, so (1) the server partitions snapshots by
-  the writing extension's ID from the `Origin` header (max 3 installs each; an extension can only replace its own),
-  (2) candidates are the latest snapshot *per extension*, so a newer one from elsewhere cannot hide yours,
-  (3) every candidate is validated to known categories, allowed values, well-formed channel ids and non-negative
-  counters, and empty ones are dropped, (4) adoption needs the user. Not defended: a local process, which can forge
-  headers but can also edit `server/cache/client-state.local.json` directly.
-  Storage keys: `settings`, `stats`, `installId`, `restoreChecked`, `restoreOffer`; none carried the old product name.
+- **Settings do not survive a new extension ID.** `chrome.storage` belongs to the extension ID, and an unpacked
+  extension's ID is derived from its folder path, so renaming or moving the folder starts from defaults (settings,
+  don't-skip list, popup stats; the server's stats DB is unaffected). A server-side snapshot + restore was built and
+  removed again: a new install has no secret to prove it is the same extension, so any extension could read or
+  plant snapshots. Storage keys: `settings`, `stats`.
 - **Build stamps.** `BUILD` in page.js, content.js, background.js and `CLIENT_BUILD` in server.py are the same number;
   bump all four together when the extension↔server contract changes. The server logs the three it received and warns
   when they differ (a half-reloaded extension).
@@ -151,8 +142,6 @@ API:
 | GET | `/health` | — | `{ok, model, ollama, loaded}` |
 | POST | `/feedback` | `{videoId, kind: false_skip\|missed_ad, playhead, segment?, channelId, channelName, title}` | `{ok}`; appended to `server/cache/feedback.local.jsonl` with the cached segment's evidence/reason and pipeline versions |
 | GET | `/feedback` | — | `{count, recent}` |
-| POST | `/client-state` | `{installId, settings, stats}` | `{ok}`; stored under the calling extension's ID in `server/cache/client-state.local.json` (extension Origin required) |
-| GET | `/client-state?not=<installId>` | — | `{candidates}`: the latest snapshot per extension, newest first (extension Origin required) |
 
 `python3 server/server.py --feedback-report` prints a summary table of the feedback file for tuning sessions.
 A `false_skip` without a valid segment, or any report without a playhead, is rejected with 400; the client sends
