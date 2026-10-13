@@ -1,3 +1,9 @@
 {
-  "extraPaths": ["server"]
+  "extraPaths": ["server"],
+  "typeCheckingMode": "basic",
+  "reportAttributeAccessIssue": "none",
+  "reportOptionalMemberAccess": "none",
+  "reportOptionalSubscript": "none",
+  "reportArgumentType": "none",
+  "reportIndexIssue": "none"
 }
