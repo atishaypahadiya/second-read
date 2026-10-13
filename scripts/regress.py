@@ -239,6 +239,15 @@ def unit_checks():
     eq("aliases: an established brand name is never redirected by one video's description",
        (canon("Thricebrand", {"brands": ["Thricebrant"]}), alias("thricebrand")), ("Thricebrant", None))
     stats.set_logger(server.log)
+    # brands: a sponsor link corrects a misheard name only when the two are close (by letters or by sound)
+    odoo = {"brands": [], "domains": ["www.odoo.com/r"]}
+    eq("brands: close to the sponsor link -> the link's spelling",
+       [canon("Udo", odoo), canon("Udu", odoo), canon("Udu", {"brands": [], "domains": ["fern.deals/odoo"]}),
+        canon("headsp space", link_only), canon("Nord VPM", {"brands": [], "domains": ["go.nordvpn.net/x"]})],
+       ["Odoo", "Odoo", "Odoo", "Headspace", "NordVPN"])
+    eq("brands: not close to the sponsor link -> the spoken name stays (and nothing is learned)",
+       [canon("Squarespace", odoo), canon("Audible", odoo), canon("Nord", link_only), canon("Udo", odoo, category="selfpromo"), alias("udu")],
+       ["Squarespace", "Audible", "NordVPN", "Udo", None])
     # existing rows written under the old rules are re-derived once (and the alias that came from a domain label goes)
     with stats.connect() as c:
         c.execute("INSERT INTO videos(video_id, hints) VALUES ('renormvideo', ?)", (json.dumps(link_only),))
