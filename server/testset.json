@@ -43,7 +43,7 @@
     {
       "video": "SOQynHuWPeI",
       "creator": "fern",
-      "note": "Coddy read (code FERN20); VPN disclaimer 1:11-1:27 and Onavo 11:57-12:14 must not be marked",
+      "note": "Coddy read (code FERN20); VPN disclaimer 1:11-1:27 and Onavo 11:57-12:14 must not be marked Sent WITHOUT metadata: disclosure must read 'unknown', never 'undisclosed'.",
       "expect": [
         {
           "action": "skip",
@@ -60,7 +60,11 @@
           "start": 717,
           "end": 734
         }
-      ]
+      ],
+      "expect_meta": {
+        "hints": false,
+        "disclosure": "unknown"
+      }
     },
     {
       "video": "vGoRpjE-svI",
@@ -134,7 +138,56 @@
         "hints": true,
         "brand": "Coddy",
         "creator": "fern",
-        "duration": true
+        "duration": true,
+        "disclosure": "disclosed"
+      }
+    },
+    {
+      "id": "SOQynHuWPeI+nodisc",
+      "video": "SOQynHuWPeI",
+      "creator": "fern",
+      "note": "Description received but without any (ad)/sponsor line, and the paid-promotion flag reported false: the only combination that may say 'undisclosed'.",
+      "meta": {
+        "title": "Facebook’s Most Dangerous App",
+        "creator": "fern",
+        "channelId": "UCODHrzPMGbNv67e84WDZhQQ",
+        "kind": "asr",
+        "duration": 1012.0,
+        "paidPromotion": false,
+        "description": "In 2013 Facebook bought a small Israeli startup called Onavo."
+      },
+      "expect": [
+        {
+          "action": "skip",
+          "start": 287.4,
+          "end": 339.5
+        }
+      ],
+      "expect_meta": {
+        "hints": false,
+        "disclosure": "undisclosed"
+      }
+    },
+    {
+      "id": "SOQynHuWPeI+flagonly",
+      "video": "SOQynHuWPeI",
+      "creator": "fern",
+      "note": "Paid-promotion flag false but NO description received: still 'unknown'.",
+      "meta": {
+        "title": "Facebook’s Most Dangerous App",
+        "creator": "fern",
+        "paidPromotion": false,
+        "description": ""
+      },
+      "expect": [
+        {
+          "action": "skip",
+          "start": 287.4,
+          "end": 339.5
+        }
+      ],
+      "expect_meta": {
+        "disclosure": "unknown"
       }
     }
   ]
