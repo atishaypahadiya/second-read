@@ -228,6 +228,35 @@ function loadCodes(q) {
   });
 }
 
+// ---------------------------------------------------------------- restore offer (a previous install's settings)
+// Nothing is adopted until Restore is pressed. If more than one extension has left a snapshot on the server, the
+// user can step through them and pick the one they recognise.
+let offers = [], offerIndex = 0;
+async function renderOffer() {
+  const { restoreOffer } = await chrome.storage.local.get('restoreOffer');
+  offers = restoreOffer ? (Array.isArray(restoreOffer.all) && restoreOffer.all.length ? restoreOffer.all : [restoreOffer]) : [];
+  offerIndex = Math.min(offerIndex, Math.max(0, offers.length - 1));
+  $('restoreOffer').hidden = !offers.length;
+  if (!offers.length) return;
+  const o = offers[offerIndex], m = o.summary || {};
+  const parts = [`${m.channels || 0} channel${m.channels === 1 ? '' : 's'} you don’t skip`,
+                 `${fmtDur(m.saved || 0)} saved over ${m.skips || 0} skip${m.skips === 1 ? '' : 's'}`];
+  if (m.changed) parts.push(`${m.changed} categor${m.changed === 1 ? 'y' : 'ies'} changed`);
+  $('restoreText').textContent = `Settings from a previous install were found: ${parts.join(', ')}; saved ${String(o.saved_at || '').slice(0, 10)}. Restore them here?`;
+  $('restoreText').title = o.from ? `Written by extension ${o.from}` : '';
+  $('restoreNext').hidden = offers.length < 2;
+  $('restoreNext').textContent = `Other (${offerIndex + 1} of ${offers.length})`;
+}
+function answerOffer(accept) {
+  chrome.runtime.sendMessage({ type: 'restore', accept, index: offerIndex }, async () => {
+    const stored = await chrome.storage.local.get('settings');
+    settings = { ...DEFAULT_SETTINGS, ...(stored.settings || {}) };
+    settings.actions = { ...DEFAULT_SETTINGS.actions, ...(settings.actions || {}) };
+    settings.allowlist = settings.allowlist || {};
+    render(); loadStats(); renderOffer();
+  });
+}
+
 function showPane(name) {
   $('pane-main').hidden = name !== 'main';
   $('pane-more').hidden = name !== 'more';
@@ -246,6 +275,10 @@ async function init() {
   for (const k of Object.keys(settings.actions)) if (settings.actions[k] === 'show') settings.actions[k] = 'label';
   buildCategoryRows();
   render();
+  renderOffer();
+  $('restoreYes').addEventListener('click', () => answerOffer(true));
+  $('restoreNo').addEventListener('click', () => answerOffer(false));
+  $('restoreNext').addEventListener('click', () => { offerIndex = (offerIndex + 1) % Math.max(1, offers.length); renderOffer(); });
   loadStats();
   checkServer();
   askCurrentTab();

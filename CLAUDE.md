@@ -119,15 +119,18 @@ second-read/                 (the folder may still be called sponsor-skipper on 
   fields in background.js: that is how `channelId` and `duration` were silently dropped.
 - **Settings survive a new extension ID.** `chrome.storage` belongs to the extension ID, and an unpacked
   extension's ID is derived from its folder path, so renaming or moving the folder starts with empty storage. The
-  service worker therefore keeps a snapshot of `settings` (categories, don't-skip list, dev mode) and `stats` on the
-  local server, one per install (`installId` in storage). On its first contact with the server a new install asks for
-  the latest snapshot of another install and merges it once (`restoreChecked`): local non-default choices win, lists
-  are united, counters add up. It never uploads before having looked, and never overwrites another install's snapshot.
-  A snapshot is untrusted input (any local extension can reach the server): the worker keeps only known categories
-  with values the popup can produce, well-formed channel ids with string names, and non-negative counters. The
-  server accepts these requests only with a `chrome-extension://` Origin and refuses a new install once 50 snapshots
-  exist rather than evicting one.
-  Storage keys are `settings`, `stats`, `installId`, `restoreChecked`; none carried the old product name.
+  service worker keeps a snapshot of `settings` (categories, don't-skip list, dev mode) and `stats` on the local
+  server, one per install (`installId`). On its first contact with the server a new install fetches the restore
+  candidates and stores them as `restoreOffer`; **nothing is adopted until the user presses Restore in the popup**,
+  which shows what the snapshot contains (channels, time saved, categories changed). Restore merges: local
+  non-default choices win, lists are united, counters add up.
+  Trust model: any extension in the browser can reach the local server, so (1) the server partitions snapshots by
+  the writing extension's ID from the `Origin` header (max 3 installs each; an extension can only replace its own),
+  (2) candidates are the latest snapshot *per extension*, so a newer one from elsewhere cannot hide yours,
+  (3) every candidate is validated to known categories, allowed values, well-formed channel ids and non-negative
+  counters, and empty ones are dropped, (4) adoption needs the user. Not defended: a local process, which can forge
+  headers but can also edit `server/cache/client-state.local.json` directly.
+  Storage keys: `settings`, `stats`, `installId`, `restoreChecked`, `restoreOffer`; none carried the old product name.
 - **Build stamps.** `BUILD` in page.js, content.js, background.js and `CLIENT_BUILD` in server.py are the same number;
   bump all four together when the extension↔server contract changes. The server logs the three it received and warns
   when they differ (a half-reloaded extension).
@@ -148,8 +151,8 @@ API:
 | GET | `/health` | — | `{ok, model, ollama, loaded}` |
 | POST | `/feedback` | `{videoId, kind: false_skip\|missed_ad, playhead, segment?, channelId, channelName, title}` | `{ok}`; appended to `server/cache/feedback.local.jsonl` with the cached segment's evidence/reason and pipeline versions |
 | GET | `/feedback` | — | `{count, recent}` |
-| POST | `/client-state` | `{installId, settings, stats}` | `{ok}`; one snapshot per extension install in `server/cache/client-state.local.json` |
-| GET | `/client-state?not=<installId>` | — | the latest snapshot of a *different* install, or `{none: true}` |
+| POST | `/client-state` | `{installId, settings, stats}` | `{ok}`; stored under the calling extension's ID in `server/cache/client-state.local.json` (extension Origin required) |
+| GET | `/client-state?not=<installId>` | — | `{candidates}`: the latest snapshot per extension, newest first (extension Origin required) |
 
 `python3 server/server.py --feedback-report` prints a summary table of the feedback file for tuning sessions.
 A `false_skip` without a valid segment, or any report without a playhead, is rejected with 400; the client sends
