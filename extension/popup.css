@@ -45,3 +45,13 @@ footer { padding-top: 4px; font-size: 12px; }
 .switch input:checked + .slider { background: var(--green); }
 .switch input:checked + .slider::before { transform: translateX(16px); }
 body.disabled .card, body.disabled .status, body.disabled .video { opacity: .45; }
+
+.btn { all: unset; cursor: pointer; padding: 4px 9px; border-radius: 6px; font-size: 12px; background: var(--seg); color: var(--fg); white-space: nowrap; }
+.btn:hover { filter: brightness(.95); }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.danger { color: var(--accent); }
+.list { list-style: none; margin: 4px 0 0; padding: 0; }
+.list li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 3px 0; font-size: 12px; }
+.list li span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.list .remove { all: unset; cursor: pointer; color: var(--muted); font-size: 12px; padding: 0 4px; }
+.list .remove:hover { color: var(--accent); }
