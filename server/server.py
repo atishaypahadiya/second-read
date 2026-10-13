@@ -11,7 +11,10 @@ temperature 0), in two passes:
 API
   POST /analyze        {videoId, lang, lines:[{start,end,text}]}  -> job {status, segments}
   GET  /analyze?v=ID                                              -> job or 404 {"error":"unknown"}
-  GET  /health                                                    -> {ok, model}
+  GET  /health                                                    -> {ok, model, ollama, loaded}
+  POST /feedback       {videoId, kind: false_skip|missed_ad, playhead, segment?} -> {ok}
+  GET  /feedback                                                  -> {count, recent}
+  python3 server/server.py --feedback-report                      prints a summary for tuning sessions
 
 Status: queued -> classifying -> done | error  (+ paused:true while the video isn't being polled)
 """
@@ -82,6 +85,7 @@ MAX_HINT_LINES = 8          # a hint term matching more lines than this is too c
 MAX_HINT_REGION_S = 240.0   # a hint region longer than this is split (keeps refine windows inside the context)
 CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cache")
 RESULTS_MD = os.path.join(CACHE_DIR, "results.local.md")  # gitignored: it records which videos were watched
+FEEDBACK_JSONL = os.path.join(CACHE_DIR, "feedback.local.jsonl")  # gitignored: wrong-skip / missed-ad reports
 VIDEO_ID_RE = re.compile(r"^[A-Za-z0-9_-]{11}$")
 
 jobs = {}                 # videoId -> job dict
@@ -1154,6 +1158,106 @@ def append_result(job, segments, job_time, calls, ttfs):
         log(f"results.md append failed: {e}")
 
 
+# ---------------------------------------------------------------------------
+# Feedback (wrong skip / missed ad), appended to a gitignored jsonl with the pipeline context
+# ---------------------------------------------------------------------------
+FEEDBACK_KINDS = ("false_skip", "missed_ad")
+
+
+def segment_context(video_id, seg):
+    """Evidence/reason for the reported segment from the cached result (matched by time overlap)."""
+    cached = load_cache(video_id)
+    if not cached or not seg:
+        return {}
+    for s in cached.get("segments", []):
+        if s["start"] <= seg.get("end", 0) and seg.get("start", 0) <= s["end"]:
+            return {k: s.get(k) for k in ("evidence", "reason", "line_start", "line_end", "source")}
+    return {}
+
+
+def record_feedback(data):
+    kind = str(data.get("kind") or "")
+    if kind not in FEEDBACK_KINDS:
+        return None, "bad kind"
+    vid = str(data.get("videoId") or "")
+    if not VIDEO_ID_RE.match(vid):
+        return None, "bad video id"
+    seg = data.get("segment") if isinstance(data.get("segment"), dict) else None
+    if seg:
+        try:
+            seg = {"start": float(seg.get("start")), "end": float(seg.get("end")),
+                   "category": str(seg.get("category") or "")[:20], "style": str(seg.get("style") or "")[:20],
+                   "brand": str(seg.get("brand") or "")[:80], "action": str(seg.get("action") or "")[:10],
+                   "confidence": float(seg.get("confidence") or 0)}
+        except (TypeError, ValueError):
+            seg = None
+    try:
+        playhead = round(float(data.get("playhead") or 0), 2)
+    except (TypeError, ValueError):
+        playhead = 0.0
+    entry = {
+        "ts": time.strftime("%Y-%m-%dT%H:%M:%S"), "kind": kind, "videoId": vid,
+        "channelId": str(data.get("channelId") or "")[:40], "channelName": str(data.get("channelName") or "")[:100],
+        "title": str(data.get("title") or "")[:200], "playhead": playhead, "segment": seg,
+        "context": segment_context(vid, seg), "versions": versions(), "model": MODEL,
+    }
+    os.makedirs(CACHE_DIR, exist_ok=True)
+    with open(FEEDBACK_JSONL, "a", encoding="utf-8") as f:
+        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    where = f"{fmt_time(seg['start'])}-{fmt_time(seg['end'])} {seg['brand']!r}" if seg else f"at {fmt_time(playhead)}"
+    log(f"[{vid}] FEEDBACK {kind}: {where}")
+    return entry, None
+
+
+def load_feedback():
+    out = []
+    try:
+        with open(FEEDBACK_JSONL, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    try:
+                        out.append(json.loads(line))
+                    except ValueError:
+                        pass
+    except OSError:
+        pass
+    return out
+
+
+def feedback_report():
+    """Summary table for tuning sessions."""
+    fb = load_feedback()
+    if not fb:
+        print(f"no feedback yet ({FEEDBACK_JSONL})")
+        return
+    by_kind = {}
+    for e in fb:
+        by_kind[e["kind"]] = by_kind.get(e["kind"], 0) + 1
+    print(f"{len(fb)} report(s): " + ", ".join(f"{k}={v}" for k, v in sorted(by_kind.items())))
+    print()
+    print(f"{'when':16} {'kind':10} {'video':11} {'where':13} {'brand':14} {'conf':5} {'src':6} {'ver':7} evidence / reason")
+    print("-" * 120)
+    for e in fb:
+        seg, ctx = e.get("segment") or {}, e.get("context") or {}
+        where = f"{fmt_time(seg['start'])}-{fmt_time(seg['end'])}" if seg else f"@{fmt_time(e.get('playhead', 0))}"
+        ver = "/".join(str(e.get("versions", {}).get(k, "?")) for k in ("detect", "refine", "post"))
+        text = (ctx.get("evidence") or "")[:50] + (" | " + (ctx.get("reason") or "")[:60] if ctx.get("reason") else "")
+        print(f"{e['ts'][:16]:16} {e['kind']:10} {e['videoId']:11} {where:13} {(seg.get('brand') or '')[:14]:14} "
+              f"{(('%.2f' % seg['confidence']) if seg else ''):5} {(ctx.get('source') or '')[:6]:6} {ver:7} {text}")
+    print()
+    videos = {}
+    for e in fb:
+        videos.setdefault(e["videoId"], []).append(e["kind"])
+    print("per video: " + ", ".join(f"{v} ({', '.join(sorted(set(k)))})" for v, k in videos.items()))
+    brands = {}
+    for e in fb:
+        if e.get("segment") and e["segment"].get("brand"):
+            brands[e["segment"]["brand"]] = brands.get(e["segment"]["brand"], 0) + 1
+    if brands:
+        print("wrong skips by brand: " + ", ".join(f"{b}={n}" for b, n in sorted(brands.items(), key=lambda x: -x[1])))
+
+
 def public_job(job):
     out = {"status": job["status"], "segments": job["segments"]}
     if job.get("cached"):
@@ -1577,6 +1681,9 @@ class Handler(BaseHTTPRequestHandler):
         if not self.allowed_origin():
             return
         u = urlparse(self.path)
+        if u.path == "/feedback":
+            fb = load_feedback()
+            return self.send_json(200, {"count": len(fb), "recent": fb[-20:]})
         if u.path == "/health":
             ok = ollama_available()
             return self.send_json(200, {"ok": True, "model": MODEL, "ollama": ok, "loaded": ok and model_loaded(MODEL)})
@@ -1600,7 +1707,7 @@ class Handler(BaseHTTPRequestHandler):
         if not self.allowed_origin():
             return
         u = urlparse(self.path)
-        if u.path != "/analyze":
+        if u.path not in ("/analyze", "/feedback"):
             return self.send_json(404, {"error": "not found"})
         try:
             n = int(self.headers.get("Content-Length") or 0)
@@ -1609,6 +1716,13 @@ class Handler(BaseHTTPRequestHandler):
             data = json.loads(self.rfile.read(n) or b"{}")
         except (ValueError, TypeError):
             return self.send_json(400, {"error": "bad json"})
+        if u.path == "/feedback":
+            if not isinstance(data, dict):
+                return self.send_json(400, {"error": "bad json"})
+            entry, err = record_feedback(data)
+            if err:
+                return self.send_json(400, {"error": err})
+            return self.send_json(200, {"ok": True})
         vid = str(data.get("videoId", ""))
         if not VIDEO_ID_RE.match(vid):
             return self.send_json(400, {"error": "bad video id"})
@@ -1668,4 +1782,7 @@ def main():
 
 
 if __name__ == "__main__":
+    if "--feedback-report" in sys.argv[1:]:
+        feedback_report()
+        sys.exit(0)
     sys.exit(main())

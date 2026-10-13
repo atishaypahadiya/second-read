@@ -43,6 +43,8 @@
   border-radius: 4px;
 }
 .ss-toast button:hover { background: rgba(62, 166, 255, 0.15); }
+.ss-toast button.ss-wrong { color: #ff8a80; }
+.ss-toast button.ss-wrong:hover { background: rgba(255, 138, 128, 0.15); }
 @keyframes ss-fade-in { from { opacity: 0; transform: translate(-50%, 6px); } to { opacity: 1; transform: translate(-50%, 0); } }
 
 .ss-badge {

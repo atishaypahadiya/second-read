@@ -250,6 +250,22 @@
     state.markers = box;
   }
 
+  // --- feedback: wrong skip (toast) and missed ad (popup) -> background -> POST /feedback
+  function sendFeedback(fb) {
+    const state = current;
+    if (!state) return;
+    const payload = {
+      videoId: state.videoId, channelId: state.channelId || '', channelName: state.creator || '',
+      title: state.title || '', kind: fb.kind, playhead: Math.round((fb.playhead || 0) * 100) / 100,
+      segment: fb.segment ? { start: fb.segment.start, end: fb.segment.end, category: fb.segment.category,
+                              style: fb.segment.style, brand: fb.segment.brand, action: fb.segment.action,
+                              confidence: fb.segment.confidence } : null,
+    };
+    send({ type: 'feedback', payload }).then((r) => {
+      if (r && r.ok) log(`feedback sent: ${fb.kind}`); else logErr('feedback failed:', r && r.error);
+    });
+  }
+
   // --- stats (today + all-time), read by the popup
   function recordSkip(savedSeconds) {
     chrome.storage.local.get('stats', (res) => {
@@ -265,7 +281,7 @@
   }
 
   // --- toast
-  function showToast(text, onUndo) {
+  function showToast(text, onUndo, onWrong) {
     const state = current;
     const p = playerEl();
     if (!state || !p) return;
@@ -278,6 +294,14 @@
     btn.textContent = 'Undo';
     btn.addEventListener('click', (ev) => { ev.stopPropagation(); onUndo(); hideToast(); });
     el.append(span, btn);
+    if (onWrong) {
+      const wrong = document.createElement('button');
+      wrong.textContent = 'Wrong skip';
+      wrong.className = 'ss-wrong';
+      wrong.title = 'Undo and report this as a wrong skip';
+      wrong.addEventListener('click', (ev) => { ev.stopPropagation(); onUndo(); onWrong(); hideToast(); });
+      el.appendChild(wrong);
+    }
     p.appendChild(el);
     state.toast = el;
     state.toastTimer = setTimeout(hideToast, TOAST_MS);
@@ -311,13 +335,16 @@
           log(`skipped ${s.brand || 'sponsor'} ${s.category === 'sponsor' ? 'read' : s.category} ${fmtTime(s.start)}-${fmtTime(s.end)} (from ${fmtTime(from)})`);
           recordSkip(saved);
           const what = s.category === 'sponsor' ? `${s.brand ? `${s.brand} ` : ''}read` : (s.category === 'selfpromo' ? 'self-promo' : 'like & subscribe');
-          showToast(`Skipped ${what} (${fmtTime(saved)})`, () => {
+          const undo = () => {
             const v = videoEl();
             if (!v) return;
             ourSeek = true;
             v.currentTime = from;
             recordSkip(-saved);
             log(`undo: back to ${fmtTime(from)}; segment stays handled`);
+          };
+          showToast(`Skipped ${what} (${fmtTime(saved)})`, undo, () => {
+            sendFeedback({ kind: 'false_skip', segment: s, playhead: from });
           });
           return;
         }
@@ -425,6 +452,12 @@
 
   // Popup asks what is going on in this tab.
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    if (msg && msg.type === 'missedAd') {
+      const v = videoEl();
+      sendFeedback({ kind: 'missed_ad', playhead: v ? v.currentTime : 0 });
+      sendResponse({ ok: true, playhead: v ? v.currentTime : 0 });
+      return false;
+    }
     if (!msg || msg.type !== 'getState') return false;
     const v = videoEl();
     sendResponse(current ? {
