@@ -142,7 +142,9 @@ def log(*args):
 # ---------------------------------------------------------------------------
 # ">>" speaker markers and [Music]/[Applause]/(laughs)-style tags carry no meaning for the model.
 NOISE_TAG_RE = re.compile(r"\[[^\]]{1,40}\]|\((?:music|applause|laugh\w*|cheer\w*|inaudible|crosstalk)[^)]*\)", re.I)
-SPEAKER_RE = re.compile(r"(^|\s)>>+\s*")
+# Lookbehind instead of consuming the leading whitespace: with "(^|\s)>>+\s*" the first of two consecutive markers
+# (">> >> So it needed") ate the space the second one needed, and one ">>" survived into the model input.
+SPEAKER_RE = re.compile(r"(?:^|(?<=\s))>{2,}\s*")
 
 
 def strip_noise(text):
