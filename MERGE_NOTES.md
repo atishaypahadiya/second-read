@@ -1,5 +1,10 @@
 # Merge notes — applying the design system
 
+> **Status: applied on main.** Sections 1–5 are done for the badge, marker lane, tooltip, toast, popup and
+> dashboard; the ad panel (section 3, last row) is not built. Where the real surfaces differ from these notes
+> (font files, tooltip parent, popup height and panes, which stats the hero shows) is listed in DESIGN.md under
+> "Applied on main".
+
 Branch `design-system` adds only new files: `DESIGN.md`, `extension/ui/tokens.css`,
 `extension/ui/components.css`, `extension/ui/fonts/*` (Geist 400/500, Geist Mono 300/400,
 `OFL-Geist.txt`), `design/gallery.html`, `design/reference/*` (the approved mockup and board crops),

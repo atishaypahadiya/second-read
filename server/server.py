@@ -16,6 +16,7 @@ API
   GET  /feedback                                                  -> {count, recent}
   POST /event          {videoId, kind: skip|undo|seek_into|allowlisted, segment, playhead, saved} -> {ok}
   GET  /stats.json, GET /dashboard                                local stats (server/stats.py)
+  GET  /ui/tokens.css | components.css | fonts.css | fonts/*.woff2  the design system, for the dashboard
   GET  /ads.json                                                  ad intelligence per segment + insights (server/intel.py)
   GET  /codes.json?q=                                             promo code / link / offer vault
   python3 server/server.py --feedback-report                      prints a summary for tuning sessions
@@ -102,6 +103,8 @@ CACHE_DIR = os.environ.get("SS_DATA_DIR") or os.path.join(os.path.dirname(os.pat
 RESULTS_MD = os.path.join(CACHE_DIR, "results.local.md")  # gitignored: it records which videos were watched
 FEEDBACK_JSONL = os.path.join(CACHE_DIR, "feedback.local.jsonl")  # gitignored: wrong-skip / missed-ad reports
 VIDEO_ID_RE = re.compile(r"^[A-Za-z0-9_-]{11}$")
+UI_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "extension", "ui")
+UI_FILE_RE = re.compile(r"^(?:tokens\.css|components\.css|fonts\.css|fonts/[A-Za-z0-9-]+\.woff2)$")
 
 jobs = {}                 # videoId -> job dict
 jobs_lock = threading.Lock()
@@ -2170,6 +2173,24 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def send_ui(self, name):
+        """The design system's stylesheets and fonts for the dashboard, straight from extension/ui/ (the same
+        files the popup and the player use). Only the names matched here are served."""
+        if not UI_FILE_RE.match(name):
+            return self.send_json(404, {"error": "not found"})
+        path = os.path.join(UI_DIR, *name.split("/"))
+        try:
+            with open(path, "rb") as f:
+                body = f.read()
+        except OSError:
+            return self.send_json(404, {"error": "not found"})
+        self.send_response(200)
+        self.send_header("Content-Type", "font/woff2" if name.endswith(".woff2") else "text/css; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-cache")
+        self.end_headers()
+        self.wfile.write(body)
+
     def allowed_origin(self):
         """Only the extension (host_permissions, no CORS needed) or non-browser clients like curl.
         - Host must be localhost/127.0.0.1: defeats DNS rebinding (evil.example -> 127.0.0.1).
@@ -2214,12 +2235,15 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as e:  # noqa: BLE001
                 log(f"stats: compute failed: {e!r}")
                 return self.send_json(500, {"error": "stats error"})
+        if u.path.startswith("/ui/"):
+            return self.send_ui(u.path[4:])
         if u.path in ("/dashboard", "/dashboard/"):
             body = stats.DASHBOARD_HTML.encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Content-Length", str(len(body)))
-            self.send_header("Content-Security-Policy", "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'")
+            self.send_header("Content-Security-Policy", "default-src 'none'; script-src 'unsafe-inline'; "
+                             "style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self'")
             self.end_headers()
             self.wfile.write(body)
             return
