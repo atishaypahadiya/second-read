@@ -418,7 +418,8 @@
   // counts as a skip), and integrations that were left to play
   function updateStats(change) {
     chrome.storage.local.get('stats', (res) => {
-      const today = new Date().toISOString().slice(0, 10);
+      const now = new Date();   // the local day, like the server's "today" (toISOString would be the UTC day)
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
       const st = res.stats || {};
       const t = st.today && st.today.date === today ? st.today : { date: today, skips: 0, saved: 0 };
       const a = st.all || { skips: 0, saved: 0 };

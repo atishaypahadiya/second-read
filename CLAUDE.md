@@ -146,7 +146,7 @@ API:
 | --- | --- | --- | --- |
 | POST | `/analyze` | `{videoId, lang, title, creator, kind, description, position, lines, analysisLines?, analysisLang?}` | job; starts/resumes it if new |
 | GET | `/analyze?v=ID` | — | job `{status, segments, paused?, progress?, cached?}` or 404 `unknown` |
-| GET | `/health` | — | `{ok, model, ollama, loaded}` |
+| GET | `/health` | — | `{ok, model, ollama, loaded, build}`; the popup shows *restart server* when `build` is not the extension's |
 | POST | `/feedback` | `{videoId, kind: false_skip\|missed_ad, playhead, segment?, channelId, channelName, title}` | `{ok}`; appended to `server/cache/feedback.local.jsonl` with the cached segment's evidence/reason and pipeline versions |
 | GET | `/feedback` | — | `{count, recent}` |
 
@@ -410,7 +410,8 @@ Every GET/POST for a video counts as a poll.
   ran through to the end of without the viewer seeking out, once per page view; each is also sent as an
   `integration_played` event). **The server's totals are the truth** (`/stats.json` `overall`, incl. `today` and
   `integrations_played`): the popup asks for them on open (`stats` message) and overwrites the local copy, so
-  popup and dashboard always agree and a storage reset (new extension ID) loses nothing. The popup
+  popup and dashboard always agree and a storage reset (new extension ID) loses nothing. "Today" is the local day
+  on both sides (the extension used the UTC day, which turns over mid-afternoon in US time zones). The popup
   leads with the all-time time saved; `getState` gives it the video's duration and each segment's outcome (`done`).
 
 ## Build stages
