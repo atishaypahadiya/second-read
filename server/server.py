@@ -69,6 +69,7 @@ SNAP_FORWARD_MAX_S = 5.0    # never move a start later than this to find a clean
 SNAP_END_WINDOW_S = 1.0     # look this far after the last ad word for a pause to end on
 TOPIC_MENTIONS = 3          # brand mentioned in this many lines outside the segment -> it's the subject
 CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cache")
+RESULTS_MD = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "results.md")
 VIDEO_ID_RE = re.compile(r"^[A-Za-z0-9_-]{11}$")
 
 jobs = {}                 # videoId -> job dict
@@ -877,6 +878,26 @@ def save_cache(video_id, data):
     os.replace(tmp, cache_path(video_id))
 
 
+def md_cell(text):
+    return str(text).replace("|", "\\|").replace("\n", " ").strip()
+
+
+def append_result(job, segments, job_time, calls, ttfs):
+    """One row per finished job in results.md (verdict left blank for a human)."""
+    segs = "; ".join(f"{s['action'].upper()} {fmt_time(s['start'])}-{fmt_time(s['end'])} {s['brand'] or '?'} ({s['confidence']:.2f})"
+                     for s in segments) or "none"
+    notes = f"v{DETECT_VERSION}/{REFINE_VERSION}/{POST_VERSION} {MODEL}; {calls.reused} reused"
+    row = "| " + " | ".join(md_cell(x) for x in [
+        job["video_id"], job.get("creator", ""), job["lang"], job.get("kind", ""), "", segs, "", notes,
+        f"{job_time:.0f}s", calls.computed, f"{ttfs:.0f}s" if ttfs is not None else "-",
+        time.strftime("%Y-%m-%d %H:%M")]) + " |\n"
+    try:
+        with open(RESULTS_MD, "a", encoding="utf-8") as f:
+            f.write(row)
+    except OSError as e:
+        log(f"results.md append failed: {e}")
+
+
 def public_job(job):
     out = {"status": job["status"], "segments": job["segments"]}
     if job.get("cached"):
@@ -931,10 +952,15 @@ def run_job(video_id):
         def finalize(verbose):
             return [public_segment(x) for x in post_filter(merge_segments(final), title, lines, verbose)]
 
+        ttfs = [None]  # time to first published skip
+
         def publish():
             with jobs_lock:
                 if jobs.get(video_id) is job:
                     job["segments"] = finalize(verbose=False)  # the final call logs the filter decisions once
+                    if ttfs[0] is None and any(x["action"] == "skip" for x in job["segments"]):
+                        ttfs[0] = time.time() - t_job
+                        log(f"[{video_id}] first skip published after {ttfs[0]:.1f}s")
 
         def phase(win_slice, status):
             with jobs_lock:
@@ -974,8 +1000,13 @@ def run_job(video_id):
         with jobs_lock:
             job["segments"] = segments
             job["status"] = "done"
+        job_time = time.time() - t_job
+        if ttfs[0] is None and any(x["action"] == "skip" for x in segments):
+            ttfs[0] = job_time
         log(f"[{video_id}] done: {len(segments)} segment(s), {len(wins)} window(s), "
-            f"model calls: {calls.reused} reused / {calls.computed} computed, {time.time() - t_job:.1f}s, cached")
+            f"model calls: {calls.reused} reused / {calls.computed} computed, {job_time:.1f}s, "
+            f"first skip at {'%.1fs' % ttfs[0] if ttfs[0] is not None else '-'}, cached")
+        append_result(job, segments, job_time, calls, ttfs[0])
     except urllib.error.URLError as e:
         log(f"[{video_id}] error: cannot reach Ollama at {OLLAMA}: {e.reason}")
         with jobs_lock:
@@ -988,7 +1019,8 @@ def run_job(video_id):
             job["error"] = "model error" if isinstance(e, (json.JSONDecodeError, KeyError, TypeError, ValueError)) else "internal error"
 
 
-def start_or_get_job(video_id, lang, lines, title=""):
+def start_or_get_job(video_id, lang, lines, title="", meta=None):
+    meta = meta or {}
     thash = transcript_hash(lines)
     with jobs_lock:
         job = jobs.get(video_id)
@@ -1017,9 +1049,10 @@ def start_or_get_job(video_id, lang, lines, title=""):
         if len(jobs) >= MAX_JOBS_IN_MEMORY:
             for vid in [v for v, j in jobs.items() if j["status"] in ("done", "error")][: len(jobs) - MAX_JOBS_IN_MEMORY + 1]:
                 del jobs[vid]
-        job = {"status": "queued", "segments": [], "hash": thash, "lang": lang, "lines": lines, "title": title}
+        job = {"status": "queued", "segments": [], "hash": thash, "lang": lang, "lines": lines, "title": title,
+               "video_id": video_id, "kind": meta.get("kind", ""), "creator": meta.get("creator", "")}
         jobs[video_id] = job
-    log(f"[{video_id}] new job: {len(lines)} lines, lang={lang}, hash={thash}, title={title!r}{why}")
+    log(f"[{video_id}] new job: {len(lines)} lines, lang={lang}, kind={job['kind']}, hash={thash}, title={title!r}{why}")
     threading.Thread(target=run_job, args=(video_id,), daemon=True).start()
     return job
 
@@ -1103,7 +1136,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(413, {"error": "too many lines"})
         lang = str(data.get("lang") or "und")[:12]
         title = re.sub(r"\s+", " ", str(data.get("title") or "")).strip()[:300]
-        job = start_or_get_job(vid, lang, lines, title)
+        meta = {"kind": str(data.get("kind") or "")[:10], "creator": str(data.get("creator") or "")[:100]}
+        job = start_or_get_job(vid, lang, lines, title, meta)
         if job is None:
             return self.send_json(429, {"error": "busy"})
         with jobs_lock:

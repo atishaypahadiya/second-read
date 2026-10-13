@@ -64,6 +64,8 @@
       current.lines = d.lines;
       current.lang = d.lang;
       current.title = typeof d.title === 'string' ? d.title.slice(0, 300) : '';
+      current.creator = typeof d.creator === 'string' ? d.creator.slice(0, 100) : '';
+      current.kind = d.kind;
       analyze(videoId, d.lang, d.lines, current.title);
     };
     window.addEventListener('message', onMessage);
@@ -89,7 +91,7 @@
     const state = current;
     const alive = () => current === state && state.videoId === videoId;
     setBadge('analyzing', 'busy');
-    const res = await send({ type: 'analyze', videoId, lang, lines, title });
+    const res = await send({ type: 'analyze', videoId, lang, lines, title, kind: state.kind, creator: state.creator });
     if (!alive()) return;
     if (!res.ok) { log('server:', res.error); setBadge(res.error === 'server offline' ? 'server offline' : `server: ${res.error}`, 'error'); return; }
     handleJob(videoId, res);
