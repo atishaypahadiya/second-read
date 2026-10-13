@@ -20,6 +20,7 @@ _lock = threading.Lock()
 
 EVENT_KINDS = ("skip", "undo", "seek_into", "false_skip", "missed_ad", "allowlisted")
 HALL_MIN_SPOTS = 3  # spots a brand needs before it can enter the Hall of Shame or the Hall of Fame
+RULE_CATEGORIES = ("interaction", "intro", "outro", "recap")  # same as server.RULE_CATEGORIES: never carry a brand
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS videos (
@@ -126,15 +127,19 @@ def hint_candidates(hints):
     return uniq
 
 
-def canonical_brand(conn, raw, hints=None, evidence=""):
+def canonical_brand(conn, raw, hints=None, evidence="", category="sponsor", source=""):
     """Resolve a model-emitted brand spelling to a canonical brand. Order:
     1. alias table (learned + builtin); 2. fuzzy match against description-hint candidates (the video's own
     sponsor) and record the alias; 3. exactly one hint candidate -> that; 4. fuzzy match against brands already
-    in the DB (>= 0.8); 5. the raw spelling, trimmed."""
+    in the DB (>= 0.8); 5. the raw spelling, trimmed.
+    A rule segment (recap, outro, intro, interaction) never gets a brand, and a segment the model gave no brand
+    borrows the video's single hint only if it is a sponsor segment."""
     raw = (raw or "").strip()
     key = _norm(raw)
+    if source == "rule" or category in RULE_CATEGORIES:
+        return "", "rule segment"
     if not key:
-        cands = hint_candidates(hints)
+        cands = hint_candidates(hints) if category == "sponsor" else []
         return (cands[0], "hint-only") if len(cands) == 1 else ("", "none")
     row = conn.execute("SELECT brand FROM brand_aliases WHERE alias = ?", (key,)).fetchone()
     if row:
@@ -154,7 +159,7 @@ def canonical_brand(conn, raw, hints=None, evidence=""):
             conn.execute("INSERT OR IGNORE INTO brand_aliases(alias, brand, how) VALUES (?, ?, ?)",
                          (key, best, f"hint fuzzy {best_r:.2f}"))
         return best, f"hint fuzzy {best_r:.2f}"
-    if len(cands) == 1:
+    if len(cands) == 1 and category == "sponsor":
         return cands[0], "single hint (this video only)"
     known = [r["brand"] for r in conn.execute("SELECT DISTINCT brand FROM segments WHERE brand != ''")]
     best, best_r = None, 0.0
@@ -193,7 +198,8 @@ def record_video(job, segments, versions):
                    duration, now(), json.dumps(versions), json.dumps(hints)))
         ids, keep = {}, []
         for s in segments:
-            brand, how = canonical_brand(c, s.get("brand", ""), hints, s.get("evidence", ""))
+            brand, how = canonical_brand(c, s.get("brand", ""), hints, s.get("evidence", ""),
+                                         s.get("category") or "", s.get("source") or "")
             s["brand_canonical"] = brand
             c.execute("""INSERT INTO segments(video_id, seg_start, seg_end, category, style, action, brand_raw, brand,
                          confidence, evidence, reason, source, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)

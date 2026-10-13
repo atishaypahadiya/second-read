@@ -178,6 +178,16 @@ def unit_checks():
     d = stats.compute()
     eq(f"halls: ranked only from {stats.HALL_MIN_SPOTS} spots",
        ([b["brand"] for b in d["hall_of_shame"]], [b["brand"] for b in d["hall_of_fame"]]), (["Thricebrand"], ["Integrated"]))
+    # brands: a rule segment (recap/outro/intro/interaction) never gets one, not even the video's only hint
+    one_hint = {"brands": ["Odoo"], "domains": []}
+
+    def canon(raw, hints=None, evidence="", category="sponsor", source="detect"):
+        with stats.connect() as c:
+            return stats.canonical_brand(c, raw, hints, evidence, category, source)[0]
+    eq("brands: rule segments stay unbranded",
+       [canon("", one_hint, "Thanks for watching", cat, "rule") for cat in ("recap", "outro", "intro", "interaction")], [""] * 4)
+    eq("brands: no spoken name -> only a sponsor segment takes the single hint",
+       (canon("", one_hint), canon("", one_hint, category="selfpromo")), ("Odoo", ""))
     # disclosure is 'undisclosed' only when both signals are known and negative
     table = {(p, d): server.disclosure_state(p, d) for p in (True, False, None) for d in (True, False, None)}
     eq("disclosure: only (False, False) is undisclosed", sorted(k for k, v in table.items() if v == "undisclosed"), [(False, False)])
@@ -222,7 +232,7 @@ def main():
         results = unit_checks()
         bad = [m for ok, m in results if not ok]
         failures += 1 if bad else 0
-        rows.append(("rules", "server", "FAIL" if bad else "PASS", bad or [f"{len(results)} rule checks ok (cleaning, hints, halls, disclosure)"], time.time() - t0))
+        rows.append(("rules", "server", "FAIL" if bad else "PASS", bad or [f"{len(results)} rule checks ok (cleaning, hints, halls, brands, disclosure)"], time.time() - t0))
     for e in entries:
         t0 = time.time()
         label = e.get("id", e["video"])
