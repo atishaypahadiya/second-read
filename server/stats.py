@@ -368,8 +368,8 @@ def compute():
             "skips": 0, "skipped_s": 0.0, "undos": 0, "seek_into": 0, "wrong_skips": 0, "raw": set(), "creator_counts": {},
             "undisclosed": 0})
         b["spots"] += 1
-        if s["style"] == "read" and s.get("paid_promotion") is not None and not s["paid_promotion"] and not s["disclosed"]:
-            b["undisclosed"] += 1
+        if s["style"] == "read" and s.get("paid_promotion") == 0 and s.get("disclosed") == 0:
+            b["undisclosed"] += 1  # only when both signals are known and negative
         b["reads" if s["style"] == "read" else "integrations"] += 1
         b["creators"].add(s["channel_name"] or s["channel_id"] or "?")
         b["creator_counts"][s["channel_name"] or "?"] = b["creator_counts"].get(s["channel_name"] or "?", 0) + 1
@@ -564,7 +564,7 @@ const kv=[['position',m.position_pct!=null?m.position_pct+'% of video':'–'],['
 const tags=an&&an.persuasion.length?`<div class="tags">${an.persuasion.map(p=>`<span class="tag">${esc(p.tag)} <q>“${esc(p.quote)}”</q></span>`).join('')}</div>`:(an?'<div class="tags"><span class="sub">no persuasion techniques quoted</span></div>':'');
 const beats=an&&an.beats.length?`<div class="beats">structure: ${an.beats.map(b=>esc(b.beat)).join(' → ')}</div>`:'';
 const bp=an&&an.better_placement;const sugg=bp?(bp.same_as_now?`<div class="sugg">placement: already the natural spot — ${esc(bp.reason)}</div>`:`<div class="sugg">better placement: <b>${fmt(bp.time_s)}</b> — ${esc(bp.reason)}${bp.quote?` <q>“${esc(bp.quote)}”</q>${bp.quote_verified?'':' <span class="flag">(quote not found verbatim)</span>'}`:''}</div>`):(a.analysis_error?`<div class="sub">analysis failed: ${esc(a.analysis_error)}</div>`:'<div class="sub">deeper analysis pending (runs when the server is idle)</div>');
-return `<div class="card"><h3>${esc(a.brand||'?')} <span class="pill">${esc(a.style)}</span> <span class="pill">${esc(a.action)}</span>${a.undisclosed?' <span class="pill flag" title="no paid-promotion flag and no (ad)/sponsor line in the description">undisclosed?</span>':''}${a.paid_promotion?' <span class="pill">paid promotion ✓</span>':''}</h3><div class="meta">${esc(a.creator||'')} · ${esc(a.title||a.video_id)} · ${fmt(a.start)}–${fmt(a.end)} (${fmt(a.end-a.start)}) · conf ${a.confidence}${a.brand_raw&&a.brand_raw!==a.brand?` · raw “${esc(a.brand_raw)}”`:''}</div>${timeline(a)}<div class="kv">${kv.map(([k,v])=>`<div><span>${k}</span><br><b>${v}</b></div>`).join('')}</div>${m.first_sentence?`<div class="beats">opens with: “${esc(m.first_sentence)}”</div>`:''}${beats}${tags}${sugg}</div>`}
+return `<div class="card"><h3>${esc(a.brand||'?')} <span class="pill">${esc(a.style)}</span> <span class="pill">${esc(a.action)}</span>${a.undisclosed?' <span class="pill flag" title="YouTube paid-promotion flag is off and the description has no (ad)/sponsor line">undisclosed?</span>':''}${a.disclosure==='unknown'?' <span class="pill" title="the paid-promotion flag and/or the description were not received for this video">disclosure unknown</span>':''}${a.paid_promotion?' <span class="pill">paid promotion ✓</span>':''}</h3><div class="meta">${esc(a.creator||'')} · ${esc(a.title||a.video_id)} · ${fmt(a.start)}–${fmt(a.end)} (${fmt(a.end-a.start)}) · conf ${a.confidence}${a.brand_raw&&a.brand_raw!==a.brand?` · raw “${esc(a.brand_raw)}”`:''}</div>${timeline(a)}<div class="kv">${kv.map(([k,v])=>`<div><span>${k}</span><br><b>${v}</b></div>`).join('')}</div>${m.first_sentence?`<div class="beats">opens with: “${esc(m.first_sentence)}”</div>`:''}${beats}${tags}${sugg}</div>`}
 function dist(title,obj){const e=Object.entries(obj||{}).sort((a,b)=>b[1]-a[1]);return `<div class="card"><h3>${title}</h3>${e.length?`<ul>${e.map(([k,v])=>`<li>${esc(k||'–')}: <b>${v}</b></li>`).join('')}</ul>`:'<div class="sub">nothing yet</div>'}</div>`}
 function insights(i){return `<div class="tiles">
 <div class="tile"><div class="n">${i.ads}</div><div class="c">ads · ${i.analyzed} deep-analyzed · ${i.pending_analysis} pending</div></div>
@@ -575,7 +575,7 @@ function insights(i){return `<div class="tiles">
 <div class="tile"><div class="n">${i.template_pct}%</div><div class="c">template scripts (≥70% shared with another creator)</div></div>
 <div class="tile"><div class="n">${i.avg_topic_fit==null?'–':i.avg_topic_fit}</div><div class="c">avg topic fit (cosine)</div></div>
 <div class="tile"><div class="n">${i.better_placement_suggested}</div><div class="c">ads with a better placement suggested</div></div>
-<div class="tile"><div class="n">${i.undisclosed}</div><div class="c">reads with no disclosure · ${i.paid_promotion_pct}% carry YouTube's paid-promotion flag</div></div>
+<div class="tile"><div class="n">${i.undisclosed}</div><div class="c">reads with no disclosure · ${i.disclosure_unknown} unknown · ${i.paid_promotion_pct}% carry YouTube's paid-promotion flag</div></div>
 </div><h2>Distributions</h2><div class="dist">${dist('Segue type',i.segues)}${dist('Chapter placement',i.placements)}${dist('Offers',i.offers)}${dist('Persuasion techniques',i.persuasion)}</div>`}
 let cache={};
 async function show(tab){document.querySelectorAll('.tabs a').forEach(a=>a.classList.toggle('on',a.dataset.tab===tab));

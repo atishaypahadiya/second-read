@@ -283,7 +283,8 @@ def compute_tier1(job, segments, seg_ids, terms):
                       (sid, stats.now(), json.dumps(m)))
         c.execute("INSERT OR REPLACE INTO video_context(video_id, heat, chapters, paid_promotion, disclosed) VALUES (?,?,?,?,?)",
                   (job["video_id"], json.dumps(heat[:200]), json.dumps(chapters),
-                   1 if job.get("paid_promotion") else 0, 1 if job.get("disclosed") else 0))
+                   None if job.get("paid_promotion") is None else int(bool(job["paid_promotion"])),
+                   None if job.get("disclosed") is None else int(bool(job["disclosed"]))))
     # topic fit (optional embeddings), outside the lock: one call for all ads of this video
     if ad_texts and rest_text.strip():
         texts = [rest_text[:6000]] + [t[:4000] for t in ad_texts.values()]
@@ -428,6 +429,15 @@ def run_analysis(row, chat_fn, load_transcript):
 # ---------------------------------------------------------------------------
 # Read side for the dashboard
 # ---------------------------------------------------------------------------
+def disclosure(paid, described):
+    """Same rule as server.disclosure_state, on the stored 1/0/NULL columns."""
+    if paid == 1 or described == 1:
+        return "disclosed"
+    if paid == 0 and described == 0:
+        return "undisclosed"
+    return "unknown"
+
+
 def ads_json():
     with stats._lock, stats.connect() as c:
         rows = c.execute("""SELECT s.*, v.channel_name, v.title, v.duration_s, m.metrics, a.analysis, a.error AS analysis_error,
@@ -449,8 +459,10 @@ def ads_json():
             "metrics": json.loads(r["metrics"]) if r["metrics"] else None,
             "analysis": json.loads(r["analysis"]) if r["analysis"] else None, "analysis_error": r["analysis_error"],
             "heat": json.loads(r["heat"]) if r["heat"] else [], "chapters": json.loads(r["chapters"]) if r["chapters"] else [],
-            "paid_promotion": bool(r["paid_promotion"]), "disclosed_in_description": bool(r["disclosed"]),
-            "undisclosed": r["style"] == "read" and not r["paid_promotion"] and not r["disclosed"] and r["paid_promotion"] is not None,
+            "paid_promotion": None if r["paid_promotion"] is None else bool(r["paid_promotion"]),
+            "disclosed_in_description": None if r["disclosed"] is None else bool(r["disclosed"]),
+            "disclosure": disclosure(r["paid_promotion"], r["disclosed"]) if r["style"] == "read" else None,
+            "undisclosed": r["style"] == "read" and disclosure(r["paid_promotion"], r["disclosed"]) == "undisclosed",
             "events": counts.get((r["video_id"], r["seg_start"], r["seg_end"]), {}),
         })
     # insights
@@ -481,6 +493,7 @@ def ads_json():
         "segues": segues, "placements": placements, "offers": offers, "persuasion": tags,
         "better_placement_suggested": sum(1 for a in ads if a["analysis"] and not a["analysis"]["better_placement"].get("same_as_now")),
         "undisclosed": sum(1 for a in ads if a.get("undisclosed")),
-        "paid_promotion_pct": stats.pct(sum(1 for a in ads if a["paid_promotion"]), len(ads)),
+        "disclosure_unknown": sum(1 for a in ads if a.get("disclosure") == "unknown"),
+        "paid_promotion_pct": stats.pct(sum(1 for a in ads if a["paid_promotion"]), sum(1 for a in ads if a["paid_promotion"] is not None)),
     }
     return {"generated_at": stats.now(), "ads": ads, "insights": insights, "embed_model": EMBED_MODEL if _embed_available else None}

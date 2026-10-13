@@ -180,12 +180,12 @@ def main():
         ok = all(r[0] for r in results)
         failures += 0 if ok else 1
         rows.append((label, e.get("creator", ""), "PASS" if ok else "FAIL", [m for _, m in results], time.time() - t0))
-    print(f"{'video':17} {'creator':14} {'result':6} {'time':>6}  details")
+    print(f"{'video':22} {'creator':14} {'result':6} {'time':>6}  details")
     print("-" * 110)
     for vid, cr, res, details, dt in rows:
-        print(f"{vid:17} {cr[:14]:14} {res:6} {dt:5.1f}s  {details[0]}")
+        print(f"{vid:22} {cr[:14]:14} {res:6} {dt:5.1f}s  {details[0]}")
         for d in details[1:]:
-            print(f"{'':17} {'':14} {'':6} {'':>6}  {d}")
+            print(f"{'':22} {'':14} {'':6} {'':>6}  {d}")
     skipped = sum(1 for r in rows if r[2] == "SKIP")
     print("-" * 110)
     print(f"{len(rows) - failures - skipped} passed, {failures} failed, {skipped} not run"

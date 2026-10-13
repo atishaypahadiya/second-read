@@ -168,9 +168,12 @@ API:
 - **Promo code vault** (`codes` table, `GET /codes.json?q=`, popup "Codes" tab with search + copy): every code,
   link and offer from the description hints and from each sponsor read's text (incl. spoken "fern dot deals slash
   coddy"), per brand, with the video and the ad's timestamp.
-- **Disclosure check:** page.js sends YouTube's "Includes paid promotion" flag (`paidContentOverlay` in the player
-  response); the server also checks the description for an (ad)/sponsor/partner line. A sponsor read with neither is
-  flagged `undisclosed: true` on the segment, counted per brand in the stats table, and marked on its ad card.
+- **Disclosure check (fails safe):** two tri-state signals: YouTube's "Includes paid promotion" flag
+  (`paidContentOverlay` in the player response; `null` when the client didn't report it) and an (ad)/sponsor/partner
+  line in the description (`null` when no description was received). Each sponsor read gets
+  `disclosure: disclosed | undisclosed | unknown`: disclosed if either signal is positive, **undisclosed only when
+  both are known and negative**, otherwise unknown. `undisclosed: true` is set only in that one case. Stats count and
+  the dashboard flag follow the same rule; unknown shows as a neutral "disclosure unknown" pill.
 
 Status values: `queued → classifying → done` (or `error`); `paused: true` while the video isn't being polled.
 Every GET/POST for a video counts as a poll.

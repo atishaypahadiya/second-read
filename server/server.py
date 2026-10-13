@@ -67,7 +67,7 @@ KEEP_ALIVE = -1                                       # keep the model loaded be
 # Rubric changes in SYSTEM_PROMPT affect both passes: bump DETECT and REFINE.
 DETECT_VERSION = 3
 REFINE_VERSION = 3
-POST_VERSION = 2
+POST_VERSION = 3
 NUM_CTX = 8192
 LLM_TIMEOUT_S = 600
 MAX_BODY_BYTES = 8 * 1024 * 1024
@@ -1125,7 +1125,7 @@ def merge_segments(segs):
 
 def public_segment(seg):
     keys = ("start", "end", "category", "style", "brand", "confidence", "evidence", "reason", "action", "line_start", "line_end",
-            "source", "undisclosed", "brand_canonical")
+            "source", "undisclosed", "disclosure", "brand_canonical")
     return {k: seg[k] for k in keys if k in seg}
 
 
@@ -1699,12 +1699,26 @@ def run_window(job, first, last):
         final.extend(refine_candidate(alines, lines, cand, lang, title, calls, header, terms))
 
 
+def disclosure_state(paid, described):
+    """'disclosed' if either signal is positive; 'undisclosed' only when BOTH are known and negative; otherwise
+    'unknown'. Missing data must never read as an accusation."""
+    if paid is True or described is True:
+        return "disclosed"
+    if paid is False and described is False:
+        return "undisclosed"
+    return "unknown"
+
+
 def finalize(job, verbose):
     out = []
     kept = [x for x in job["final"] if x.get("action") != "drop"]
+    state = disclosure_state(job.get("paid_promotion"), job.get("disclosed"))
     for x in post_filter(merge_segments(kept), job["title"], job["alines"], verbose):
-        if x.get("category") == "sponsor" and x.get("style") == "read" and not job.get("paid_promotion") and not job.get("disclosed"):
-            x["undisclosed"] = True  # 7c: a sponsor read with neither YouTube's paid-promotion flag nor an (ad)/sponsor line in the description
+        x.pop("undisclosed", None)
+        if x.get("category") == "sponsor" and x.get("style") == "read":
+            x["disclosure"] = state
+            if state == "undisclosed":
+                x["undisclosed"] = True
         out.append(x)
     return [public_segment(x) for x in out]
 
@@ -1750,9 +1764,11 @@ def finish_job(job):
         job["status"] = "done"
         job["paused"] = False
     calls = job["calls"]
-    if any(x.get("undisclosed") for x in segments):
-        log(f"[{video_id}] disclosure: sponsor read found but neither YouTube's paid-promotion flag nor an (ad)/sponsor line "
-            f"in the description -> flagged undisclosed?")
+    if any(x.get("disclosure") for x in segments):
+        paid, described = job.get("paid_promotion"), job.get("disclosed")
+        state = disclosure_state(paid, described)
+        log(f"[{video_id}] disclosure: {state} (YouTube paid-promotion flag: {'not reported' if paid is None else paid}; "
+            f"(ad)/sponsor line in description: {'no description received' if described is None else described})")
     log(f"[{video_id}] done: {len(segments)} segment(s), {job['n_sent']}/{job['n_windows']} window(s) sent, "
         f"model calls: {calls.reused} reused / {calls.computed} computed, {job_time:.1f}s wall "
         f"({job['work_s']:.1f}s working), first skip at {'%.1fs' % job['ttfs'] if job['ttfs'] is not None else '-'}, cached")
@@ -1924,7 +1940,8 @@ def start_or_get_job(video_id, lang, lines, title="", meta=None, alines=None, al
             "video_id": video_id, "kind": meta.get("kind", ""), "creator": meta.get("creator", ""),
             "tag": meta.get("tag", ""), "channel_id": meta.get("channel_id", ""), "duration": meta.get("duration"),
             "client": meta.get("client"), "heat": meta.get("heat") or [], "chapter_times": hints.get("chapter_times", []),
-            "paid_promotion": paid, "disclosed": bool(AD_LINE_RE.search(description or "")),
+            # Both disclosure signals are tri-state. None = we were not told (no description / no flag from the client).
+            "paid_promotion": paid, "disclosed": bool(AD_LINE_RE.search(description)) if description else None,
             "position": position, "hints": hints, "terms": terms, "header": hints_header(hints),
             "last_poll": time.time(), "paused": False}
     resync = None
