@@ -168,6 +168,10 @@ server adds the cached pipeline context and versions. Rows that predate validati
   **The spoken name beats a domain label:** a sponsor link names the brand only when the model gave none and the
   description wrote none, and then without affixes and TLDs (`headspace-web.app` → Headspace). Rule segments
   (recap, outro, intro, interaction) never get a brand; a non-sponsor segment never borrows the video's hint.
+  **Generic words are never a brand** (`GENERIC_WORDS`: tech, pro, plan, sound, …): as a hint they are ignored, and
+  as the model's brand they count as "no name". **An alias is learned** only when neither side is generic, the
+  spelling has ≥ 4 characters, and the brand is written on a sponsor line or said in the ad's evidence quote; each
+  one is logged (`stats: alias learned: …`). Anything else is resolved per video and not remembered.
   `BRAND_RULES_VERSION` (SQLite `user_version`): when the rules change, stored brands are re-derived once at
   startup, learned aliases are dropped and re-learned, and events and codes follow their segment.
 - `GET /stats.json` computes: per category (segments, videos, avg/total length, skips, undo/seek-in), per brand (spots, creators, read/integration %, skips, seconds skipped, avg length,
