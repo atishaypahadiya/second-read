@@ -2357,6 +2357,13 @@ def backfill_durations():
                 f"{reset} disclosure value(s) recorded without data reset to unknown")
     except Exception as e:  # noqa: BLE001
         log(f"stats: legacy repair failed: {e!r}")
+    try:
+        redone = stats.renormalize_brands()
+        if redone:
+            log(f"stats: brands re-derived under rules v{stats.BRAND_RULES_VERSION}: {redone[0]} segment(s) changed, "
+                f"{redone[1]} learned alias(es) dropped and re-learned where still valid")
+    except Exception as e:  # noqa: BLE001
+        log(f"stats: brand re-normalization failed: {e!r}")
 
 
 def model_present(name):
@@ -2375,6 +2382,7 @@ def main():
     stats.init()
     intel.init()
     intel.set_logger(log)
+    stats.set_logger(log)
     backfill_durations()
     DETECT_MODEL = DETECT_MODEL_PREF if model_present(DETECT_MODEL_PREF) else MODEL
     if DETECT_MODEL != MODEL:

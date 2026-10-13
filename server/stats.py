@@ -17,10 +17,18 @@ DB_PATH = os.path.join(os.environ.get("SR_DATA_DIR") or os.environ.get("SS_DATA_
                        or os.path.join(os.path.dirname(os.path.abspath(__file__)), "cache"),
                        "stats.local.db")
 _lock = threading.Lock()
+_log = print
+
+
+def set_logger(fn):
+    global _log
+    _log = fn
+
 
 EVENT_KINDS = ("skip", "undo", "seek_into", "false_skip", "missed_ad", "allowlisted")
 HALL_MIN_SPOTS = 3  # spots a brand needs before it can enter the Hall of Shame or the Hall of Fame
 RULE_CATEGORIES = ("interaction", "intro", "outro", "recap")  # same as server.RULE_CATEGORIES: never carry a brand
+BRAND_RULES_VERSION = 1  # bump when canonical_brand's rules change: stored brands are re-derived once at startup
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS videos (
@@ -104,34 +112,62 @@ def _display(name):
     return name if any(ch.isupper() for ch in name) else name[:1].upper() + name[1:]
 
 
-def hint_candidates(hints):
-    """Canonical-name candidates from description hints: brands, and domain labels/paths."""
+# Parts of a sponsor link's host that are not the brand: TLD-like endings, and the marketing affixes around the
+# name ("headspace-web.app", "get-foo.com", "foo-app.io").
+DOMAIN_ENDINGS = {"com", "net", "org", "io", "co", "uk", "us", "de", "deals", "gg", "ai", "app", "tv", "me", "ly", "fm",
+                  "shop", "store", "xyz", "dev", "to", "link", "page", "site", "info"}
+DOMAIN_AFFIXES = {"web", "app", "get", "try", "go", "join", "use", "shop", "store", "hq", "official", "online"}
+
+
+def _uniq(names):
+    seen, out = set(), []
+    for x in names:
+        if _norm(x) and _norm(x) not in seen:
+            seen.add(_norm(x))
+            out.append(x)
+    return out
+
+
+def domain_name(domain):
+    """Brand-like name from a sponsor link's host: 'headspace-web.app' -> 'Headspace', 'www.odoo.com/r' -> 'Odoo'.
+    '' when nothing name-like is left."""
+    parts = [p for p in domain.split("/")[0].lower().split(".") if p and p != "www"]
+    while len(parts) > 1 and parts[-1] in DOMAIN_ENDINGS:
+        parts.pop()
+    bits = [b for b in (parts[-1] if parts else "").split("-") if b]
+    while len(bits) > 1 and bits[-1] in DOMAIN_AFFIXES:
+        bits.pop()
+    while len(bits) > 1 and bits[0] in DOMAIN_AFFIXES:
+        bits.pop(0)
+    label = "-".join(bits)
+    return "" if len(label) < 3 or label in DOMAIN_ENDINGS | DOMAIN_AFFIXES else _display(label)
+
+
+def hint_brands(hints):
+    """Names the creator wrote on a sponsor line of the description."""
+    return _uniq((hints or {}).get("brands", []))
+
+
+def hint_link_names(hints):
+    """Names derived from the sponsor links: the host's name and the first path segment ('fern.deals/coddy' ->
+    Fern, Coddy). A guess at best, so they are used only when the ad has no spoken name and no written one."""
     out = []
-    for b in (hints or {}).get("brands", []):
-        out.append(b)
     for d in (hints or {}).get("domains", []):
-        host = d.split("/")[0]
-        parts = host.split(".")
-        label = parts[-2] if len(parts) >= 2 else host
-        if len(label) >= 3:
-            out.append(_display(label))
+        out.append(domain_name(d))
         if "/" in d:
             path = d.split("/", 1)[1].split("/")[0]
             if len(path) >= 3 and not path.isdigit():
                 out.append(_display(path))
-    seen, uniq = set(), []
-    for x in out:
-        if _norm(x) and _norm(x) not in seen:
-            seen.add(_norm(x))
-            uniq.append(x)
-    return uniq
+    return _uniq(out)
 
 
 def canonical_brand(conn, raw, hints=None, evidence="", category="sponsor", source=""):
-    """Resolve a model-emitted brand spelling to a canonical brand. Order:
-    1. alias table (learned + builtin); 2. fuzzy match against description-hint candidates (the video's own
-    sponsor) and record the alias; 3. exactly one hint candidate -> that; 4. fuzzy match against brands already
-    in the DB (>= 0.8); 5. the raw spelling, trimmed.
+    """Resolve a model-emitted brand spelling (the name as spoken in the transcript) to a canonical brand. Order:
+    1. alias table (learned + builtin); 2. fuzzy match against the brands written in the description's sponsor
+    lines (the video's own sponsor) and record the alias; 3. exactly one written brand -> that (sponsor segments);
+    4. fuzzy match against brands already in the DB (>= 0.8); 5. the raw spelling, trimmed.
+    The spoken name always beats a name derived from a sponsor link: a link names the brand only when the model
+    gave none and the description wrote none ("headspace-web.app" -> Headspace).
     A rule segment (recap, outro, intro, interaction) never gets a brand, and a segment the model gave no brand
     borrows the video's single hint only if it is a sponsor segment."""
     raw = (raw or "").strip()
@@ -139,12 +175,15 @@ def canonical_brand(conn, raw, hints=None, evidence="", category="sponsor", sour
     if source == "rule" or category in RULE_CATEGORIES:
         return "", "rule segment"
     if not key:
-        cands = hint_candidates(hints) if category == "sponsor" else []
-        return (cands[0], "hint-only") if len(cands) == 1 else ("", "none")
+        cands = (hint_brands(hints) or hint_link_names(hints)) if category == "sponsor" else []
+        if len(cands) != 1:
+            return "", "none"
+        row = conn.execute("SELECT brand FROM brand_aliases WHERE alias = ?", (_norm(cands[0]),)).fetchone()
+        return (row["brand"] if row else cands[0]), "hint-only"
     row = conn.execute("SELECT brand FROM brand_aliases WHERE alias = ?", (key,)).fetchone()
     if row:
         return row["brand"], "alias"
-    cands = hint_candidates(hints)
+    cands = hint_brands(hints)
     best, best_r = None, 0.0
     for c in cands:
         r = difflib.SequenceMatcher(None, key, _norm(c)).ratio()
@@ -337,6 +376,38 @@ def repair_legacy_rows(current_post_version):
         except sqlite3.OperationalError:
             pass  # video_context is created by intel.init()
     return fixed, reset
+
+
+def renormalize_brands():
+    """Once per BRAND_RULES_VERSION (kept in PRAGMA user_version): re-derive every stored canonical brand under the
+    current rules. Learned aliases are derived data too, so they are dropped and re-learned from the segments.
+    Events and promo-code rows follow their segment's brand. Returns None when already done, else
+    (segments_changed, aliases_dropped)."""
+    with _lock, connect() as c:
+        if c.execute("PRAGMA user_version").fetchone()[0] >= BRAND_RULES_VERSION:
+            return None
+        dropped = c.execute("DELETE FROM brand_aliases WHERE how != 'builtin'").rowcount
+        rows = c.execute("SELECT s.*, v.hints FROM segments s LEFT JOIN videos v ON v.video_id = s.video_id ORDER BY s.id").fetchall()
+        c.execute("UPDATE segments SET brand = ''")  # the fuzzy match against known brands must not see an old value
+        changed = 0
+        for r in rows:
+            try:
+                hints = json.loads(r["hints"] or "{}") or {}
+            except ValueError:
+                hints = {}
+            brand, how = canonical_brand(c, r["brand_raw"], hints, r["evidence"] or "", r["category"] or "", r["source"] or "")
+            c.execute("UPDATE segments SET brand = ? WHERE id = ?", (brand, r["id"]))
+            c.execute("UPDATE events SET brand = ? WHERE video_id = ? AND seg_start <= ? AND seg_end >= ?",
+                      (brand, r["video_id"], r["seg_end"], r["seg_start"]))
+            if r["category"] == "sponsor":
+                c.execute("UPDATE codes SET brand = ? WHERE video_id = ? AND brand != '' AND time_s BETWEEN ? AND ?",
+                          (brand, r["video_id"], r["seg_start"] - 5, r["seg_end"] + 5))
+            if brand != (r["brand"] or ""):
+                changed += 1
+                _log(f"stats: [{r['video_id']}] {r['category']} {fmt_time(r['seg_start'])}-{fmt_time(r['seg_end'])} "
+                     f"brand {r['brand']!r} -> {brand!r} ({how}; spoken {r['brand_raw']!r})")
+        c.execute(f"PRAGMA user_version = {BRAND_RULES_VERSION}")
+    return changed, dropped
 
 
 def record_event(data):

@@ -188,6 +188,32 @@ def unit_checks():
        [canon("", one_hint, "Thanks for watching", cat, "rule") for cat in ("recap", "outro", "intro", "interaction")], [""] * 4)
     eq("brands: no spoken name -> only a sponsor segment takes the single hint",
        (canon("", one_hint), canon("", one_hint, category="selfpromo")), ("Odoo", ""))
+    # brands: the spoken name beats a domain label; a link only names the brand when nothing was spoken
+    link_only = {"brands": [], "domains": ["headspace-web.app"]}
+    eq("brands: name from a sponsor link drops affixes and TLDs",
+       [stats.domain_name(d) for d in ("headspace-web.app", "headspace-web.app.link/e", "www.odoo.com/r", "go.nordvpn.net/x", "app.link")],
+       ["Headspace", "Headspace", "Odoo", "Nordvpn", ""])
+    eq("brands: spoken name kept over the domain label", canon("Headspace", link_only), "Headspace")
+    eq("brands: no spoken name -> the name from the link", canon("", link_only), "Headspace")
+    eq("brands: a written hint brand still corrects a misheard one", canon("Udo", {"brands": ["Odoo"], "domains": ["odoo.com/r"]}), "Odoo")
+    # existing rows written under the old rules are re-derived once (and the alias that came from a domain label goes)
+    with stats.connect() as c:
+        c.execute("INSERT INTO videos(video_id, hints) VALUES ('renormvideo', ?)", (json.dumps(link_only),))
+        c.execute("INSERT INTO segments(video_id, seg_start, seg_end, category, style, action, brand_raw, brand, evidence, source) VALUES "
+                  "('renormvideo', 451.64, 517.84, 'sponsor', 'read', 'skip', 'Headspace', 'Headspace-web', 'the sponsor is Headspace', 'detect'), "
+                  "('renormvideo', 1399.6, 1404.48, 'recap', 'read', 'show', '', 'Headspace-web', 'Last time I', 'rule')")
+        c.execute("INSERT INTO events(ts, kind, video_id, seg_start, seg_end, brand) VALUES ('t', 'skip', 'renormvideo', 451.64, 517.84, 'Headspace-web')")
+        c.execute("INSERT INTO codes(brand, video_id, time_s, kind, value) VALUES ('Headspace-web', 'renormvideo', 451.6, 'link', 'headspace-web.app')")
+        c.execute("INSERT OR REPLACE INTO brand_aliases(alias, brand, how) VALUES ('headspace', 'Headspace-web', 'hint fuzzy 0.90')")
+        c.execute("PRAGMA user_version = 0")
+    stats.renormalize_brands()
+    with stats.connect() as c:
+        got = ([r["brand"] for r in c.execute("SELECT brand FROM segments WHERE video_id = 'renormvideo' ORDER BY seg_start")],
+               [r["brand"] for r in c.execute("SELECT brand FROM events WHERE video_id = 'renormvideo'")],
+               [r["brand"] for r in c.execute("SELECT brand FROM codes WHERE video_id = 'renormvideo'")],
+               [r["brand"] for r in c.execute("SELECT brand FROM brand_aliases WHERE alias = 'headspace'")])
+    eq("brands: old rows re-normalized (segments, events, codes, aliases)", got, (["Headspace", ""], ["Headspace"], ["Headspace"], []))
+    eq("brands: re-normalization runs once per rules version", stats.renormalize_brands(), None)
     # disclosure is 'undisclosed' only when both signals are known and negative
     table = {(p, d): server.disclosure_state(p, d) for p in (True, False, None) for d in (True, False, None)}
     eq("disclosure: only (False, False) is undisclosed", sorted(k for k, v in table.items() if v == "undisclosed"), [(False, False)])
@@ -211,6 +237,7 @@ def main():
     stats.init()
     intel.init()
     intel.set_logger(server.log)
+    stats.set_logger(server.log)
     entries = load_testset()
     if args:
         entries = [e for e in entries if e["video"] in args or e.get("id") in args]
