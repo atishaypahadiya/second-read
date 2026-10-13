@@ -225,7 +225,9 @@ Every GET/POST for a video counts as a poll.
   model calls were reused vs computed. A POST with a new hash while a job is running supersedes it; the old
   thread's result is discarded.
 - Access: Host must be localhost/127.0.0.1 (DNS rebinding), http(s) Origins are refused, and
-  `SR_EXTENSION_ID=<id>` optionally restricts to one extension's origin.
+  `SR_EXTENSION_ID=<id>` restricts extension Origins to that one extension (other extensions get 403). A request
+  with no `Origin` header is still answered (curl, the dashboard page). `scripts/install.sh` sets the variable in
+  the LaunchAgent from `.env`.
 - **Scheduler:** one worker thread, one Ollama call at a time, always for the most recently polled job. A job
   not polled for 10s is paused between calls (partial model outputs are on disk; it resumes when polled again).
   At most 4 unfinished jobs in memory; beyond that the least-recently-polled one is evicted, never the newest.
@@ -417,6 +419,8 @@ python3 server/server.py       # http://localhost:8765
 #   SR_PORT=8766 SR_DATA_DIR=/tmp/sr-test python3 server/server.py
 # as a login item (KeepAlive, logs to ~/Library/Logs/second-read.log):
 scripts/install.sh             # also removes the pre-rename agent com.sponsor-skipper.server; run it again after moving the folder
+                               # reads SR_EXTENSION_ID from the environment, .env (gitignored) or a prompt and writes it into the
+                               # agent's plist; --dry-run prints the plist and changes nothing
                                # scripts/uninstall.sh boots out both labels; launchctl kickstart -k gui/$(id -u)/com.second-read.server to restart
 ```
 Chrome → `chrome://extensions` → Developer mode → Load unpacked → `extension/`.

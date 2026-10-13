@@ -2,7 +2,7 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <!-- Template. scripts/install.sh fills in __PYTHON__, __REPO__ and __HOME__ and copies it to
+  <!-- Template. scripts/install.sh fills in __PYTHON__, __REPO__, __HOME__ and the extension ID and copies it to
        ~/Library/LaunchAgents/com.second-read.server.plist -->
   <key>Label</key>
   <string>com.second-read.server</string>
@@ -37,6 +37,7 @@
     <string>/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin</string>
     <key>PYTHONUNBUFFERED</key>
     <string>1</string>
+    <!-- __EXTENSION_ID_ENV__ : install.sh puts SR_EXTENSION_ID here (or removes this line) -->
   </dict>
 
   <key>ProcessType</key>
