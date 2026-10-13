@@ -101,7 +101,47 @@ function askCurrentTab() {
   });
 }
 
+// --- Codes tab
+let codeTimer = null;
+function fmtT(s) { s = Math.round(s || 0); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; }
+function loadCodes(q) {
+  chrome.runtime.sendMessage({ type: 'codes', q: q || '' }, (res) => {
+    const ul = $('codeList');
+    ul.textContent = '';
+    if (!res || !res.ok) { $('codeHint').textContent = 'Server offline.'; return; }
+    const rows = res.codes || [];
+    $('codeHint').textContent = rows.length ? `${rows.length} item${rows.length === 1 ? '' : 's'}` : 'Nothing in the vault yet.';
+    for (const r of rows) {
+      const li = document.createElement('li');
+      const left = document.createElement('div');
+      const kind = document.createElement('span'); kind.className = 'kind'; kind.textContent = r.kind;
+      const val = document.createElement('span'); val.className = 'val'; val.textContent = r.value;
+      left.append(kind, val);
+      const copy = document.createElement('button'); copy.className = 'btn'; copy.textContent = 'Copy';
+      copy.addEventListener('click', async () => {
+        try { await navigator.clipboard.writeText(r.value); copy.textContent = 'Copied'; setTimeout(() => { copy.textContent = 'Copy'; }, 1200); }
+        catch { copy.textContent = 'Failed'; }
+      });
+      const ctx = document.createElement('div'); ctx.className = 'ctx';
+      const link = document.createElement('a');
+      link.href = `https://www.youtube.com/watch?v=${encodeURIComponent(r.video_id)}&t=${Math.floor(r.time_s || 0)}s`;
+      link.target = '_blank'; link.rel = 'noopener'; link.textContent = `${r.channel_name || r.video_id} @ ${fmtT(r.time_s)}`;
+      ctx.append(`${r.brand || '?'} · `, link, r.detail && r.kind === 'offer' ? ` · ${r.detail}` : '');
+      li.append(left, copy, ctx);
+      ul.appendChild(li);
+    }
+  });
+}
+function showPane(name) {
+  for (const b of document.querySelectorAll('.ptab')) b.classList.toggle('on', b.dataset.pane === name);
+  $('pane-main').classList.toggle('hidden', name !== 'main');
+  $('pane-codes').classList.toggle('hidden', name !== 'codes');
+  if (name === 'codes') loadCodes($('codeSearch').value);
+}
+
 async function init() {
+  for (const b of document.querySelectorAll('.ptab')) b.addEventListener('click', () => showPane(b.dataset.pane));
+  $('codeSearch').addEventListener('input', () => { clearTimeout(codeTimer); codeTimer = setTimeout(() => loadCodes($('codeSearch').value), 150); });
   const stored = await chrome.storage.local.get('settings');
   settings = { ...DEFAULT_SETTINGS, ...(stored.settings || {}) };
   settings.actions = { ...DEFAULT_SETTINGS.actions, ...(settings.actions || {}) };
