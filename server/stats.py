@@ -339,7 +339,50 @@ def record_video(job, segments, versions):
         return ids
 
 
-CODE_IN_TEXT_RE = re.compile(r"\b(?:promo |discount |coupon )?code[:\s]+([A-Z0-9]{3,20})\b", re.I)
+# "code" in any case, then the token exactly as written: its case is what tells a code from the next word.
+CODE_IN_TEXT_RE = re.compile(r"\b(?i:(?:promo |discount |coupon )?code)[:\s]+([A-Za-z0-9]{3,20})\b")
+# Never a code, whatever the case: the words that follow "code" in ordinary speech ("QR code that's on screen",
+# "USE CODE BELOW"), plus the generic words.
+CODE_STOPWORDS = GENERIC_WORDS | {
+    "below", "above", "here", "there", "when", "then", "will", "can", "you", "are", "was", "has", "have", "not", "but",
+    "all", "any", "its", "his", "her", "their", "what", "which", "where", "who", "how", "why", "into", "onto", "over",
+    "word", "words", "name", "box", "bar", "base", "section", "field", "checkout", "description", "screen", "review",
+    "save", "sign", "join", "start", "click", "visit", "enter", "apply", "valid", "only", "first", "next", "just"}
+
+
+def looks_like_code(token, text=""):
+    """A promo code as written: 3-20 letters/digits with at least one letter, and either a digit ("fern20") or ALL
+    CAPS ("HARRIS"). Caps only count where the text has lowercase at all (an all-caps caption track or line makes
+    every word look like a code), and a common word is never a code."""
+    if not (3 <= len(token) <= 20) or not token.isalnum() or not any(ch.isalpha() for ch in token):
+        return False
+    if token.lower() in CODE_STOPWORDS:
+        return False
+    return any(ch.isdigit() for ch in token) or (token.isupper() and any(ch.islower() for ch in text))
+
+
+def find_codes(text):
+    """Promo codes said or written after the word "code", upper-cased, in order, without repeats."""
+    out = []
+    for m in CODE_IN_TEXT_RE.finditer(text):
+        if looks_like_code(m.group(1), text) and m.group(1).upper() not in out:
+            out.append(m.group(1).upper())
+    return out
+
+
+def purge_bad_codes():
+    """Idempotent: drop vault rows that can never have been a code (a common word, no letter, wrong length). Rows
+    are stored upper-cased, so the caps rule cannot be re-checked here; it applies to everything recorded from now on.
+    Returns the number of rows removed."""
+    n = 0
+    with _lock, connect() as c:
+        for r in c.execute("SELECT id, video_id, value FROM codes WHERE kind = 'code'").fetchall():
+            v = r["value"] or ""
+            if not looks_like_code(v, v.lower()):
+                c.execute("DELETE FROM codes WHERE id = ?", (r["id"],))
+                _log(f"stats: [{r['video_id']}] dropped {v!r} from the code vault (not a promo code)")
+                n += 1
+    return n
 # linear-time form (no nested quantifier): label(.label)*.tld(/path)?
 DOMAIN_IN_TEXT_RE = re.compile(r"\b([a-z0-9-]{1,63}(?:\.[a-z0-9-]{1,63}){0,4}\.(?:com|net|org|io|co|deals|gg|ai|app|tv|me|ly|fm|shop|store|xyz|dev|to)(?:/[\w.-]{1,80})?)\b", re.I)
 MAX_SCAN_CHARS = 6000
@@ -373,8 +416,8 @@ def record_codes(job, segments):
     for s in sponsor:
         text = " ".join(l["text"] for l in lines if l["end"] > s["start"] and l["start"] < s["end"])[:MAX_SCAN_CHARS]
         b = s.get("brand_canonical") or s.get("brand") or ""
-        for m in CODE_IN_TEXT_RE.finditer(text):
-            found.append((b, s["start"], "code", m.group(1).upper(), "spoken"))
+        for code in find_codes(text):
+            found.append((b, s["start"], "code", code, "spoken"))
         for m in DOMAIN_IN_TEXT_RE.finditer(text):
             if not m.group(1).lower().startswith(SOCIAL):
                 found.append((b, s["start"], "link", m.group(1).lower(), "spoken"))

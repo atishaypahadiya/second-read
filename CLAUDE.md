@@ -210,7 +210,10 @@ server adds the cached pipeline context and versions. Rows that predate validati
   aggregates and distributions across all ads.
 - **Promo code vault** (`codes` table, `GET /codes.json?q=`, popup "Codes" tab with search + copy): every code,
   link and offer from the description hints and from each sponsor read's text (incl. spoken "fern dot deals slash
-  coddy"), per brand, with the video and the ad's timestamp.
+  coddy"), per brand, with the video and the ad's timestamp. **A code must look like one:** 3–20 letters/digits with
+  at least one letter, and a digit ("fern20") or ALL CAPS ("HARRIS", only where the text has lowercase at all),
+  and never a common word ("QR code that's on screen", "USE CODE BELOW"). The same rule filters description codes,
+  which are hint terms. Rows that can never have been a code are dropped from the vault at startup.
 - **Disclosure check (fails safe):** two tri-state signals: YouTube's "Includes paid promotion" flag
   (`paidContentOverlay` in the player response; `null` when the client didn't report it) and an (ad)/sponsor/partner
   line in the description (`null` when no description was received; a denial such as "this video is not sponsored"

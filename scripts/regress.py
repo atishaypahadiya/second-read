@@ -312,6 +312,21 @@ def unit_checks():
                [r["brand"] for r in c.execute("SELECT brand FROM brand_aliases WHERE alias = 'headspace'")])
     eq("brands: old rows re-normalized (segments, events, codes, aliases)", got, (["Headspace", ""], ["Headspace"], ["Headspace"], []))
     eq("brands: re-normalization runs once per rules version", stats.renormalize_brands(), None)
+    # promo codes: only tokens that look like codes (a digit, or ALL CAPS where caps mean something), never a common word
+    eq("codes: spoken text",
+       [stats.find_codes(t) for t in ("or scanning this QR code that's on screen", "use code fern20 for 20% off",
+                                      "Use code HARRIS at checkout", "use my promo code SAVE today", "my area code 415 is",
+                                      "USE CODE BELOW FOR 20% OFF", "USE CODE FERN NOW", "USE CODE FERN20 NOW")],
+       [[], ["FERN20"], ["HARRIS"], [], [], [], [], ["FERN20"]])
+    eq("codes: description hints take the same rule",
+       [server.extract_hints(d)["codes"] for d in ("Get 20% off with code FERN20: https://fern.deals/coddy",
+                                                   "Use code BELOW for 20% off: https://fern.deals/coddy")], [["FERN20"], []])
+    with stats.connect() as c:
+        c.execute("INSERT INTO codes(brand, video_id, kind, value, detail) VALUES ('Headspace', 'codesvideo0', 'code', 'THAT', 'spoken'), "
+                  "('Coddy', 'codesvideo0', 'code', 'FERN20', 'spoken'), ('Coddy', 'codesvideo0', 'offer', 'free trial', 'free trial')")
+    eq("codes: junk rows leave the vault, the rest stays",
+       (stats.purge_bad_codes(), [r["value"] for r in stats.connect().execute("SELECT value FROM codes WHERE video_id = 'codesvideo0' ORDER BY id")]),
+       (1, ["FERN20", "free trial"]))
     # tier-2: a persuasion quote is matched like evidence (whole quote or a 6-word run), across line breaks
     ad = [{"start": 456.8 + 4 * i, "end": 460.8 + 4 * i, "text": t} for i, t in enumerate((
         "Yeah. Yeah. They sent me a free subscription and I've been taking their",
@@ -384,7 +399,7 @@ def main():
         results = unit_checks()
         bad = [m for ok, m in results if not ok]
         failures += 1 if bad else 0
-        rows.append(("rules", "server", "FAIL" if bad else "PASS", bad or [f"{len(results)} rule checks ok (cleaning, end snap, hints, halls, brands, tier-2 quotes, disclosure)"], time.time() - t0))
+        rows.append(("rules", "server", "FAIL" if bad else "PASS", bad or [f"{len(results)} rule checks ok (cleaning, end snap, hints, halls, brands, codes, tier-2 quotes, disclosure)"], time.time() - t0))
     for e in entries:
         t0 = time.time()
         label = e.get("id", e["video"])
