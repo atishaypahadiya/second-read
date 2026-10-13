@@ -139,10 +139,17 @@ def is_generic(name):
 def learn_alias(conn, key, brand, how, hints, evidence):
     """Remember spelling -> brand for every later video. Only for a real name the video itself backs up: neither
     side generic, at least ALIAS_MIN_CHARS characters, and the brand is written on a sponsor line of the description
-    or said in the ad's evidence quote. Every alias learned is logged."""
+    or said in the ad's evidence quote. Every alias learned is logged.
+    Both of those texts come from the page, so this is a plausibility check, not a trust boundary. What bounds a
+    hostile description: the caller's 0.8 similarity, first alias wins (builtins included), and a spelling that is
+    already a brand here (a canonical name or an alias target) is never redirected. Aliases only rename brands in
+    stats and labels; they never decide a skip."""
     target = _norm(brand)
     backed = target in {_norm(b) for b in hint_brands(hints)} or f" {target} " in f" {_norm(evidence)} "
     if is_generic(key) or is_generic(brand) or len(key.replace(" ", "")) < ALIAS_MIN_CHARS or key == target or not backed:
+        return False
+    established = conn.execute("SELECT brand FROM segments WHERE brand != '' UNION SELECT brand FROM brand_aliases")
+    if key in {_norm(r["brand"]) for r in established}:
         return False
     if conn.execute("INSERT OR IGNORE INTO brand_aliases(alias, brand, how) VALUES (?, ?, ?)", (key, brand, how)).rowcount:
         _log(f"stats: alias learned: {key!r} -> {brand!r} ({how})")

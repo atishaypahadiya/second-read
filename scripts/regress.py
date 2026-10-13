@@ -233,6 +233,8 @@ def unit_checks():
     eq("aliases: a look-alike in the DB is not learned unless the ad's evidence names the brand",
        (canon("Thricebrnd", {}, "use my link"), alias("thricebrnd"),
         canon("Thricebrnd", {}, "thanks to Thricebrand for sponsoring"), alias("thricebrnd")), ("Thricebrand", None, "Thricebrand", "Thricebrand"))
+    eq("aliases: an established brand name is never redirected by one video's description",
+       (canon("Thricebrand", {"brands": ["Thricebrant"]}), alias("thricebrand")), ("Thricebrant", None))
     stats.set_logger(server.log)
     # existing rows written under the old rules are re-derived once (and the alias that came from a domain label goes)
     with stats.connect() as c:
