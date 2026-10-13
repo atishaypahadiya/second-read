@@ -28,6 +28,11 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
+# Threat model: the transcript, title and words come from whatever the YouTube page handed the
+# extension, so they are untrusted. They are only ever (a) hashed into the cache key, so a bogus
+# transcript cannot overwrite the result for the real one, and (b) placed in the model prompt, where
+# the output is constrained by a JSON schema, line indices are validated against the window, and a
+# skip needs a verbatim quote from the transcript itself. Prompt text can at most mislabel its own video.
 HOST, PORT = "127.0.0.1", 8765
 ALLOWED_HOSTS = {f"127.0.0.1:{PORT}", f"localhost:{PORT}", "127.0.0.1", "localhost"}
 # Optional: restrict to one extension. Unpacked extension IDs differ per machine, so this is opt-in:
@@ -37,7 +42,7 @@ OLLAMA = "http://localhost:11434"
 MODEL = "qwen3:14b"
 # Bump whenever the prompt, schema, threshold or post-processing changes: cached results from an
 # older pipeline are then ignored and the video is re-analyzed.
-PIPELINE_VERSION = 7
+PIPELINE_VERSION = 8
 NUM_CTX = 8192
 LLM_TIMEOUT_S = 600
 MAX_BODY_BYTES = 8 * 1024 * 1024
@@ -50,6 +55,10 @@ BOUNDARY_LINES = 1          # lines on each side of a boundary line offered as n
 END_INSET_S = 0.3           # round the end inward
 MERGE_GAP_S = 1.0           # merge same-action, same-brand segments this close
 MIN_SKIP_S = 3.0            # a skip shorter than this after inward fallback is too uncertain -> show
+SNAP_GAP_S = 0.25           # an inter-word gap this long counts as a pause
+SNAP_FORWARD_MAX_S = 5.0    # never move a start later than this to find a clean cut
+SNAP_END_WINDOW_S = 1.0     # look this far after the last ad word for a pause to end on
+TOPIC_MENTIONS = 3          # brand mentioned in this many lines outside the segment -> it's the subject
 CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cache")
 VIDEO_ID_RE = re.compile(r"^[A-Za-z0-9_-]{11}$")
 
@@ -371,6 +380,85 @@ def resolve_pick(label_value, word_value, words, prefix):
     return None, f"label {label_value!r} invalid, no word text"
 
 
+SENTENCE_END_RE = re.compile(r"[.!?…][)\"'”’]*$")
+
+
+def all_words(lines, lo, hi):
+    """Flattened [start, end, text, line_idx] for lines[lo..hi]."""
+    out = []
+    for i in range(lo, hi + 1):
+        for w in lines[i]["words"]:
+            out.append([w[0], w[1], w[2], i])
+    return out
+
+
+def is_sentence_start(words, i):
+    return i == 0 or bool(SENTENCE_END_RE.search(words[i - 1][2]))
+
+
+def gap_before(words, i):
+    return words[i][0] - words[i - 1][1] if i > 0 else 0.0
+
+
+def snap_start(lines, s_line, e_line, picked_t):
+    """Move the start to a natural cut. Forward (later) to the nearest sentence start, else the largest
+    pause >= SNAP_GAP_S, within SNAP_FORWARD_MAX_S and inside the ad lines. Otherwise backward to the
+    start of the sentence containing the pick, if that sentence starts inside the ad's first line.
+    Returns (time, note)."""
+    words = all_words(lines, max(0, s_line - 1), e_line)
+    idx = [i for i, w in enumerate(words) if w[0] >= picked_t - 1e-6]
+    if not idx:
+        return picked_t, "no words at/after pick"
+    p = idx[0]
+    if is_sentence_start(words, p) or gap_before(words, p) >= SNAP_GAP_S:
+        return words[p][0], "pick is already a sentence start/pause"
+    # forward: nearest sentence start
+    limit_t = picked_t + SNAP_FORWARD_MAX_S
+    for i in range(p + 1, len(words)):
+        if words[i][0] > limit_t or words[i][3] > e_line:
+            break
+        if is_sentence_start(words, i):
+            return words[i][0], f"forward to sentence start {words[i][2]!r} (+{words[i][0] - picked_t:.2f}s)"
+    # forward: largest pause
+    best, best_gap = None, 0.0
+    for i in range(p + 1, len(words)):
+        if words[i][0] > limit_t or words[i][3] > e_line:
+            break
+        g = gap_before(words, i)
+        if g >= SNAP_GAP_S and g > best_gap:
+            best, best_gap = i, g
+    if best is not None:
+        return words[best][0], f"forward to pause {best_gap:.2f}s before {words[best][2]!r} (+{words[best][0] - picked_t:.2f}s)"
+    # backward: start of the sentence containing the pick, if inside the ad's first line
+    i = p
+    while i > 0 and not is_sentence_start(words, i) and gap_before(words, i) < SNAP_GAP_S:
+        i -= 1
+    if words[i][3] >= s_line:
+        return words[i][0], f"backward to sentence start {words[i][2]!r} (-{picked_t - words[i][0]:.2f}s)"
+    return picked_t, "no clean cut found; keeping pick"
+
+
+def snap_end(lines, s_line, e_line, picked_end_t):
+    """End on the largest pause (>= SNAP_GAP_S) that begins within SNAP_END_WINDOW_S after the last ad
+    word; the end is the start of that pause. Returns (time, note), time None if no pause was found."""
+    words = all_words(lines, s_line, min(len(lines) - 1, e_line + 1))
+    # the picked last word is the one whose end (before inset) is nearest picked_end_t
+    q = min(range(len(words)), key=lambda i: abs(words[i][1] - picked_end_t)) if words else None
+    if q is None:
+        return None, "no words"
+    best, best_gap = None, 0.0
+    for i in range(q, len(words) - 1):
+        if words[i][1] > words[q][1] + SNAP_END_WINDOW_S:
+            break
+        g = words[i + 1][0] - words[i][1]
+        if g >= SNAP_GAP_S and g > best_gap:
+            best, best_gap = i, g
+    if best is not None:
+        extra = f", +{best - q} word(s)" if best > q else ""
+        return words[best][1], f"pause {best_gap:.2f}s after {words[best][2]!r}{extra}"
+    return None, "no pause found; keeping pick"
+
+
 def refine_words(lines, s_line, e_line, seg):
     """Pass 2b: word-level boundaries. Returns (start, end, sure).
     Invalid picks are retried once, then fall back INWARD only: start -> end of the first ad line,
@@ -411,6 +499,17 @@ def refine_words(lines, s_line, e_line, seg):
         f"{'' if ok_s else ' (INWARD FALLBACK: end of first ad line)'}")
     log(f"    end:   {describe_boundary('E', e_words, lw, ok_e, lines, e_line)} -> {end:.2f}"
         f"{' (inset %.1fs)' % END_INSET_S if ok_e else ' (INWARD FALLBACK: start of last ad line)'}")
+    if ok_s:
+        snapped, note = snap_start(lines, s_line, e_line, start)
+        log(f"    snap start: {start:.2f} -> {snapped:.2f} ({note})")
+        start = snapped
+    if ok_e:
+        snapped, note = snap_end(lines, s_line, e_line, e_words[lw][1])
+        if snapped is not None:
+            log(f"    snap end:   {end:.2f} -> {snapped:.2f} ({note}; no inset needed)")
+            end = snapped
+        else:
+            log(f"    snap end:   kept {end:.2f} ({note})")
     log(f"    S ctx: {start_ctx}")
     log(f"    E ctx: {end_ctx}")
     sure = ok_s and ok_e
@@ -624,28 +723,61 @@ def brand_in_title(brand, title):
     return len(phrase) >= 3 and f" {phrase} " in f" {t} "
 
 
-def post_filter(segments, title):
+def brand_terms(brand):
+    """Normalized phrase plus the longest token (>= 4 chars) of a brand, for mention counting."""
+    toks = normalize(brand)
+    if not toks:
+        return []
+    terms = [" ".join(toks)]
+    longest = max(toks, key=len)
+    if len(longest) >= 4 and longest not in terms:
+        terms.append(longest)
+    return terms
+
+
+def mentions_outside(seg, lines):
+    """Number of lines outside the segment that mention its brand."""
+    terms = brand_terms(seg["brand"])
+    if not terms:
+        return 0
+    n = 0
+    for i, l in enumerate(lines):
+        if seg["start_line"] <= i <= seg["end_line"]:
+            continue
+        t = " " + " ".join(normalize(l["text"])) + " "
+        if any(f" {term} " in t for term in terms):
+            n += 1
+    return n
+
+
+def post_filter(segments, title, lines, verbose=True):
     """Final safety net for keep/show markers (skips are left alone and only logged):
     - drop keep/show whose evidence/reason reads like a sponsor disclaimer;
-    - drop keep/show whose brand is the video's subject (appears in the title);
+    - drop keep/show whose brand is the video's subject (in the title, or mentioned in >= TOPIC_MENTIONS
+      lines outside the segment);
     - drop show below SHOW_THRESHOLD."""
     out = []
+    say = log if verbose else (lambda *a: None)
     for s in segments:
         rng = f"{fmt_time(s['start'])}-{fmt_time(s['end'])}"
         if s["action"] in ("keep", "show"):
             text = f"{s.get('evidence', '')} {s.get('reason', '')}"
             m = DISCLAIMER_RE.search(text)
             if m:
-                log(f"  filter: dropped {s['action']} {rng} {s['brand']!r}: reads like a disclaimer ({m.group(0)!r})")
+                say(f"  filter: dropped {s['action']} {rng} {s['brand']!r}: reads like a disclaimer ({m.group(0)!r})")
                 continue
             if brand_in_title(s["brand"], title):
-                log(f"  filter: dropped {s['action']} {rng} {s['brand']!r}: brand is the video's subject (in title)")
+                say(f"  filter: dropped {s['action']} {rng} {s['brand']!r}: brand is the video's subject (in title)")
+                continue
+            n = mentions_outside(s, lines) if "start_line" in s else 0
+            if n >= TOPIC_MENTIONS:
+                say(f"  filter: dropped {s['action']} {rng} {s['brand']!r}: brand mentioned in {n} lines outside the segment (subject)")
                 continue
             if s["action"] == "show" and s["confidence"] < SHOW_THRESHOLD:
-                log(f"  filter: dropped show {rng} {s['brand']!r}: conf {s['confidence']:.2f} < {SHOW_THRESHOLD}")
+                say(f"  filter: dropped show {rng} {s['brand']!r}: conf {s['confidence']:.2f} < {SHOW_THRESHOLD}")
                 continue
         elif brand_in_title(s["brand"], title):
-            log(f"  filter: NOTE skip {rng} {s['brand']!r} brand appears in the title; kept (has verbatim evidence)")
+            say(f"  filter: NOTE skip {rng} {s['brand']!r} brand appears in the title; kept (has verbatim evidence)")
         out.append(s)
     return out
 
@@ -704,13 +836,13 @@ def run_job(video_id):
         wins = windows(lines)
         final = []
 
-        def finalize():
-            return [public_segment(x) for x in post_filter(merge_segments(final), title)]
+        def finalize(verbose):
+            return [public_segment(x) for x in post_filter(merge_segments(final), title, lines, verbose)]
 
         def publish():
             with jobs_lock:
                 if jobs.get(video_id) is job:
-                    job["segments"] = finalize()
+                    job["segments"] = finalize(verbose=False)  # the final call logs the filter decisions once
 
         def phase(win_slice, status):
             with jobs_lock:
@@ -739,7 +871,7 @@ def run_job(video_id):
         if len(wins) > 1:
             phase(wins[1:], "classifying_rest")
 
-        segments = finalize()
+        segments = finalize(verbose=True)
         with jobs_lock:
             superseded = jobs.get(video_id) is not job
         if superseded:
