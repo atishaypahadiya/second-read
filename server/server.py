@@ -311,14 +311,34 @@ STOPWORDS = {"the", "this", "video", "sponsored", "sponsor", "by", "thanks", "to
              "try", "learn", "click", "visit", "download", "start", "join", "sign", "head", "watch", "subscribe", "thank"}
 
 
+SOCIAL_HOSTS = ("youtube.", "youtu.be", "instagram.", "twitter.", "x.com", "tiktok.", "facebook.", "patreon.", "discord.",
+                "twitch.", "reddit.", "spotify.", "apple.", "bit.ly", "linktr.ee", "threads.", "snapchat.", "linkedin.",
+                "soundcloud.", "google.", "goo.gl", "amzn.to", "amazon.")
+OFFER_LINE_RE = re.compile(r"\d+ ?(?:%|percent) off|discount|free trial|promo ?code|coupon|use (?:my|the|our) link", re.I)
+
+
+def is_social(domain):
+    d = domain.lower()
+    if d.startswith("www."):
+        d = d[4:]
+    return d.startswith(SOCIAL_HOSTS)
+
+
 def extract_hints(description):
-    """Brands, promo codes, domains and chapter titles from the video description."""
+    """Brands, promo codes, sponsor links and chapter titles from the video description.
+
+    Only a SPONSOR LINE contributes brands and links: a line with an (ad)/sponsor/partner marker, a promo code or an
+    offer, or the line right after such a line (a "Sponsor:" header followed by the link). Every other link in the
+    description (the creator's own shop, socials, sources) is ignored: hint terms count as sponsor cues for the skip
+    gate, so they must not include the creator's own things."""
     hints = {"brands": [], "codes": [], "domains": [], "chapters": [], "chapter_times": []}
     if not description:
         return hints
+    prev_sponsor = False
     for line in description.splitlines():
         line = line.strip()
         if not line:
+            prev_sponsor = False
             continue
         m = CHAPTER_RE.match(line)
         if m:
@@ -328,13 +348,15 @@ def extract_hints(description):
                 parts = [int(x) for x in tm.group(1).split(":")]
                 secs = parts[0] * 60 + parts[1] if len(parts) == 2 else parts[0] * 3600 + parts[1] * 60 + parts[2]
                 hints.setdefault("chapter_times", []).append([secs, m.group(1).strip()[:60]])
-        for c in CODE_RE.findall(line):
-            hints["codes"].append(c)
-        for d in DOMAIN_RE.findall(line):
-            if not d.lower().startswith(("youtube.", "youtu.be", "instagram.", "twitter.", "x.com", "tiktok.", "facebook.",
-                                         "patreon.", "discord.", "twitch.", "reddit.", "spotify.", "apple.", "bit.ly", "linktr.ee")):
-                hints["domains"].append(d)
-        if AD_LINE_RE.search(line):
+        codes = CODE_RE.findall(line)
+        hints["codes"].extend(codes)
+        marked = bool(AD_LINE_RE.search(line))
+        sponsor_line = marked or bool(codes) or bool(OFFER_LINE_RE.search(line))
+        if sponsor_line or prev_sponsor:
+            for d in DOMAIN_RE.findall(line):
+                if not is_social(d):
+                    hints["domains"].append(d[4:] if d.lower().startswith("www.") else d)
+        if marked:
             caps = re.findall(r"\b[A-Z][A-Za-z0-9]{2,}\b", line)
             first_tok = line.split()[0].strip(".,:;!?()[]\"'") if line.split() else ""
             for w in caps:
@@ -345,6 +367,7 @@ def extract_hints(description):
                     continue  # sentence-initial capital ("Learn to code with...") is usually not a brand;
                     # but "Coddy (ad): ..." or "Odoo: odoo.com/x" keeps it
                 hints["brands"].append(w)
+        prev_sponsor = sponsor_line
     for k in ("brands", "codes", "domains", "chapters"):
         seen = []
         for x in hints[k]:
@@ -355,7 +378,17 @@ def extract_hints(description):
     return hints
 
 
-def hint_terms(hints):
+def hint_terms(hints, creator=""):
+    """Words that, when they occur in the transcript, point at the sponsor: brands, codes, and the brand-bearing
+    parts of sponsor links. Anything that is really the CREATOR's own name is dropped ('fern' from fern.deals/coddy,
+    'HARRIS' / 'harris' for Johnny Harris): creators say their own name in ordinary content, and hint terms count
+    as sponsor cues for the skip gate. A spoken promo code is still caught by the generic "code XYZ" cue."""
+    cn = re.sub(r"[^a-z0-9]", "", (creator or "").lower())
+
+    def own(term):
+        tn = re.sub(r"[^a-z0-9]", "", term.lower())
+        return bool(cn) and len(tn) >= 3 and (tn in cn or cn in tn)
+
     terms = list(hints["brands"]) + list(hints["codes"])
     for d in hints["domains"]:
         terms.append(d)
@@ -369,7 +402,7 @@ def hint_terms(hints):
                 terms.append(path)
     out = []
     for t in terms:
-        if t and t not in out:
+        if t and t not in out and not own(t):
             out.append(t)
     return out
 
@@ -1965,7 +1998,7 @@ def start_or_get_job(video_id, lang, lines, title="", meta=None, alines=None, al
     paid = meta.get("paid_promotion")
     inputs = inputs_digest(thash, title, description, paid, alines)
     hints = extract_hints(description)
-    terms = hint_terms(hints)
+    terms = hint_terms(hints, meta.get("creator", ""))
     same = alines is None
     # Fields every job has, whether it is computed or served from the cache (stats need them either way).
     base = {"hash": thash, "inputs": inputs, "lang": lang, "lines": lines, "title": title, "description": description,
