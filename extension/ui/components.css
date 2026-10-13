@@ -302,7 +302,7 @@
   border-radius: var(--sr-marker-h);
   pointer-events: auto;
   cursor: pointer;
-  transition: transform var(--sr-dur) var(--sr-ease);
+  transition: transform var(--sr-dur) var(--sr-ease), background-color var(--sr-dur) var(--sr-ease);
 }
 .sr-marker:hover { transform: scaleY(1.5); }
 /* meaning = color + shape: skip is a filled accent bar, integration an outline, label a dim fill */
@@ -315,6 +315,11 @@
 }
 .sr-marker[data-action="skip"].is-low {
   background: repeating-linear-gradient(135deg, var(--sr-accent) 0 3px, rgba(var(--sr-accent-rgb), 0.18) 3px 6px);
+}
+/* a skip that has been dealt with (skipped, undone, seeked into) will not skip again: the accent drains to the dim fill */
+.sr-marker.is-done[data-action="skip"] { background: rgba(255, 255, 255, var(--sr-o4)); }
+.sr-marker.is-done.is-low[data-action="skip"] {
+  background: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.7) 0 3px, rgba(255, 255, 255, 0.12) 3px 6px);
 }
 
 /* ================= tooltip (marker hover) ================= */

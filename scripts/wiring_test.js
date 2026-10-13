@@ -99,14 +99,33 @@ const videoHandlers = {};
 const fakeVideo = { currentTime: 12.5, duration: 1012.4, seeking: false,
                     addEventListener: (type, fn) => { videoHandlers[type] = fn; }, removeEventListener() {} };
 // Minimal DOM: elements remember their children and click handlers so the test can press the toast's buttons.
-const makeEl = () => ({ style: {}, dataset: {}, children: [], handlers: {}, attrs: {}, textContent: '', className: '',
-  classList: { add() {}, remove() {}, toggle() {}, contains: () => false },
+const makeEl = () => {
+  const e = { style: {}, dataset: {}, children: [], handlers: {}, attrs: {}, textContent: '', className: '',
   append(...kids) { this.children.push(...kids); }, appendChild(k) { this.children.push(k); return k; },
   setAttribute(k, v) { this.attrs[k] = v; }, querySelectorAll: () => [], getBoundingClientRect: () => ({ left: 0, width: 0 }),
-  addEventListener(type, fn) { this.handlers[type] = fn; }, remove() { this.removed = true; }, isConnected: true });
+  addEventListener(type, fn) { this.handlers[type] = fn; }, remove() { this.removed = true; }, isConnected: true };
+  const names = () => String(e.className || '').split(/\s+/).filter(Boolean);
+  e.classList = {
+    contains: (c) => names().includes(c),
+    add: (...cs) => { e.className = [...new Set([...names(), ...cs])].join(' '); },
+    remove: (...cs) => { e.className = names().filter((n) => !cs.includes(n)).join(' '); },
+    toggle: (c, on) => { const want = on === undefined ? !names().includes(c) : !!on; e.classList[want ? 'add' : 'remove'](c); return want; },
+  };
+  return e;
+};
 const hasClass = (e, c) => String(e.className || '').split(/\s+/).includes(c);
 const findDeep = (e, pred) => { if (pred(e)) return e; for (const k of e.children || []) { const r = findDeep(k, pred); if (r) return r; } return null; };
 const player = makeEl();
+const progressBar = makeEl();   // '#movie_player .ytp-progress-bar(-container)': where content.js hangs its marker lane
+const liveLane = () => progressBar.children.filter((c) => hasClass(c, 'sr-lane') && !c.removed).pop();
+const markerOf = (seg) => (liveLane() ? liveLane().children.find((m) => hasClass(m, 'sr-marker') && m.style.left === `${(seg.start / fakeVideo.duration) * 100}%`) : null);
+const tooltipTime = (seg) => {
+  const m = markerOf(seg);
+  if (!m || !m.handlers.mouseenter) return null;
+  m.handlers.mouseenter();
+  const tip = liveLane().children.filter((c) => hasClass(c, 'sr-tooltip') && !c.removed).pop();
+  return tip ? (findDeep(tip, (e) => hasClass(e, 'sr-tooltip__time')) || {}).textContent : null;
+};
 const contentRuntimeListeners = [];
 const win = {
   addEventListener: (type, fn) => { if (type === 'message') messageListeners.push(fn); },
@@ -123,7 +142,8 @@ const contentSandbox = {
   document: {
     addEventListener() {},
     getElementById: (id) => (id === 'movie_player' ? player : null),
-    querySelector: (sel) => (String(sel).includes('video.html5-main-video') ? fakeVideo : null),
+    querySelector: (sel) => (String(sel).includes('video.html5-main-video') ? fakeVideo
+      : String(sel).includes('ytp-progress-bar') ? progressBar : null),
     createElement: makeEl,
   },
   location: { href: `https://www.youtube.com/watch?v=${VIDEO_ID}` },
@@ -188,7 +208,14 @@ setTimeout(() => {
   const PLAYHEAD = 120.25;
   fakeVideo.currentTime = PLAYHEAD;
   check(typeof videoHandlers.timeupdate === 'function', 'content.js did not bind timeupdate on the video');
+  // marker lane: the skip marker is accent ("will skip") until the segment has been dealt with, then it goes quiet
+  const before = markerOf(SEG);
+  check(!!before && before.dataset.action === 'skip' && !hasClass(before, 'is-done'), `marker before the skip: ${before && before.className} / ${before && before.dataset.action}`);
+  check(/· will skip$/.test(tooltipTime(SEG) || ''), `tooltip before the skip: ${tooltipTime(SEG)}`);
   if (videoHandlers.timeupdate) videoHandlers.timeupdate();
+  const after = markerOf(SEG);
+  check(!!after && hasClass(after, 'is-done') && after.dataset.action === 'skip', `marker after the skip is not marked done: ${after && after.className}`);
+  check(/· skipped$/.test(tooltipTime(SEG) || ''), `tooltip after the skip: ${tooltipTime(SEG)}`);
   check(fakeVideo.currentTime === SEG.end, `skip did not fire: currentTime ${fakeVideo.currentTime}, expected ${SEG.end}`);
   const toast = player.children.find((c) => hasClass(c, 'sr-toast') && !c.removed);
   check(!!toast, 'no toast after the skip');
@@ -209,6 +236,9 @@ setTimeout(() => {
   check(!!wrong && typeof wrong.handlers.click === 'function', 'toast has no "Wrong skip" button');
   if (wrong && wrong.handlers.click) wrong.handlers.click({ stopPropagation() {} });
   check(fakeVideo.currentTime === PLAYHEAD, `"Wrong skip" did not undo: currentTime ${fakeVideo.currentTime}, expected ${PLAYHEAD}`);
+  const undone = markerOf(SEG);
+  check(!!undone && hasClass(undone, 'is-done'), 'marker went back to accent after the undo (the segment will not skip again, so it must stay quiet)');
+  check(/· plays$/.test(tooltipTime(SEG) || ''), `tooltip after the undo: ${tooltipTime(SEG)}`);
 
   // ---- popup "Missed an ad here" -> content.js -> POST /feedback
   fakeVideo.currentTime = 333.5;

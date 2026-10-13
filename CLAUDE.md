@@ -368,8 +368,10 @@ Every GET/POST for a video counts as a poll.
   else is coloured; hierarchy is the opacity ladder; no shadows, borders or dividers.
 - Markers live in their own 4px lane (`.sr-lane`) above YouTube's bar, never on it. Meaning is shape and tone:
   skip = filled accent, integration (keep) = outline, label-only (show) = dim, low confidence = hatched
-  (sponsor read under 0.85, anything else under 0.8). Hover shows a glass tooltip with name, chip, confidence,
-  time, what will happen, and the evidence quote.
+  (sponsor read under 0.85, anything else under 0.8). A skip marker whose segment has been dealt with (skipped,
+  undone, seeked into) is `.is-done`: the accent drains to the dim fill, because it will not skip again in this
+  page view. Hover shows a glass tooltip with name, chip, confidence, time, what will happen (will skip / skipped /
+  plays), and the evidence quote.
   Redraw on `loadedmetadata`.
 - On `timeupdate`: if inside a `skip` segment (before `end - 0.5`) not already handled → mark handled,
   set `video.currentTime = end`, show the toast for 6s: name, chip, "m:ss skipped", a hairline with the skipped

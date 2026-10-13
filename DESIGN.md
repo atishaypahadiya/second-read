@@ -30,6 +30,11 @@ docs; the popup and dashboard headers use the lowercase `second read`. Classes a
 6. **Bias toward playing is visible.** Anything the system will *not* skip is quiet (white, outlined
    or dim); only a skip gets the accent. A low-confidence segment is hatched so it never looks like
    a confident one.
+7. **Invisible until it matters.** The viewer should feel they are getting YouTube's own experience,
+   slightly better. Nothing announces itself: no pop-ups, no text on the player that the viewer did
+   not ask for. What the extension did shows as a small change of state in something already there
+   (a marker draining from accent to dim after a skip) and the detail sits behind a hover. Before
+   adding anything visible, look for a way to say it with a state change instead.
 
 ## Tokens (`extension/ui/tokens.css`)
 
@@ -98,7 +103,9 @@ control autohide.
 accent never sits on YouTube's red. Each `.sr-marker[data-action]` is a round-capped bar. Meaning is
 **shape and color**: `skip` filled accent; `keep` (integration) hollow white outline; `show` (label
 only) white fill @ o4; `.is-low` hatches (white .7 / .12, 3px stripes; accent stripes on a skip
-candidate). Hover scales to 1.5× and shows `.sr-tooltip.sr-glass.sr-glass--solid` (320 wide, r16,
+candidate). `.is-done` on a skip marker (the segment was skipped, undone, or seeked into, so it will
+not skip again in this page view) drains the accent to the dim fill over `--sr-dur`; its tooltip
+reads "skipped" or "plays" instead of "will skip". Hover scales to 1.5× and shows `.sr-tooltip.sr-glass.sr-glass--solid` (320 wide, r16,
 padding 14 16): brand, chip, mono confidence, mono time line ("4:47 – 5:39 · will skip"), evidence
 quote mono 13 @ .85.
 
