@@ -78,6 +78,8 @@ TOPIC_MENTIONS = 3          # brand mentioned in this many lines outside the seg
 HINT_CLUSTER_GAP_S = 120.0  # transcript mentions of a description hint closer than this form one region
 HINT_REGION_PAD_S = 60.0    # detect windows overlapping a hint region (+- this) are skipped: refine runs directly
 ANCHOR_CUE_WORDS = 25       # a start anchor is trusted only if a sponsor cue follows within this many words
+MAX_HINT_LINES = 8          # a hint term matching more lines than this is too common to be a sponsor marker
+MAX_HINT_REGION_S = 240.0   # a hint region longer than this is split (keeps refine windows inside the context)
 CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cache")
 RESULTS_MD = os.path.join(CACHE_DIR, "results.local.md")  # gitignored: it records which videos were watched
 VIDEO_ID_RE = re.compile(r"^[A-Za-z0-9_-]{11}$")
@@ -1186,17 +1188,31 @@ def hint_candidates(job):
     alines, terms, hints = job["alines"], job["terms"], job["hints"]
     if not terms:
         return []
+    lows = [" " + " ".join(normalize(l["text"])) + " " for l in alines]
+    usable, too_common = [], []
+    for t in terms:
+        tn = " ".join(normalize(t))
+        if len(tn) < 4:
+            continue
+        n = sum(1 for low in lows if f" {tn} " in low)
+        if n > MAX_HINT_LINES:
+            log(f"[{job['video_id']}] hint term {t!r} matches {n} lines: too common, dropped as a hint and as a cue")
+            too_common.append(t)
+            continue
+        if n:
+            usable.append((t, tn))
+    if too_common:
+        job["terms"] = [t for t in terms if t not in too_common]
     hits = []  # (line index, term)
-    for i, l in enumerate(alines):
-        low = " " + " ".join(normalize(l["text"])) + " "
-        for t in terms:
-            tn = " ".join(normalize(t))
-            if len(tn) >= 4 and f" {tn} " in low:
+    for i, low in enumerate(lows):
+        for t, tn in usable:
+            if f" {tn} " in low:
                 hits.append((i, t))
                 break
     cands = []
     for i, t in hits:
-        if cands and alines[i]["start"] - alines[cands[-1]["end_line"]]["end"] <= HINT_CLUSTER_GAP_S:
+        if cands and alines[i]["start"] - alines[cands[-1]["end_line"]]["end"] <= HINT_CLUSTER_GAP_S \
+                and alines[i]["end"] - cands[-1]["start"] <= MAX_HINT_REGION_S:
             c = cands[-1]
             c["end_line"] = i
             c["end"] = alines[i]["end"]
@@ -1217,33 +1233,36 @@ def hint_candidates(job):
 def plan_job(job):
     """Build the ordered list of units to run, done once per job: hint regions first (straight to refine),
     then prefiltered detect windows in playhead order."""
-    alines, position, terms = job["alines"], job.get("position", 0.0), job["terms"]
+    alines, position = job["alines"], job.get("position", 0.0)
     wins = windows(alines)
-    hint_cands = hint_candidates(job)
+    hint_cands = hint_candidates(job)  # may drop too-common terms from job["terms"]
+    terms = job["terms"]
     regions = [(c["start"] - HINT_REGION_PAD_S, c["end"] + HINT_REGION_PAD_S) for c in hint_cands]
-    sent, covered = [], 0
+    sent, deferred = [], []
     brand_terms_only = [t for t in terms if t in job["hints"]["brands"]]
     for first, last in wins:
         w_start, w_end = alines[first]["start"], alines[last]["end"]
-        if any(w_start < hi and w_end > lo for lo, hi in regions):
-            covered += 1
-            continue  # a hint region covers it: refine runs there directly
         text = " ".join(alines[i]["text"] for i in range(first, last + 1))
-        if window_cues(text, terms):
-            sent.append((first, last))
-        else:
+        if not window_cues(text, terms):
             low = text.lower()
             named = [b for b in brand_terms_only if b.lower() in low]
-            if named:  # can't happen while brands are cue terms, but guards future cue-list changes
+            if named:
                 log(f"[{job['video_id']}] prefilter: POSSIBLE MISS, skipped window "
-                    f"{fmt_time(alines[first]['start'])}-{fmt_time(alines[last]['end'])} mentions hint brand {named}")
-    units = [("hint", c) for c in hint_cands] + [("win", f, l) for f, l in order_windows(sent, alines, position, terms)]
+                    f"{fmt_time(w_start)}-{fmt_time(w_end)} mentions hint brand {named}")
+            continue
+        if any(w_start < hi and w_end > lo for lo, hi in regions):
+            deferred.append((first, last))  # a hint region covers it: runs last, and only if the hint refine found nothing there
+        else:
+            sent.append((first, last))
+    units = ([("hint", c) for c in hint_cands]
+             + [("win", f, l, False) for f, l in order_windows(sent, alines, position, terms)]
+             + [("win", f, l, True) for f, l in order_windows(deferred, alines, position, terms)])
     with jobs_lock:
         job["n_windows"] = len(wins)
         job["n_sent"] = len(units)
         job["pending"] = units
-    log(f"[{job['video_id']}] prefilter: {len(sent)} of {len(wins)} windows sent"
-        f"{f', {covered} covered by {len(hint_cands)} hint region(s)' if hint_cands else ''}"
+    log(f"[{job['video_id']}] prefilter: {len(sent) + len(deferred)} of {len(wins)} windows sent"
+        f"{f', {len(deferred)} deferred behind {len(hint_cands)} hint region(s)' if hint_cands else ''}"
         f"{'; hints: ' + ', '.join(terms[:8]) if terms else ''}; playhead {fmt_time(position)}; "
         f"order: {[('hint ' if u[0] == 'hint' else '') + fmt_time(alines[u[1]['start_line'] if u[0] == 'hint' else u[1]]['start']) for u in units]}")
     for c in hint_cands:
@@ -1258,7 +1277,15 @@ def run_unit(job, unit):
         job["final"].extend(refine_candidate(job["alines"], job["lines"], cand, job["alang"], job["title"],
                                              job["calls"], job["header"], job["terms"]))
         return
-    run_window(job, unit[1], unit[2])
+    _, first, last, deferred = unit
+    if deferred:
+        alines = job["alines"]
+        w = {"start": alines[first]["start"], "end": alines[last]["end"]}
+        if any(overlaps(w, f) and f["category"] == "sponsor" for f in job["final"]):
+            log(f"  detect  L{first}-L{last}: skipped, hint-region refine already found a sponsor segment here")
+            return
+        log(f"  detect  L{first}-L{last}: hint region produced nothing here; running detect after all")
+    run_window(job, first, last)
 
 
 def run_window(job, first, last):
