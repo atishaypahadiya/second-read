@@ -106,7 +106,8 @@ Every GET/POST for a video counts as a poll.
   under. A changed caption track = new hash = everything re-runs.
   **Staged versions** — bump the one(s) a change affects:
   - `DETECT_VERSION`: pass-1 rubric (`SYSTEM_PROMPT`), `OUTPUT_SCHEMA`, window size/overlap;
-  - `REFINE_VERSION`: `SYSTEM_PROMPT`, `REFINE_INSTRUCTIONS`, context size, `WORD_PROMPT`/`WORD_SCHEMA`;
+  - `REFINE_VERSION`: `SYSTEM_PROMPT`, `REFINE_INSTRUCTIONS`, `OUTPUT_SCHEMA` anchors, context size,
+    `WORD_PROMPT`/`WORD_SCHEMA`;
   - `POST_VERSION`: evidence gate, thresholds, snapping, merge, filters (no model calls; re-process is < 1s).
   A rubric change in `SYSTEM_PROMPT` affects both passes: bump DETECT and REFINE. The server logs how many
   model calls were reused vs computed. A POST with a new hash while a job is running supersedes it; the old
@@ -127,6 +128,13 @@ Every GET/POST for a video counts as a poll.
 - **Description hints:** brands (capitalized words on "(ad)"/sponsor lines), promo codes, domains and chapter titles
   are extracted from the description, added to the cue list, used for ordering, and shown to the model in the prompt
   header (so a misheard "Udo" can be matched to Odoo).
+- **Hint fast path:** transcript lines that mention a hint term (brand/code/domain, ≥ 4 chars) are clustered (gap
+  ≤ 120s) into regions that go **straight to refine** as candidates (`source: hint`); detect windows overlapping a
+  region ± 60s are skipped. Regions run before any detect window.
+- **Merged refine + boundaries:** the refine call also returns `first_words` / `last_words` (3–5 verbatim words at
+  the ad's start and end). If each phrase occurs exactly once in the boundary context (±1 line) they are used as the
+  word picks, saving the separate word pass; otherwise the labeled word pass runs as the retry. Non-English videos
+  always use the labeled pass on the original track (the anchors are in the English analysis text).
 - **Two tracks for non-English videos:** page.js also fetches the English auto-translation (`tlang=en` on the token
   URL). Prefilter, detect, refine, evidence and topic filter run on the English `analysisLines`; the result is mapped
   to the original track by time overlap and the word pass + snapping run on the original for exact cuts. No
