@@ -156,7 +156,7 @@ def segue_type(ad_text, before_text):
     if HARD_CUT.search(opening):
         return "hard cut", fs
     shared = content_words(fs) & content_words(before_text)
-    if len(shared) >= 2:
+    if len(shared) >= 2 or any(len(w) >= 7 for w in shared):
         return "topical bridge", f"{fs} (shares: {', '.join(sorted(shared)[:4])})"
     return "none", fs
 
