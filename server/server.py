@@ -29,8 +29,15 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
 HOST, PORT = "127.0.0.1", 8765
+ALLOWED_HOSTS = {f"127.0.0.1:{PORT}", f"localhost:{PORT}", "127.0.0.1", "localhost"}
+# Optional: restrict to one extension. Unpacked extension IDs differ per machine, so this is opt-in:
+#   SS_EXTENSION_ID=abcdefghijklmnopabcdefghijklmnop python3 server/server.py
+EXTENSION_ID = os.environ.get("SS_EXTENSION_ID", "").strip()
 OLLAMA = "http://localhost:11434"
 MODEL = "qwen3:14b"
+# Bump whenever the prompt, schema, threshold or post-processing changes: cached results from an
+# older pipeline are then ignored and the video is re-analyzed.
+PIPELINE_VERSION = 5
 NUM_CTX = 8192
 LLM_TIMEOUT_S = 600
 MAX_BODY_BYTES = 8 * 1024 * 1024
@@ -589,7 +596,17 @@ def save_cache(video_id, data):
 
 
 def public_job(job):
-    return {"status": job["status"], "segments": job["segments"]}
+    out = {"status": job["status"], "segments": job["segments"]}
+    if job.get("cached"):
+        out["cached"] = True
+    if job.get("error"):
+        out["error"] = job["error"]
+    return out
+
+
+def cache_valid(cached, thash):
+    return (cached and cached.get("hash") == thash and cached.get("version") == PIPELINE_VERSION
+            and cached.get("model") == MODEL)
 
 
 def run_job(video_id):
@@ -602,7 +619,8 @@ def run_job(video_id):
 
         def publish():
             with jobs_lock:
-                job["segments"] = [public_segment(x) for x in merge_segments(final)]
+                if jobs.get(video_id) is job:
+                    job["segments"] = [public_segment(x) for x in merge_segments(final)]
 
         def phase(win_slice, status):
             with jobs_lock:
@@ -632,8 +650,13 @@ def run_job(video_id):
             phase(wins[1:], "classifying_rest")
 
         segments = [public_segment(x) for x in merge_segments(final)]
+        with jobs_lock:
+            superseded = jobs.get(video_id) is not job
+        if superseded:
+            log(f"[{video_id}] job superseded by a newer transcript; discarding result")
+            return
         log_segments(video_id, segments)
-        save_cache(video_id, {"videoId": video_id, "hash": thash, "lang": lang,
+        save_cache(video_id, {"videoId": video_id, "version": PIPELINE_VERSION, "hash": thash, "lang": lang,
                               "model": MODEL, "segments": segments, "transcript": lines})
         with jobs_lock:
             job["segments"] = segments
@@ -656,17 +679,25 @@ def start_or_get_job(video_id, lang, lines):
     with jobs_lock:
         job = jobs.get(video_id)
         if job and job["hash"] == thash and job["status"] != "error":
+            if job["status"] == "done":
+                job["cached"] = True  # reused, not computed for this request
             return job
         cached = load_cache(video_id)
-        if cached and cached.get("hash") == thash:
+        if cache_valid(cached, thash):
             job = {"status": "done", "segments": cached.get("segments", []),
-                   "hash": thash, "lang": lang, "lines": lines}
+                   "hash": thash, "lang": lang, "lines": lines, "cached": True}
             jobs[video_id] = job
             log(f"[{video_id}] cache hit ({len(job['segments'])} segment(s))")
             return job
+        why = ""
+        if job:
+            why = " (transcript changed; replacing running job)" if job["status"] != "error" else " (previous attempt errored)"
+        elif cached:
+            why = (" (cache is from pipeline v%s/%s; now v%s/%s)" % (cached.get("version"), cached.get("model"), PIPELINE_VERSION, MODEL)
+                   if cached.get("hash") == thash else " (cached transcript hash differs)")
         job = {"status": "queued", "segments": [], "hash": thash, "lang": lang, "lines": lines}
         jobs[video_id] = job
-    log(f"[{video_id}] new job: {len(lines)} lines, lang={lang}, hash={thash}")
+    log(f"[{video_id}] new job: {len(lines)} lines, lang={lang}, hash={thash}{why}")
     threading.Thread(target=run_job, args=(video_id,), daemon=True).start()
     return job
 
@@ -690,11 +721,21 @@ class Handler(BaseHTTPRequestHandler):
 
     def allowed_origin(self):
         """Only the extension (host_permissions, no CORS needed) or non-browser clients like curl.
-        Web pages send an http(s) Origin; refuse them so sites can't read or poison the cache."""
-        origin = self.headers.get("Origin")
-        if origin and not origin.startswith("chrome-extension://"):
-            self.send_json(403, {"error": "forbidden origin"})
+        - Host must be localhost/127.0.0.1: defeats DNS rebinding (evil.example -> 127.0.0.1).
+        - Web pages send an http(s) Origin; refuse them so sites can't read or poison the cache.
+        - With SS_EXTENSION_ID set, only that extension's origin is accepted."""
+        host = (self.headers.get("Host") or "").strip().lower()
+        if host not in ALLOWED_HOSTS:
+            self.send_json(403, {"error": "forbidden host"})
             return False
+        origin = self.headers.get("Origin")
+        if origin:
+            if not origin.startswith("chrome-extension://"):
+                self.send_json(403, {"error": "forbidden origin"})
+                return False
+            if EXTENSION_ID and origin != f"chrome-extension://{EXTENSION_ID}":
+                self.send_json(403, {"error": "forbidden extension"})
+                return False
         return True
 
     def do_GET(self):
@@ -711,8 +752,8 @@ class Handler(BaseHTTPRequestHandler):
                 job = jobs.get(vid)
             if not job:
                 cached = load_cache(vid)
-                if cached:
-                    return self.send_json(200, {"status": "done", "segments": cached.get("segments", [])})
+                if cached and cached.get("version") == PIPELINE_VERSION and cached.get("model") == MODEL:
+                    return self.send_json(200, {"status": "done", "segments": cached.get("segments", []), "cached": True})
                 return self.send_json(404, {"error": "unknown"})
             return self.send_json(200, public_job(job))
         self.send_json(404, {"error": "not found"})

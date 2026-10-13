@@ -98,7 +98,13 @@ Status values: `queued → classifying → classifying_rest → done` (or `error
 
 - Validate video ID (`^[A-Za-z0-9_-]{11}$`), clean lines, sort by start.
 - Cache key: videoId + short SHA-1 of `start|text` lines. Cache file `cache/<videoId>.json` holds hash, lang,
-  segments, transcript. A changed caption track = new hash = re-run.
+  segments, transcript, model and `version` (= `PIPELINE_VERSION`). A changed caption track = new hash = re-run.
+  A cache written by an older pipeline version or another model is ignored and re-run. **Bump
+  `PIPELINE_VERSION` whenever the prompt, schema, threshold or post-processing changes**, or tuning will be
+  tested against stale results. A POST with a new hash while a job is running supersedes it; the old thread's
+  result is discarded.
+- Access: Host must be localhost/127.0.0.1 (DNS rebinding), http(s) Origins are refused, and
+  `SS_EXTENSION_ID=<id>` optionally restricts to one extension's origin.
 - Run in a background thread. One LLM call at a time (lock).
 - **Windows:** 240s with 30s overlap. Classify 0–240s first, then the rest.
 - **Prompt input:** `Transcript language: xx` then lines formatted `L{i} [m:ss] text` (global line indices).
@@ -184,6 +190,12 @@ Each stage ends with a "done when" check on a real video.
    - evidence should be a short sponsor CUE, not the whole ad: the model once quoted ~300 words (matched, but a
      verbatim match of the whole ad proves nothing, and refine took 38s instead of 17s). Later: cap evidence at
      ~25 words and require it to contain a cue (sponsored by / thanks to X for sponsoring / code / link / offer).
+   - run-to-run variance: fern's start was 9:03 ("Psych. It's an ad.") one run and 9:17 ("Udu,") the next, because
+     pass 1 gave a different candidate range (L101–L110 vs L103–L109) so refine saw a different window. Errs safe.
+     Consider widening the refine window or anchoring on the earliest candidate line.
+   - fern's end boundary logged "estimated (track has no word timing)" although 428/496 lines have word timing:
+     the end line's `timed` flag seems lost (last line of a merged / aAppend event?). End still landed inside
+     "year." so it's safe, but find out why.
 
 ## Open decisions (ask Atishay)
 
@@ -199,6 +211,7 @@ Each stage ends with a "done when" check on a real video.
 ollama serve &                 # or the Ollama app
 ollama pull qwen3:14b
 python3 server/server.py       # http://localhost:8765
+# optional: SS_EXTENSION_ID=<your unpacked extension's ID from chrome://extensions> python3 server/server.py
 ```
 Chrome → `chrome://extensions` → Developer mode → Load unpacked → `extension/`.
 After editing extension files: hit reload on the extension card, then refresh the YouTube tab.
@@ -210,6 +223,6 @@ Debug: DevTools console filtered by `SponsorSkipper`; server terminal for segmen
 - [x] 2. Caption fetch + parse
 - [x] 3. Server skeleton + relay
 - [x] 4. Qwen classification
-- [ ] 5. Post-processing + cache
+- [x] 5. Post-processing + cache
 - [ ] 6. Playback UI
 - [ ] 7. Tuning pass
