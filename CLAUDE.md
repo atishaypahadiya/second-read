@@ -90,7 +90,7 @@ sponsor-skipper/
 API:
 | Method | Path | Body / query | Returns |
 | --- | --- | --- | --- |
-| POST | `/analyze` | `{videoId, lang, lines}` | job `{status, segments}`; starts it if new |
+| POST | `/analyze` | `{videoId, lang, title, lines}` | job `{status, segments}`; starts it if new |
 | GET | `/analyze?v=ID` | — | job `{status, segments}` or 404 `unknown` |
 | GET | `/health` | — | `{ok, model}` |
 
@@ -107,7 +107,8 @@ Status values: `queued → classifying → classifying_rest → done` (or `error
   `SS_EXTENSION_ID=<id>` optionally restricts to one extension's origin.
 - Run in a background thread. One LLM call at a time (lock).
 - **Windows:** 240s with 30s overlap. Classify 0–240s first, then the rest.
-- **Prompt input:** `Transcript language: xx` then lines formatted `L{i} [m:ss] text` (global line indices).
+- **Prompt input:** `Transcript language: xx`, `Video title: …` (from `videoDetails.title`), then lines formatted
+  `L{i} [m:ss] text` (global line indices).
 - **Ollama call:** `/api/chat`, `stream: false`, `format: <JSON schema>`, `temperature: 0`, `num_ctx: 8192`,
   `think: false` for qwen3.
 - **Output schema:** `{"segments": [{start_line, end_line, category, style, brand, confidence, evidence, reason}]}`
@@ -126,7 +127,10 @@ Status values: `queued → classifying → classifying_rest → done` (or `error
   ads, line ends overshoot). Pass 2 (refine), for each `sponsor` candidate: build a window from ~90s before to
   ~90s after it and ask for the full extent of that one promotion (model may return two for mixed, or none to
   withdraw it). Then offer the words of ±1 line around each boundary line as numbered words (`S0..`, `E0..`)
-  and ask for the first and last ad word. `selfpromo`/`interaction` candidates are kept as-is (they're `show`).
+  and ask for the first and last ad word as `{first: "S9", first_word: "but", last: "E28", last_word: "video"}`.
+  A label that is invalid (the model once answered with global line indices) is resolved by the word text if it
+  matches exactly one word in the context; the log says which rule resolved each boundary.
+  `selfpromo`/`interaction` candidates are kept as-is (they're `show`).
 - **Post-processing:**
   - Drop any segment whose lines fall outside the window it was given (hallucinated indices).
   - start = start of the first ad word; end = end of the last ad word − 0.3s (round inward). If the word
@@ -140,6 +144,9 @@ Status values: `queued → classifying → classifying_rest → done` (or `error
   - Word pass fallback is inward only: invalid pick → retry once → start = end of first ad line, end = start of
     last ad line; if < 3s remains, downgrade to `show`. Never fall back outward to a line end.
   - Merge overlapping or touching (gap ≤ 1s) segments with the same action and brand.
+  - **Post-filter** (keep/show only; skips are never dropped here, only logged): drop if evidence/reason reads like
+    a sponsor disclaimer; drop if the brand appears in the video title (it's the subject); drop `show` below
+    `SHOW_THRESHOLD` (0.7).
   - Each segment also carries `line_start`/`line_end` (pre-refinement times) for the log and tooltip.
 - Log every final segment to the terminal: action, refined time range, line-level range, category/style, brand,
   confidence, reason. Also log each detect/refine/words call with its timing.

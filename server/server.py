@@ -37,12 +37,13 @@ OLLAMA = "http://localhost:11434"
 MODEL = "qwen3:14b"
 # Bump whenever the prompt, schema, threshold or post-processing changes: cached results from an
 # older pipeline are then ignored and the video is re-analyzed.
-PIPELINE_VERSION = 6
+PIPELINE_VERSION = 7
 NUM_CTX = 8192
 LLM_TIMEOUT_S = 600
 MAX_BODY_BYTES = 8 * 1024 * 1024
 MAX_LINES = 20000
 SKIP_THRESHOLD = 0.85
+SHOW_THRESHOLD = 0.7        # drop 'show' segments below this: low-confidence noise
 WINDOW_S, OVERLAP_S = 240.0, 30.0
 REFINE_CONTEXT_S = 90.0     # context on each side of a candidate in pass 2
 BOUNDARY_LINES = 1          # lines on each side of a boundary line offered as numbered words
@@ -215,8 +216,10 @@ OUTPUT_SCHEMA = {
 }
 
 
-def format_window(lines, first, last, lang):
+def format_window(lines, first, last, lang, title=""):
     out = [f"Transcript language: {lang}"]
+    if title:
+        out.append(f"Video title: {title}")
     for i in range(first, last + 1):
         out.append(f"L{i} [{fmt_time(lines[i]['start'])}] {lines[i]['text']}")
     return "\n".join(out)
@@ -252,10 +255,10 @@ def segments_of(result):
     return [x for x in (segs or []) if isinstance(x, dict)]
 
 
-def classify_window(lines, first, last, lang):
+def classify_window(lines, first, last, lang, title=""):
     """Pass 1: raw model segments (global line indices) for lines[first..last]."""
     t0 = time.time()
-    result, meta = ollama_chat_retry(format_window(lines, first, last, lang), label=f"window L{first}-L{last}")
+    result, meta = ollama_chat_retry(format_window(lines, first, last, lang, title), label=f"window L{first}-L{last}")
     segs = segments_of(result)
     log(f"  detect  L{first}-L{last} ({fmt_time(lines[first]['start'])}-{fmt_time(lines[last]['end'])}): "
         f"{len(segs)} raw segment(s) in {time.time() - t0:.1f}s, "
@@ -273,12 +276,12 @@ reflection this is not a promotion at all, return no segments. Do not label anyt
 this candidate."""
 
 
-def refine_candidate_lines(lines, cand, lang):
+def refine_candidate_lines(lines, cand, lang, title=""):
     """Pass 2a: re-ask with ~REFINE_CONTEXT_S of context either side. Returns raw segs + window bounds."""
     lo, hi = cand["start"] - REFINE_CONTEXT_S, cand["end"] + REFINE_CONTEXT_S
     idx = [i for i, l in enumerate(lines) if lo <= l["start"] <= hi]
     first, last = min(idx[0], cand["start_line"]), max(idx[-1], cand["end_line"])
-    prompt = format_window(lines, first, last, lang) + REFINE_INSTRUCTIONS.format(
+    prompt = format_window(lines, first, last, lang, title) + REFINE_INSTRUCTIONS.format(
         category=cand["category"], style=cand["style"], brand=cand["brand"],
         a=cand["start_line"], b=cand["end_line"])
     t0 = time.time()
@@ -292,19 +295,24 @@ def refine_candidate_lines(lines, cand, lang):
 
 WORD_SCHEMA = {
     "type": "object",
-    "properties": {"first_word": {"type": "integer"}, "last_word": {"type": "integer"}},
-    "required": ["first_word", "last_word"],
+    "properties": {
+        "first": {"type": "string"}, "first_word": {"type": "string"},
+        "last": {"type": "string"}, "last_word": {"type": "string"},
+    },
+    "required": ["first", "first_word", "last", "last_word"],
 }
 
 WORD_PROMPT = """You are fixing the exact boundaries of a {category} {style} for brand {brand!r} in a YouTube transcript.
 
 The promotion begins somewhere in the START CONTEXT and ends somewhere in the END CONTEXT below.
-Words are numbered. Pick:
-- first_word: the index (S number) of the FIRST word that belongs to the promotion, e.g. the first word
+Words are labeled S0, S1, ... in the START CONTEXT and E0, E1, ... in the END CONTEXT. Answer with the
+LABEL (copied exactly, e.g. "S9" or "E28") and the WORD at that label (copied exactly):
+- first / first_word: the label and text of the FIRST word that belongs to the promotion, e.g. the first word
   of "but first, this video is sponsored by...". Words before it are normal content.
-- last_word: the index (E number) of the LAST word that is still part of the promotion, e.g. the last word
+- last / last_word: the label and text of the LAST word that is still part of the promotion, e.g. the last word
   of the promo code / link / "thanks to X for sponsoring" sentence. The words after it, where the creator
   returns to the video's own topic, are NOT part of the promotion even if they are in the same line.
+Use only labels that appear below. Do not use line numbers or any other numbering.
 Skipping real content is far worse than leaving a little of the ad, so when unsure choose a LATER
 first_word and an EARLIER last_word. If the context is auto-generated it may lack punctuation; judge by meaning.
 
@@ -338,6 +346,31 @@ def describe_boundary(label, words, idx, ok, lines, line_idx):
     return f"{src}, {len(words)} words in context, pick={pick}"
 
 
+def resolve_pick(label_value, word_value, words, prefix):
+    """Turn the model's (label, word) answer into a context index.
+    Returns (index or None, rule). Rules: 'label', 'label-int', 'text-unique', or a failure reason."""
+    idx = None
+    if isinstance(label_value, int):
+        idx, rule = label_value, "label-int"
+    elif isinstance(label_value, str):
+        m = re.fullmatch(r"\s*([SE])?\s*(\d+)\s*", label_value, re.I)
+        if m:
+            idx, rule = int(m.group(2)), "label"
+    if idx is not None and 0 <= idx < len(words):
+        if isinstance(word_value, str) and word_value.strip() and normalize(word_value) != normalize(words[idx][2]):
+            # label and word disagree; trust the word if it is unique in the context
+            hits = [i for i, w in enumerate(words) if normalize(w[2]) == normalize(word_value)]
+            if len(hits) == 1:
+                return hits[0], f"text-unique (label {prefix}{idx} said {words[idx][2]!r})"
+        return idx, rule
+    if isinstance(word_value, str) and word_value.strip():
+        hits = [i for i, w in enumerate(words) if normalize(w[2]) == normalize(word_value)]
+        if len(hits) == 1:
+            return hits[0], f"text-unique (label {label_value!r} invalid)"
+        return None, f"label {label_value!r} invalid, word {word_value!r} matches {len(hits)} words"
+    return None, f"label {label_value!r} invalid, no word text"
+
+
 def refine_words(lines, s_line, e_line, seg):
     """Pass 2b: word-level boundaries. Returns (start, end, sure).
     Invalid picks are retried once, then fall back INWARD only: start -> end of the first ad line,
@@ -353,6 +386,7 @@ def refine_words(lines, s_line, e_line, seg):
     inward_start, inward_end = lines[s_line]["end"], lines[e_line]["start"]
 
     fw = lw = None
+    rule_s = rule_e = "no answer"
     ok_s = ok_e = False
     t0 = time.time()
     for attempt in (1, 2):
@@ -361,12 +395,14 @@ def refine_words(lines, s_line, e_line, seg):
         except (OSError, ValueError) as e:
             log(f"  words   L{s_line}/L{e_line}: model call failed ({e!r})")
             break
-        fw, lw = result.get("first_word"), result.get("last_word")
-        ok_s = isinstance(fw, int) and 0 <= fw < len(s_words)
-        ok_e = isinstance(lw, int) and 0 <= lw < len(e_words)
+        fw, rule_s = resolve_pick(result.get("first"), result.get("first_word"), s_words, "S")
+        lw, rule_e = resolve_pick(result.get("last"), result.get("last_word"), e_words, "E")
+        ok_s, ok_e = fw is not None, lw is not None
+        log(f"  words   L{s_line}/L{e_line}: answer first={result.get('first')!r}/{result.get('first_word')!r} "
+            f"last={result.get('last')!r}/{result.get('last_word')!r} -> start rule: {rule_s}; end rule: {rule_e}")
         if ok_s and ok_e:
             break
-        log(f"  words   L{s_line}/L{e_line}: invalid pick first={fw!r} last={lw!r} (attempt {attempt})")
+        log(f"  words   L{s_line}/L{e_line}: unresolved pick (attempt {attempt})")
 
     start = s_words[fw][0] if ok_s else inward_start
     end = (e_words[lw][1] - END_INSET_S) if ok_e else inward_end
@@ -546,9 +582,9 @@ def public_segment(seg):
     return {k: seg[k] for k in keys if k in seg}
 
 
-def refine_candidate(lines, cand, lang):
+def refine_candidate(lines, cand, lang, title=""):
     """Pass 2 for one sponsor candidate -> list of refined segments (possibly empty)."""
-    raw, first, last = refine_candidate_lines(lines, cand, lang)
+    raw, first, last = refine_candidate_lines(lines, cand, lang, title)
     refined = []
     for r in raw:
         seg = to_segment(r, lines, first, last)
@@ -572,6 +608,46 @@ def refine_candidate(lines, cand, lang):
     if not refined:
         log(f"  refine: candidate {fmt_time(cand['start'])}-{fmt_time(cand['end'])} {cand['brand']!r} withdrawn by model")
     return refined
+
+
+DISCLAIMER_RE = re.compile(
+    r"disclaim|disclosure|not sponsored|isn'?t sponsored|aren'?t involved|not involved|no sponsor|"
+    r"sometimes sponsor|transparen|conflict of interest", re.I)
+
+
+def brand_in_title(brand, title):
+    b = normalize(brand)
+    if not b or not title:
+        return False
+    t = " ".join(normalize(title))
+    phrase = " ".join(b)
+    return len(phrase) >= 3 and f" {phrase} " in f" {t} "
+
+
+def post_filter(segments, title):
+    """Final safety net for keep/show markers (skips are left alone and only logged):
+    - drop keep/show whose evidence/reason reads like a sponsor disclaimer;
+    - drop keep/show whose brand is the video's subject (appears in the title);
+    - drop show below SHOW_THRESHOLD."""
+    out = []
+    for s in segments:
+        rng = f"{fmt_time(s['start'])}-{fmt_time(s['end'])}"
+        if s["action"] in ("keep", "show"):
+            text = f"{s.get('evidence', '')} {s.get('reason', '')}"
+            m = DISCLAIMER_RE.search(text)
+            if m:
+                log(f"  filter: dropped {s['action']} {rng} {s['brand']!r}: reads like a disclaimer ({m.group(0)!r})")
+                continue
+            if brand_in_title(s["brand"], title):
+                log(f"  filter: dropped {s['action']} {rng} {s['brand']!r}: brand is the video's subject (in title)")
+                continue
+            if s["action"] == "show" and s["confidence"] < SHOW_THRESHOLD:
+                log(f"  filter: dropped show {rng} {s['brand']!r}: conf {s['confidence']:.2f} < {SHOW_THRESHOLD}")
+                continue
+        elif brand_in_title(s["brand"], title):
+            log(f"  filter: NOTE skip {rng} {s['brand']!r} brand appears in the title; kept (has verbatim evidence)")
+        out.append(s)
+    return out
 
 
 def log_segments(video_id, segments):
@@ -623,15 +699,18 @@ def cache_valid(cached, thash):
 def run_job(video_id):
     with jobs_lock:
         job = jobs[video_id]
-        lines, lang, thash = job["lines"], job["lang"], job["hash"]
+        lines, lang, thash, title = job["lines"], job["lang"], job["hash"], job.get("title", "")
     try:
         wins = windows(lines)
         final = []
 
+        def finalize():
+            return [public_segment(x) for x in post_filter(merge_segments(final), title)]
+
         def publish():
             with jobs_lock:
                 if jobs.get(video_id) is job:
-                    job["segments"] = [public_segment(x) for x in merge_segments(final)]
+                    job["segments"] = finalize()
 
         def phase(win_slice, status):
             with jobs_lock:
@@ -639,7 +718,7 @@ def run_job(video_id):
             cands = []
             for first, last in win_slice:
                 with llm_lock:
-                    raw = classify_window(lines, first, last, lang)
+                    raw = classify_window(lines, first, last, lang, title)
                 for r in raw:
                     seg = to_segment(r, lines, first, last)
                     if seg:
@@ -653,14 +732,14 @@ def run_job(video_id):
                     final.append(cand)  # selfpromo/interaction are 'show'; boundaries don't matter
                     continue
                 with llm_lock:
-                    final.extend(refine_candidate(lines, cand, lang))
+                    final.extend(refine_candidate(lines, cand, lang, title))
             publish()
 
         phase(wins[:1], "classifying")
         if len(wins) > 1:
             phase(wins[1:], "classifying_rest")
 
-        segments = [public_segment(x) for x in merge_segments(final)]
+        segments = finalize()
         with jobs_lock:
             superseded = jobs.get(video_id) is not job
         if superseded:
@@ -668,7 +747,7 @@ def run_job(video_id):
             return
         log_segments(video_id, segments)
         save_cache(video_id, {"videoId": video_id, "version": PIPELINE_VERSION, "hash": thash, "lang": lang,
-                              "model": MODEL, "segments": segments, "transcript": lines})
+                              "title": title, "model": MODEL, "segments": segments, "transcript": lines})
         with jobs_lock:
             job["segments"] = segments
             job["status"] = "done"
@@ -685,7 +764,7 @@ def run_job(video_id):
             job["error"] = "model error" if isinstance(e, (json.JSONDecodeError, KeyError, TypeError, ValueError)) else "internal error"
 
 
-def start_or_get_job(video_id, lang, lines):
+def start_or_get_job(video_id, lang, lines, title=""):
     thash = transcript_hash(lines)
     with jobs_lock:
         job = jobs.get(video_id)
@@ -706,9 +785,9 @@ def start_or_get_job(video_id, lang, lines):
         elif cached:
             why = (" (cache is from pipeline v%s/%s; now v%s/%s)" % (cached.get("version"), cached.get("model"), PIPELINE_VERSION, MODEL)
                    if cached.get("hash") == thash else " (cached transcript hash differs)")
-        job = {"status": "queued", "segments": [], "hash": thash, "lang": lang, "lines": lines}
+        job = {"status": "queued", "segments": [], "hash": thash, "lang": lang, "lines": lines, "title": title}
         jobs[video_id] = job
-    log(f"[{video_id}] new job: {len(lines)} lines, lang={lang}, hash={thash}{why}")
+    log(f"[{video_id}] new job: {len(lines)} lines, lang={lang}, hash={thash}, title={title!r}{why}")
     threading.Thread(target=run_job, args=(video_id,), daemon=True).start()
     return job
 
@@ -791,7 +870,8 @@ class Handler(BaseHTTPRequestHandler):
         if len(lines) > MAX_LINES:
             return self.send_json(413, {"error": "too many lines"})
         lang = str(data.get("lang") or "und")[:12]
-        job = start_or_get_job(vid, lang, lines)
+        title = re.sub(r"\s+", " ", str(data.get("title") or "")).strip()[:300]
+        job = start_or_get_job(vid, lang, lines, title)
         with jobs_lock:
             return self.send_json(200, public_job(job))
 
