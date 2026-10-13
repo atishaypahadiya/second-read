@@ -103,6 +103,7 @@
       current.channelId = typeof d.channelId === 'string' ? d.channelId.slice(0, 40) : '';
       current.kind = d.kind;
       current.description = typeof d.description === 'string' ? d.description.slice(0, 5000) : '';
+      current.paidPromotion = d.paidPromotion === true;
       current.heat = Array.isArray(d.heat) && d.heat.length <= 200 && d.heat.every((p) => Array.isArray(p) && p.length === 2 && Number.isFinite(p[0]) && Number.isFinite(p[1])) ? d.heat : [];
       current.analysisLines = validLines(d.analysisLines) ? d.analysisLines : null;
       current.analysisLang = typeof d.analysisLang === 'string' ? d.analysisLang.slice(0, 12) : d.lang;
@@ -136,6 +137,7 @@
     const position = v && isFinite(v.currentTime) ? v.currentTime : 0;
     const res = await send({ type: 'analyze', videoId, lang, lines, title, kind: state.kind, creator: state.creator,
                              channelId: state.channelId, duration: v && isFinite(v.duration) ? v.duration : null, heat: state.heat || [],
+                             paidPromotion: !!state.paidPromotion,
                              description: state.description, position,
                              analysisLines: state.analysisLines, analysisLang: state.analysisLang });
     if (!alive()) return;

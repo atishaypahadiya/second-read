@@ -494,9 +494,11 @@
         dbg('analysis track: en translation unavailable; analyzing the original language');
       }
     }
+    // YouTube's "Includes paid promotion" disclosure lives in the player response when the creator set it.
+    const paidPromotion = !!(pr.paidContentOverlay && pr.paidContentOverlay.paidContentOverlayRenderer);
     const heat = readHeatmap();
     if (heat.length) dbg(`heatmap: ${heat.length} samples from the player's most-replayed graph`);
-    reply({ lang, kind, path, lines, title, creator, channelId, description, heat, analysisLines, analysisLang: analysisLines ? 'en' : lang });
+    reply({ lang, kind, path, lines, title, creator, channelId, description, heat, paidPromotion, analysisLines, analysisLang: analysisLines ? 'en' : lang });
   }
 
   // "Most replayed" graph: the player draws it as an SVG path (x 0..1000, y 0..100, y grows downward).
