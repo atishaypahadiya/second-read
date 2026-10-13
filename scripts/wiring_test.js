@@ -47,10 +47,14 @@ const posts = { '/feedback': [], '/event': [] };
 const bgListeners = [];
 // The service worker's own storage: a brand-new install (new extension ID after the folder was renamed), with one
 // setting already changed locally before the server was reachable. The server holds the previous install's snapshot.
-const bgStore = { settings: { enabled: true, devMode: true, actions: { sponsor_read: 'skip', selfpromo: 'label', outro: 'off' }, allowlist: { UCnew: 'new channel' } },
+const bgStore = { settings: { enabled: true, devMode: true, actions: { sponsor_read: 'skip', selfpromo: 'label', outro: 'off' }, allowlist: { UCnew_channel_1: 'new channel' } },
                   stats: { today: { date: '2026-10-13', skips: 1, saved: 30 }, all: { skips: 1, saved: 30 } } };
 const PREV_SNAPSHOT = { from: 'aaaaaaaaaaaaaaaa', saved_at: '2026-10-12T20:00:00',
-  settings: { enabled: true, devMode: false, actions: { sponsor_read: 'skip', selfpromo: 'skip', outro: 'label', charity: 'off' }, allowlist: { UCold: 'old channel' } },
+  // plus things a tampered snapshot might carry: an unknown category, a value the popup cannot produce, a bad id,
+  // a non-string name, an unknown field, a negative counter
+  settings: { enabled: true, devMode: false, evil: 'x',
+              actions: { sponsor_read: 'off', selfpromo: 'skip', outro: 'label', charity: 'off', intro: 'explode', madeup: 'skip' },
+              allowlist: { UCold_channel_1: 'old channel', 'bad id!': 'x', UCold_channel_2: { not: 'a string' } } },
   stats: { today: { date: '2026-10-12', skips: 4, saved: 200 }, all: { skips: 40, saved: 2000 } } };
 const bgStorageListeners = [];
 const bgStorage = {
@@ -223,7 +227,10 @@ setTimeout(() => {
     check(clientStateGets.length === 1 && clientStateGets[0] === id, `GET /client-state?not= called with ${JSON.stringify(clientStateGets)}`);
     check(bgStore.restoreChecked === true, 'restoreChecked was not set');
     const ms = bgStore.settings || {}, mt = bgStore.stats || {};
-    check(ms.allowlist && ms.allowlist.UCold === 'old channel' && ms.allowlist.UCnew === 'new channel', `allowlist not united: ${JSON.stringify(ms.allowlist)}`);
+    check(ms.allowlist && ms.allowlist.UCold_channel_1 === 'old channel' && ms.allowlist.UCnew_channel_1 === 'new channel', `allowlist not united: ${JSON.stringify(ms.allowlist)}`);
+    check(Object.keys(ms.allowlist || {}).length === 2, `tampered allowlist entries were adopted: ${JSON.stringify(ms.allowlist)}`);
+    check(ms.actions && ms.actions.sponsor_read === 'skip', `a value the popup cannot produce was adopted: sponsor_read = ${ms.actions && ms.actions.sponsor_read}`);
+    check(ms.actions && !('madeup' in ms.actions) && ms.actions.intro !== 'explode' && !('evil' in ms), `unknown fields or values were adopted: ${JSON.stringify(ms)}`);
     check(ms.actions && ms.actions.selfpromo === 'skip', `previous non-default choice lost: selfpromo = ${ms.actions && ms.actions.selfpromo}`);
     check(ms.actions && ms.actions.outro === 'off', `local non-default choice lost: outro = ${ms.actions && ms.actions.outro}`);
     check(ms.actions && ms.actions.charity === 'off', `previous-only category lost: charity = ${ms.actions && ms.actions.charity}`);
@@ -231,7 +238,7 @@ setTimeout(() => {
     check(mt.all && mt.all.skips === 41 && mt.all.saved === 2030, `all-time stats not added up: ${JSON.stringify(mt.all)}`);
     check(mt.today && mt.today.date === '2026-10-13' && mt.today.skips === 1, `today's stats: ${JSON.stringify(mt.today)}`);
     const up = posts['/client-state'][posts['/client-state'].length - 1];
-    check(!!up && up.installId === id && up.settings && up.settings.allowlist.UCold === 'old channel' && up.stats.all.skips === 41,
+    check(!!up && up.installId === id && up.settings && up.settings.allowlist.UCold_channel_1 === 'old channel' && up.stats.all.skips === 41,
           `snapshot upload = ${JSON.stringify(up).slice(0, 160)}`);
     check(posts['/client-state'].every((b) => b.installId !== PREV_SNAPSHOT.from), 'the previous install\'s snapshot id was reused');
 

@@ -123,6 +123,10 @@ second-read/                 (the folder may still be called sponsor-skipper on 
   local server, one per install (`installId` in storage). On its first contact with the server a new install asks for
   the latest snapshot of another install and merges it once (`restoreChecked`): local non-default choices win, lists
   are united, counters add up. It never uploads before having looked, and never overwrites another install's snapshot.
+  A snapshot is untrusted input (any local extension can reach the server): the worker keeps only known categories
+  with values the popup can produce, well-formed channel ids with string names, and non-negative counters. The
+  server accepts these requests only with a `chrome-extension://` Origin and refuses a new install once 50 snapshots
+  exist rather than evicting one.
   Storage keys are `settings`, `stats`, `installId`, `restoreChecked`; none carried the old product name.
 - **Build stamps.** `BUILD` in page.js, content.js, background.js and `CLIENT_BUILD` in server.py are the same number;
   bump all four together when the extension↔server contract changes. The server logs the three it received and warns

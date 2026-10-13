@@ -1520,7 +1520,7 @@ def feedback_report():
 # ---------------------------------------------------------------------------
 CLIENT_STATE = os.path.join(CACHE_DIR, "client-state.local.json")
 INSTALL_ID_RE = re.compile(r"^[a-f0-9]{8,40}$")
-MAX_INSTALLS = 10
+MAX_INSTALLS = 50               # when full, a NEW install is refused; an existing snapshot is never evicted
 MAX_CLIENT_STATE_BYTES = 200_000
 client_state_lock = threading.Lock()
 
@@ -1548,9 +1548,11 @@ def save_client_snapshot(install_id, settings, stats_):
     with client_state_lock:
         state = load_client_state()
         new = install_id not in state["installs"]
+        if new and len(state["installs"]) >= MAX_INSTALLS:
+            # Fail closed: making room would let a flood of new ids push out the snapshot someone is relying on.
+            log(f"client-state: refused a new install ({MAX_INSTALLS} snapshots stored); delete {CLIENT_STATE} entries to make room")
+            return "too many installs"
         state["installs"][install_id] = snap
-        for old_id in sorted(state["installs"], key=lambda k: state["installs"][k].get("ts", 0))[:-MAX_INSTALLS]:
-            del state["installs"][old_id]
         os.makedirs(os.path.dirname(CLIENT_STATE), exist_ok=True)
         tmp = CLIENT_STATE + ".tmp"
         with open(tmp, "w", encoding="utf-8") as f:
@@ -2256,6 +2258,15 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def extension_origin(self):
+        """Settings snapshots are for the extension only: the request must carry a chrome-extension:// Origin (the
+        service worker's fetch always does). A plain local client such as curl is refused. This does not tell one
+        extension from another, which is why the extension validates what it adopts."""
+        if (self.headers.get("Origin") or "").startswith("chrome-extension://"):
+            return True
+        self.send_json(403, {"error": "extension only"})
+        return False
+
     def allowed_origin(self):
         """Only the extension (host_permissions, no CORS needed) or non-browser clients like curl.
         - Host must be localhost/127.0.0.1: defeats DNS rebinding (evil.example -> 127.0.0.1).
@@ -2280,6 +2291,8 @@ class Handler(BaseHTTPRequestHandler):
             return
         u = urlparse(self.path)
         if u.path == "/client-state":
+            if not self.extension_origin():
+                return
             not_id = (parse_qs(u.query).get("not") or [""])[0]
             if not INSTALL_ID_RE.match(not_id):
                 return self.send_json(400, {"error": "bad install id"})
@@ -2353,6 +2366,8 @@ class Handler(BaseHTTPRequestHandler):
         except (ValueError, TypeError):
             return self.send_json(400, {"error": "bad json"})
         if u.path == "/client-state":
+            if not self.extension_origin():
+                return
             if not isinstance(data, dict):
                 return self.send_json(400, {"error": "bad json"})
             err = save_client_snapshot(str(data.get("installId") or ""), data.get("settings"), data.get("stats"))
