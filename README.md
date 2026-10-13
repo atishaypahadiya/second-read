@@ -115,7 +115,7 @@ stateDiagram-v2
   keep --> post
   labelOnly --> post
   post --> published
-  post --> dropped: disclaimer, the video's own subject, or a label under 0.7
+  post --> dropped: disclaimer, the video's subject, no ad marker, or a label under 0.7
   published --> [*]
   dropped --> [*]
 ```
@@ -169,7 +169,11 @@ built and has not met a real video.
 Three things the pipeline must not do are also verified on the test set: skip
 anything in a Hindi vlog with no sponsor (it once did, before the evidence
 gate and the 0.85 threshold), mark a "VPN providers sometimes sponsor us"
-disclaimer, and mark the product the video is about.
+disclaimer, and mark the product the video is about. A fourth is guarded by
+the regression set: a creator narrating their own brand work as part of the
+story ("we're shooting for Fossil today") is content. A sponsor label that is
+not a skip needs an ad marker (sponsorship language, a call to action, a link,
+a code or an offer), or it is dropped.
 
 ## UI
 
@@ -217,12 +221,13 @@ and the dashboard. It is diagnostic only and is never reported as a result.
 
 `scripts/regress.py` is a regression check, not an accuracy measurement. It
 replays the five videos of `server/testset.json` (plus three variants of one
-video with different request metadata) through the real pipeline from stored
+video with different request metadata, and one with a stand-in English
+analysis track) through the real pipeline from stored
 transcripts and stored model outputs, with zero model calls, and checks
 expected segments within 1.5 s, that must-not-skip videos have no skip, and
-that forbidden ranges stay empty. It also runs 40 rule checks and the
-extension wiring test. All ten rows pass at versions detect 3, refine 3,
-post 4. The expectations were written from the same videos the prompt and
+that forbidden ranges stay empty. It also runs 43 rule checks and the
+extension wiring test. All eleven rows pass at versions detect 3, refine 3,
+post 5. The expectations were written from the same videos the prompt and
 thresholds were tuned on, so a pass says nothing has regressed and nothing
 about unseen videos.
 
@@ -254,7 +259,7 @@ served from the cache.
 | `vGoRpjE-svI` (Hindi, no sponsor) | 71 s / none / 6 | 0 s / none / 0 |
 
 Replayed transcripts without descriptions, 2026-10-13. The current versions
-(3/3/4) have not been re-timed on replays.
+(3/3/5) have not been re-timed on replays.
 
 Live first visits the same day, with real request metadata, at versions 3/3/3:
 

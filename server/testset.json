@@ -69,7 +69,7 @@
     {
       "video": "vGoRpjE-svI",
       "creator": "Hindi vlog",
-      "note": "no sponsorship at all",
+      "note": "no sponsorship at all. 0:45-0:57 ('shooting for Fossil', the creator's own brand work told as story) must carry no segment of any kind. This replay uses the original Hindi track only (no window reaches the model), so the range is really exercised by the +en entry below.",
       "must_not_skip": true,
       "expect": [
         {
@@ -78,6 +78,110 @@
           "start": 0,
           "end": 15,
           "tol": 2
+        }
+      ],
+      "forbid": [
+        {
+          "start": 45,
+          "end": 57
+        }
+      ]
+    },
+    {
+      "video": "vGoRpjE-svI",
+      "id": "vGoRpjE-svI+en",
+      "creator": "Hindi vlog",
+      "note": "Same video with an English analysis track, which is where the false positive came from: live, detect and refine labeled 'shooting for fossil for this new watch' sponsor/integration (0.90, then 0.80) and it was stored as a Fossil ad. The auto-translation the extension sent is not kept in the cache, so analysisLines is a stand-in: a hand translation of the first lines and of one later line (the one whose 'go to Khan Market' is the generic cue that gets the window sent), on the original timings. The model still labels the line on this text; the ad-marker post-filter must drop it.",
+      "must_not_skip": true,
+      "meta": {
+        "creator": "Hindi vlog",
+        "analysisLang": "en",
+        "analysisLines": [
+          {
+            "start": 15.28,
+            "end": 21.84,
+            "text": "yo yo yo yo yo yo yo what's up chat it's been the longest time since I have vlogged"
+          },
+          {
+            "start": 21.84,
+            "end": 28.56,
+            "text": "so welcome back to the channel it's your boy and yet again we have a weekly archive I know it's been a vibe so"
+          },
+          {
+            "start": 28.56,
+            "end": 34.72,
+            "text": "excited to shoot this and it's not exactly a weekly just a few days in my life back home in Delhi because we are"
+          },
+          {
+            "start": 34.72,
+            "end": 42.72,
+            "text": "back from Bali and it's been a while since we are back it's been like 10 days since we have been back and for 10 days I did"
+          },
+          {
+            "start": 42.72,
+            "end": 48.64,
+            "text": "nothing at all did nothing at all and it was so much fun doing nothing but yes now we are back and"
+          },
+          {
+            "start": 48.64,
+            "end": 54.64,
+            "text": "we are going for a shoot shooting for fossil for this new watch come on let's go it is 11:00 in the"
+          },
+          {
+            "start": 54.64,
+            "end": 61.44,
+            "text": "morning we will go shoot come back home and have coffee I will talk to you later. I"
+          },
+          {
+            "start": 61.44,
+            "end": 64.96,
+            "text": "will see you later and yes thank you so much brother."
+          },
+          {
+            "start": 64.96,
+            "end": 72.64,
+            "text": "Right now the Bali vlog has 7000 views in three days since I posted it. I have never seen that many in my life."
+          },
+          {
+            "start": 72.64,
+            "end": 76.24,
+            "text": "My whole YouTube has been shaken. I got a mail from YouTube asking are you all okay?"
+          },
+          {
+            "start": 76.24,
+            "end": 83.6,
+            "text": "You didn't have a heart attack did you. I am good. Thank you so much for all the love. Hope we reach 50K soon man. That's the milestone for now."
+          },
+          {
+            "start": 83.6,
+            "end": 90.56,
+            "text": "And we will get there. Trust me we will get there. Come on. Let's go for the shoot and I will show you some BTS I will show you"
+          },
+          {
+            "start": 90.56,
+            "end": 97.24,
+            "text": "how the shoot looks also I will speak to you soon bye come on love you"
+          },
+          {
+            "start": 194.88,
+            "end": 201.28,
+            "text": "free ice cream. So I really wanna go and convince them that let's go to Khan Market and eat some ice cream. And also"
+          }
+        ]
+      },
+      "expect": [
+        {
+          "action": "show",
+          "category": "intro",
+          "start": 0,
+          "end": 15,
+          "tol": 2
+        }
+      ],
+      "forbid": [
+        {
+          "start": 45,
+          "end": 57
         }
       ]
     },

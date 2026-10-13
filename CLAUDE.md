@@ -343,7 +343,14 @@ Every GET/POST for a video counts as a poll.
   - Merge overlapping or touching (gap ≤ 1s) segments with the same action and brand.
   - **Post-filter** (keep/show only; skips are never dropped here, only logged): drop if evidence/reason reads like
     a sponsor disclaimer; drop if the brand appears in the video title or is mentioned in ≥ 3 transcript lines
-    outside the segment (it's the subject); drop `show` below `SHOW_THRESHOLD` (0.7). Logged once, at the end.
+    outside the segment (it's the subject); **drop a `sponsor` keep/show that has no ad marker**; drop `show` below
+    `SHOW_THRESHOLD` (0.7). Logged once, at the end.
+    **Ad markers** (`AD_MARKER_RE`, `ad_markers()`): sponsorship language, a code, an offer, a link or a call to
+    action, or a description hint, in the evidence quote or the segment's lines ± 1, or next to the same brand
+    elsewhere in the video ("sponsored by X" at the top, X used later). A creator narrating their own brand work as
+    part of the story ("we're shooting for Fossil today") has none and is content, not an integration. This is a
+    filter and not a prompt rule because the prompt did not hold: two wordings of a "never label" rule left
+    qwen3:14b's answer unchanged (sponsor/integration, 0.90 in detect, 0.80 in refine) on that line.
   - Each segment also carries `line_start`/`line_end` (pre-refinement times) for the log and tooltip.
 - Log every final segment to the terminal: action, refined time range, line-level range, category/style, brand,
   confidence, reason. Also log each detect/refine/words call with its timing, the prefilter summary, pause/resume/
@@ -407,7 +414,10 @@ Each stage ends with a "done when" check on a real video.
    - `dU7gCt-7kKk` fern — Odoo read ~9:17–9:55 (asr mishears brand as "Udo"). End boundary must not overshoot.
    - `O7LvhSQ5Te4` Johnny Harris — Incogni read ~10:27–11:52 with promo code; newpress.com selfpromo → `show`.
    - `vGoRpjE-svI` Hindi vlog — **must NOT skip** anything. Falsely skipped 9:10–9:25 ("Adoni", conf 0.75) before
-     the evidence gate and 0.85 threshold.
+     the evidence gate and 0.85 threshold. 0:45–0:57 ("shooting for Fossil") must carry **no segment at all**: it
+     was stored as a Fossil integration until the ad-marker filter (post v5). The `+en` test-set entry replays it
+     with a stand-in English analysis track (`meta.analysisLines`), because the false positive came from the
+     auto-translation, which the cache does not keep.
    - `qv9BD1AnojQ` — returned 0 segments (unverified).
    - `SOQynHuWPeI` fern, "Facebook's Most Dangerous App" — must SKIP the Coddy read 4:47–5:39 (third-party sponsor
      with creator code FERN20; was mislabeled selfpromo); must NOT mark the VPN sponsorship disclaimer 1:11–1:27

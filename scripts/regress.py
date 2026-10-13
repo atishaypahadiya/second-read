@@ -99,8 +99,11 @@ def run_video(entry, allow_model):
             "channel_id": m.get("channelId", ""), "duration": m.get("duration"),
             "paid_promotion": m.get("paidPromotion") if isinstance(m.get("paidPromotion"), bool) else None,
             "heat": [], "client": None}
+    # A non-English video is analyzed on its English auto-translation, which the cache does not keep: an entry can
+    # carry a stand-in for it (meta.analysisLines, same line timings).
+    alines = server.clean_lines(m["analysisLines"]) if m.get("analysisLines") else None
     job = server.start_or_get_job(vid, cached.get("lang", "en"), lines, m.get("title", cached.get("title", "")),
-                                  meta, None, None, 0.0, m.get("description", ""))
+                                  meta, alines, m.get("analysisLang", "en") if alines else None, 0.0, m.get("description", ""))
     t0 = time.time()
     while job["status"] not in ("done", "error"):
         server.touch(job)
@@ -222,6 +225,32 @@ def unit_checks():
     eq("end snap: a pause right after the pick ends there", server.snap_end(gapped(0.6, 0.0), 0, 0, 517.8)[0], 517.8)
     eq("end snap: a pause one word into the next sentence is not used", server.snap_end(gapped(0.0, 0.9), 0, 0, 517.8)[0], None)
     eq("end snap: a pick mid-sentence still extends to its own sentence end", server.snap_end(gapped(0.6, 0.0), 0, 0, 517.31)[0], 517.8)
+    # the creator's own brand work told as story (vGoRpjE-svI: "shooting for Fossil", labeled sponsor/integration
+    # 0.80 by detect and refine) is content: a sponsor label that is not a skip needs an ad marker
+    story = [{"start": 42.72, "end": 48.64, "text": "did nothing at all and it was so much fun but yes now we are back and"},
+             {"start": 48.64, "end": 54.64, "text": "we are going for a shoot shooting for fossil for this new watch come on it is 11 in the morning"},
+             {"start": 54.64, "end": 61.44, "text": "we will go shoot come back home and have coffee I will talk to you later"},
+             {"start": 400.0, "end": 406.0, "text": "then we went for ice cream at the market with everyone"}]
+
+    def labeled(lines, terms=(), **over):
+        seg = {"start": 48.64, "end": 54.64, "line_start": 48.64, "line_end": 54.64, "start_line": 1, "end_line": 1,
+               "category": "sponsor", "style": "integration", "action": "keep", "brand": "fossil", "confidence": 0.8,
+               "evidence": "shooting for fossil for this new watch", "source": "detect",
+               "reason": "Creator is shooting for Fossil for a new watch, indicating a collaboration with the brand."}
+        seg.update(over)
+        return [s["action"] for s in server.post_filter([seg], "Back in Delhi and somehow won an award??", server.clean_lines(lines), False, terms)]
+
+    def with_line(i, text):
+        return [dict(l, text=text) if k == i else l for k, l in enumerate(story)]
+    eq("filter: brand work told as story, no ad marker -> no segment (keep, or a downgraded read)",
+       (labeled(story), labeled(story, style="read", action="show")), ([], []))
+    eq("filter: the same mention with an ad's markers stays (offer + link, sponsorship language, description hint, pitched elsewhere)",
+       [labeled(with_line(2, "use my link in the description for 20% off the new watch")),
+        labeled(with_line(0, "this part of the vlog is sponsored by fossil and")),
+        labeled(story, terms=["Fossil", "fossil"]),
+        labeled(with_line(3, "thanks to fossil for sponsoring, use code CHIRAG for 10% off"))], [["keep"]] * 4)
+    eq("filter: skips and other categories are not touched by it",
+       (labeled(story, style="read", action="skip", confidence=0.95), labeled(story, category="selfpromo", action="show")), (["skip"], ["show"]))
     # description hints: only sponsor lines count; the creator's own links, socials and name do not
     h = server.extract_hints("Learn to code with Coddy (ad): https://fern.deals/coddy")
     eq("hints: (ad) line -> brand + link", (h["brands"], h["domains"]), (["Coddy"], ["fern.deals/coddy"]))
@@ -406,7 +435,7 @@ def main():
         results = unit_checks()
         bad = [m for ok, m in results if not ok]
         failures += 1 if bad else 0
-        rows.append(("rules", "server", "FAIL" if bad else "PASS", bad or [f"{len(results)} rule checks ok (cleaning, end snap, hints, halls, brands, codes, tier-2 quotes, disclosure)"], time.time() - t0))
+        rows.append(("rules", "server", "FAIL" if bad else "PASS", bad or [f"{len(results)} rule checks ok (cleaning, end snap, ad markers, hints, halls, brands, codes, tier-2 quotes, disclosure)"], time.time() - t0))
     for e in entries:
         t0 = time.time()
         label = e.get("id", e["video"])
