@@ -270,6 +270,12 @@ CUE_PATTERNS = [
     r"start your free", r"get started (?:for free|today)", r"free for life",
 ]
 CUE_RE = re.compile("|".join(CUE_PATTERNS), re.I)
+# Strong cues: unambiguous sponsorship language. Used when the evidence quote itself has no cue and we look at the
+# segment's own lines instead; generic phrases (check out, visit, go to, sign up, .com) do not count there.
+STRONG_CUE_RE = re.compile(
+    r"sponsor|brought to you|promo ?code|use (?:the |my |your )?code|\bcode [A-Z0-9]{3,}|discount|\d+ ?(?:%|percent) off|"
+    r"link(?:'s| is)? in the description|partner(?:ed|ing)? with|in partnership with|supported by|made possible by|"
+    r"it'?s an ad\b|this is an ad\b|an ad for\b|ad break|free trial|free for life|first \d+ (?:people|months)", re.I)
 # Cues for the other model categories (affiliate, selfpromo, membership, crosspromo, charity, giveaway): they get
 # a window to the model, but they never count as evidence for a sponsor skip.
 OTHER_CUE_PATTERNS = [
@@ -1057,12 +1063,14 @@ def require_evidence(seg, lines):
     if cues:
         log(f"            {match}; cue(s) in quote: {cues[:4]}")
         return seg
-    # The quote is verbatim but not itself a cue (the model quoted the pitch, not "it's an ad"): accept a sponsor
-    # cue anywhere in the segment's own lines instead.
+    # The quote is verbatim but not itself a cue (the model quoted the pitch, not "it's an ad"): accept a STRONG
+    # sponsor cue, or a description hint, anywhere in the segment's own lines instead.
     seg_text = " ".join(lines[i]["text"] for i in range(seg["start_line"], seg["end_line"] + 1))
-    cues = window_cues(seg_text, seg.get("hint_terms", []), sponsor_only=True)
+    cues = [m.group(0) for m in STRONG_CUE_RE.finditer(seg_text)]
+    low = seg_text.lower()
+    cues += [h for h in seg.get("hint_terms", []) if h.lower() in low]
     if cues:
-        log(f"            {match}; cue(s) in segment lines: {cues[:4]}")
+        log(f"            {match}; strong cue(s) in segment lines: {cues[:4]}")
         return seg
     why = "no sponsor cue in the quote or the segment"
     log(f"  refine: downgraded skip -> show ({why})")
@@ -1656,7 +1664,8 @@ def run_window(job, first, last):
 
 def finalize(job, verbose):
     out = []
-    for x in post_filter(merge_segments(job["final"]), job["title"], job["alines"], verbose):
+    kept = [x for x in job["final"] if x.get("action") != "drop"]
+    for x in post_filter(merge_segments(kept), job["title"], job["alines"], verbose):
         if x.get("category") == "sponsor" and x.get("style") == "read" and not job.get("paid_promotion") and not job.get("disclosed"):
             x["undisclosed"] = True  # 7c: a sponsor read with neither YouTube's paid-promotion flag nor an (ad)/sponsor line in the description
         out.append(x)
