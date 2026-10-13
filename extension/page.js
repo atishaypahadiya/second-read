@@ -467,8 +467,10 @@
     const timed = lines.filter((l) => l.timed).length;
     dbg(`path ${path}: ${lines.length} lines, ${timed} with word timing`);
     if (lines.length === 0) return reply({ error: 'no captions' });
-    const title = (pr.videoDetails && typeof pr.videoDetails.title === 'string') ? pr.videoDetails.title : '';
-    reply({ lang, kind, path, lines, title });
+    const vd = pr.videoDetails || {};
+    const title = typeof vd.title === 'string' ? vd.title : '';
+    const creator = typeof vd.author === 'string' ? vd.author : '';
+    reply({ lang, kind, path, lines, title, creator });
   }
 
   window.addEventListener('message', (ev) => {

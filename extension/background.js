@@ -26,7 +26,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       p = call('/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ videoId: msg.videoId, lang: msg.lang, lines: msg.lines, title: msg.title || '' }),
+        body: JSON.stringify({ videoId: msg.videoId, lang: msg.lang, lines: msg.lines, title: msg.title || '',
+                               kind: msg.kind || '', creator: msg.creator || '' }),
       });
       break;
     case 'poll':
