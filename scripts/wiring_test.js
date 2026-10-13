@@ -49,7 +49,7 @@ const bgListeners = [];
 // setting already changed locally before the server was reachable. The server holds the previous install's snapshot.
 const bgStore = { settings: { enabled: true, devMode: true, actions: { sponsor_read: 'skip', selfpromo: 'label', outro: 'off' }, allowlist: { UCnew_channel_1: 'new channel' } },
                   stats: { today: { date: '2026-10-13', skips: 1, saved: 30 }, all: { skips: 1, saved: 30 } } };
-const PREV_SNAPSHOT = { from: 'aaaaaaaaaaaaaaaa', saved_at: '2026-10-12T20:00:00',
+const PREV_SNAPSHOT = { from: 'aaaaaaaaaaaaaaaa', extension: 'abcdefghijklmnopabcdefghijklmnop', saved_at: '2026-10-12T20:00:00',
   // plus things a tampered snapshot might carry: an unknown category, a value the popup cannot produce, a bad id,
   // a non-string name, an unknown field, a negative counter
   settings: { enabled: true, devMode: false, evil: 'x',
@@ -61,6 +61,7 @@ const bgStorage = {
   get: async (keys) => Object.fromEntries((Array.isArray(keys) ? keys : [keys]).filter((k) => k in bgStore).map((k) => [k, JSON.parse(JSON.stringify(bgStore[k]))])),
   set: async (obj) => { const changes = {}; for (const [k, v] of Object.entries(obj)) { changes[k] = { newValue: v }; bgStore[k] = JSON.parse(JSON.stringify(v)); }
                         for (const fn of bgStorageListeners) fn(changes, 'local'); },
+  remove: async (key) => { delete bgStore[key]; for (const fn of bgStorageListeners) fn({ [key]: {} }, 'local'); },
 };
 const clientStateGets = [];
 posts['/client-state'] = [];
@@ -72,7 +73,11 @@ const bgSandbox = {
     const u = new URL(url); const route = u.pathname;
     if (route === '/analyze' && init && init.method === 'POST') fetched = { url, init };
     if (posts[route] && init && init.method === 'POST') posts[route].push(JSON.parse(init.body));
-    if (route === '/client-state' && !(init && init.method === 'POST')) { clientStateGets.push(u.searchParams.get('not')); return { ok: true, status: 200, json: async () => PREV_SNAPSHOT }; }
+    // the server answers with one candidate per extension, newest first: a decoy from some other extension (empty,
+    // and newer), then the snapshot of this extension's previous install
+    if (route === '/client-state' && !(init && init.method === 'POST')) { clientStateGets.push(u.searchParams.get('not'));
+      const decoy = { from: 'dddddddddddddddd', extension: 'ponmlkjihgfedcbaponmlkjihgfedcba', saved_at: '2026-10-13T08:00:00', settings: { actions: { selfpromo: 'label' } }, stats: null };
+      return { ok: true, status: 200, json: async () => ({ candidates: [decoy, PREV_SNAPSHOT] }) }; }
     return { ok: true, status: 200, json: async () => (route === '/analyze' ? { status: 'done', segments: [SEG] } : { ok: true }) };
   },
   encodeURIComponent, JSON, URL, crypto: require('crypto').webcrypto, setTimeout, clearTimeout,
@@ -220,12 +225,27 @@ setTimeout(() => {
     const sk = posts['/event'].find((e) => e.kind === 'skip');
     check(sk && sk.playhead === PLAYHEAD && Math.abs(sk.saved - (SEG.end - PLAYHEAD)) < 1e-9, `skip event = ${JSON.stringify(sk)}`);
 
-    // ---- settings survive a new extension ID: the worker looked for a previous install's snapshot before uploading,
-    // merged it with what this install already had, and then stored its own snapshot under its own id
+    // ---- settings survive a new extension ID. Step 1: the worker found a previous install's snapshot and OFFERS
+    // it. Nothing is adopted yet, the offer is already validated, and this install's own snapshot is uploaded.
     const id = bgStore.installId;
     check(/^[a-f0-9]{16}$/.test(id || ''), `installId = ${JSON.stringify(id)}`);
     check(clientStateGets.length === 1 && clientStateGets[0] === id, `GET /client-state?not= called with ${JSON.stringify(clientStateGets)}`);
     check(bgStore.restoreChecked === true, 'restoreChecked was not set');
+    const offer = bgStore.restoreOffer;
+    check(!!offer && offer.summary && offer.summary.channels === 1 && offer.summary.skips === 40, `restore offer = ${JSON.stringify(offer && offer.summary)}`);
+    check(offer && Array.isArray(offer.all) && offer.all.length === 1, `an empty decoy snapshot was offered (or hid the real one): ${offer && offer.all && offer.all.length} offers`);
+    check(offer && offer.snapshot.settings.actions.sponsor_read === undefined && !('madeup' in offer.snapshot.settings.actions) && !('evil' in offer.snapshot.settings),
+          'the offer was not validated before being stored');
+    check(Object.keys(bgStore.settings.allowlist).length === 1 && bgStore.stats.all.skips === 1, 'the snapshot was adopted without the user asking');
+    const first = posts['/client-state'][0];
+    check(!!first && first.installId === id && first.settings.allowlist.UCnew_channel_1 === 'new channel', `own snapshot upload = ${JSON.stringify(first).slice(0, 120)}`);
+
+    // Step 2: the user presses Restore in the popup.
+    let restoreReply = null;
+    for (const fn of bgListeners) fn({ type: 'restore', accept: true, index: 0 }, {}, (r) => { restoreReply = r; });
+    setTimeout(() => {
+    check(restoreReply && restoreReply.ok && restoreReply.restored === true, `restore reply = ${JSON.stringify(restoreReply)}`);
+    check(!('restoreOffer' in bgStore), 'the offer was not cleared after the decision');
     const ms = bgStore.settings || {}, mt = bgStore.stats || {};
     check(ms.allowlist && ms.allowlist.UCold_channel_1 === 'old channel' && ms.allowlist.UCnew_channel_1 === 'new channel', `allowlist not united: ${JSON.stringify(ms.allowlist)}`);
     check(Object.keys(ms.allowlist || {}).length === 2, `tampered allowlist entries were adopted: ${JSON.stringify(ms.allowlist)}`);
@@ -238,8 +258,8 @@ setTimeout(() => {
     check(mt.all && mt.all.skips === 41 && mt.all.saved === 2030, `all-time stats not added up: ${JSON.stringify(mt.all)}`);
     check(mt.today && mt.today.date === '2026-10-13' && mt.today.skips === 1, `today's stats: ${JSON.stringify(mt.today)}`);
     const up = posts['/client-state'][posts['/client-state'].length - 1];
-    check(!!up && up.installId === id && up.settings && up.settings.allowlist.UCold_channel_1 === 'old channel' && up.stats.all.skips === 41,
-          `snapshot upload = ${JSON.stringify(up).slice(0, 160)}`);
+    check(!!up && up.installId === id && up.settings.allowlist.UCold_channel_1 === 'old channel' && up.stats.all.skips === 41,
+          `snapshot after restore = ${JSON.stringify(up).slice(0, 160)}`);
     check(posts['/client-state'].every((b) => b.installId !== PREV_SNAPSHOT.from), 'the previous install\'s snapshot id was reused');
 
     if (failures.length) {
@@ -249,7 +269,8 @@ setTimeout(() => {
     }
     console.log(`wiring: PASS  metadata reaches POST /analyze (${Object.keys(body).length} fields, builds ${builds.content}/${serverBuild}); ` +
                 `skip, Wrong skip and Missed-ad reports carry the segment and the real playhead; ` +
-                `settings and stats are restored from a previous install and backed up`);
+                `a previous install's settings are offered, validated, restored on request and backed up`);
     process.exit(0);
+    }, 1800); // the backup after a storage change is debounced by 1.5s
   }, 50);
 }, 50);

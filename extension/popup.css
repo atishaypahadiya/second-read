@@ -58,3 +58,8 @@ html { scrollbar-width: thin; }
 /* dev mode: a quiet checkbox; ink, not the accent (the accent means live or skip) */
 .sr-check { display: inline-flex; align-items: center; gap: 6px; font-size: var(--sr-fs-body); cursor: pointer; }
 .sr-check input { accent-color: var(--sr-ink); margin: 0; }
+
+/* one-time restore offer: an inset block on the sheet, one primary action */
+.sr-offer { background: var(--sr-chip-sheet); border-radius: var(--sr-r-tooltip); padding: var(--sr-s3) var(--sr-s4); display: flex; flex-direction: column; gap: var(--sr-s2); }
+.sr-offer__actions { display: flex; align-items: center; gap: var(--sr-s2); }
+.sr-popup .sr-offer .sr-button--sm { height: 36px; font-size: var(--sr-fs-body); }
