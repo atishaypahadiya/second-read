@@ -1,47 +1,51 @@
-/* Sponsor Skipper — design tokens
-   Shared by the player overlays (badge, markers, toast, panels), the popup and the dashboard.
+/* Second Read (Sponsor Skipper) — design tokens
+   Shared by the player overlays (badge, marker lane, toast, ad panel), the popup and the dashboard.
+   Source of truth for visuals: design/reference/mockup.html (4 boards). Values below are extracted from it.
    Rules: monochrome + one accent; hierarchy by opacity; depth by tone; no shadows, no borders.
    See DESIGN.md for the rationale and MERGE_NOTES.md for how each surface adopts these. */
 
 /* ---- fonts (bundled, SIL OFL; no network requests) ---- */
 @font-face {
-  font-family: "Inter";
+  font-family: "Geist";
   font-weight: 400;
   font-style: normal;
   font-display: swap;
-  src: url("fonts/Inter-Regular.woff2") format("woff2");
+  src: url("fonts/Geist-Regular.woff2") format("woff2");
 }
 @font-face {
-  font-family: "Inter";
+  font-family: "Geist";
   font-weight: 500;
   font-style: normal;
   font-display: swap;
-  src: url("fonts/Inter-Medium.woff2") format("woff2");
+  src: url("fonts/Geist-Medium.woff2") format("woff2");
 }
 @font-face {
-  font-family: "JetBrains Mono";
+  font-family: "Geist Mono";
   font-weight: 300;
   font-style: normal;
   font-display: swap;
-  src: url("fonts/JetBrainsMono-Light.woff2") format("woff2");
+  src: url("fonts/GeistMono-Light.woff2") format("woff2");
 }
 @font-face {
-  font-family: "JetBrains Mono";
+  font-family: "Geist Mono";
   font-weight: 400;
   font-style: normal;
   font-display: swap;
-  src: url("fonts/JetBrainsMono-Regular.woff2") format("woff2");
+  src: url("fonts/GeistMono-Regular.woff2") format("woff2");
 }
 
 :root {
   /* ---- type ---- */
-  --ss-font-ui: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Roboto, sans-serif;
-  --ss-font-mono: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, monospace;
-  --ss-fs-chip: 11px;     /* chips, captions, timestamps */
-  --ss-fs-body: 13px;     /* body, mono content */
-  --ss-fs-title: 15px;    /* titles, button labels */
-  --ss-fs-stat: 28px;     /* big stat numbers, mono 300 */
+  --ss-font-ui: "Geist", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Roboto, sans-serif;
+  --ss-font-mono: "Geist Mono", "SF Mono", ui-monospace, Menlo, monospace;
+  --ss-fs-chip: 11px;     /* chips, captions, timestamps, section labels */
+  --ss-fs-body: 13px;     /* body, mono content, badge text */
+  --ss-fs-title: 15px;    /* titles, brand names, button labels */
+  --ss-fs-panel: 17px;    /* ad-panel brand and its primary button */
+  --ss-fs-stat: 28px;     /* stat numbers in grids */
+  --ss-fs-hero: 44px;     /* the one hero number on the popup (mono 300) */
   --ss-lh-body: 1.4;
+  --ss-lh-stream: 1.45;   /* ad-panel transcript */
   --ss-lh-title: 1.2;
   --ss-w-regular: 400;
   --ss-w-medium: 500;     /* the maximum weight anywhere */
@@ -54,60 +58,78 @@
   --ss-o4: 0.32;
   --ss-o5: 0.18;
 
-  /* ---- accent: live / skip. Marks and dots only, never body text on the light sheet (2.9:1). ---- */
+  /* ---- accent: live / skip. A dot or a mark; text only on glass (never on the light sheet: 2.9:1). ---- */
   --ss-accent: #FF4A1C;
   --ss-accent-rgb: 255, 74, 28;
 
-  /* ---- light sheet (popup, dashboard) ---- */
+  /* ---- light sheet (popup, dashboard, ad-panel board) ---- */
   --ss-sheet: #F0F0F0;
   --ss-ink: #000000;
   --ss-ink-rgb: 0, 0, 0;
-  --ss-card-top: #8E8E8E;
-  --ss-card-bottom: #B4B4B4;
-  --ss-on-card: #FFFFFF;          /* marks on cards: chip fill, hairline fill, grabber dash, dots */
-  --ss-on-card-rgb: 255, 255, 255;
-  --ss-card-text: var(--ss-ink);  /* text on light cards is ink: white fails 4.5:1 on #8E–#B4 */
-  --ss-card-text-rgb: var(--ss-ink-rgb);
-  --ss-deep-top: #4A4A4A;         /* .ss-card--deep: charcoal gradient where white text passes */
-  --ss-deep-bottom: #5A5A5A;
   --ss-chip-sheet: rgba(0, 0, 0, 0.06);
-  --ss-chip-card: rgba(255, 255, 255, 0.22);
-  --ss-primary-bg: var(--ss-ink);
+  --ss-primary-bg: #000000;
   --ss-primary-fg: #FFFFFF;
+
+  /* deep card: the default card (stats hero, tiles, ad panel). White text on the ladder. */
+  --ss-card-top: #555555;
+  --ss-card-bottom: #717171;
+  --ss-card-text: #FFFFFF;
+  --ss-card-text-rgb: 255, 255, 255;
+  /* light card: secondary blocks only (tables, lists). Ink text. */
+  --ss-card-light-top: #8E8E8E;
+  --ss-card-light-bottom: #B4B4B4;
+  --ss-card-light-text: #000000;
+  --ss-card-light-text-rgb: 0, 0, 0;
+  --ss-chip-card: rgba(255, 255, 255, 0.22);
+  --ss-grabber: #8E8E8E;          /* grabber pill on the sheet; on glass it is white @ o4 */
 
   /* ---- dark glass (anything on the player) ---- */
   --ss-glass: rgba(28, 28, 28, 0.62);
   --ss-glass-blur: blur(20px) saturate(140%);
+  --ss-glass-solid: rgba(40, 40, 40, 0.82);   /* tooltip: no blur, slightly more opaque */
   --ss-on-glass: #FFFFFF;
   --ss-on-glass-rgb: 255, 255, 255;
   --ss-chip-glass: rgba(255, 255, 255, 0.22);
 
   /* ---- geometry: concentric radii (outer = inner + gap) ---- */
+  --ss-r-panel: 44px;     /* ad-panel card */
   --ss-r-sheet: 40px;
-  --ss-r-card: 32px;      /* popup cards, dashboard cards */
-  --ss-r-toast: 20px;     /* toast, tooltip, small glass cards */
+  --ss-r-card: 32px;      /* popup hero, dashboard cards */
+  --ss-r-thumb-l: 26px;   /* ad-panel thumbnail */
+  --ss-r-toast: 20px;     /* toast */
+  --ss-r-tooltip: 16px;
+  --ss-r-thumb-s: 12px;   /* channel thumbnail in the popup */
   --ss-r-pill: 999px;
-  --ss-r-thumb-s: 16px;
-  --ss-r-thumb-m: 20px;
-  --ss-r-thumb-l: 28px;
 
   /* ---- spacing (4pt) ---- */
   --ss-s1: 4px;
   --ss-s2: 8px;
   --ss-s3: 12px;
   --ss-s4: 16px;
-  --ss-s5: 24px;
-  --ss-s6: 32px;
+  --ss-s5: 20px;
+  --ss-s6: 24px;
+  --ss-s7: 32px;
 
   /* ---- sizes ---- */
   --ss-chip-h: 20px;
-  --ss-button-h: 48px;
-  --ss-dot: 10px;
-  --ss-dot-lg: 12px;
+  --ss-chip-h-md: 22px;   /* mono count chips on the hero card */
+  --ss-chip-h-lg: 24px;   /* server-status chip */
+  --ss-badge-h: 32px;
+  --ss-button-h: 48px;    /* generic primary */
+  --ss-button-h-sm: 44px; /* toast actions, text buttons */
+  --ss-button-h-lg: 56px; /* popup master toggle */
+  --ss-button-h-xl: 64px; /* ad-panel "Skip ad" */
+  --ss-seg-h: 28px;       /* segmented chip buttons */
+  --ss-dot: 8px;          /* badge / toast dot */
+  --ss-dot-lg: 10px;
+  --ss-dot-xl: 14px;      /* thumbnail corner badge */
   --ss-hairline: 2px;
   --ss-marker-h: 4px;
+  --ss-lane-gap: 4px;     /* marker lane sits this far above YouTube's bar */
   --ss-grabber-w: 44px;
   --ss-grabber-h: 28px;
+  --ss-grabber-w-lg: 112px;
+  --ss-grabber-h-lg: 56px;
 
   /* ---- motion ---- */
   --ss-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -118,68 +140,54 @@
   color-scheme: light dark;
 }
 
-/* ---- dark sheet (popup + dashboard in dark mode) ----
-   Same ladder; cards flip to a charcoal gradient with white text. */
+/* ---- dark sheet (popup + dashboard in dark mode). Same ladder; cards go charcoal. ---- */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --ss-sheet: #111111;
     --ss-ink: #FFFFFF;
     --ss-ink-rgb: 255, 255, 255;
-    --ss-card-top: #2A2A2A;
-    --ss-card-bottom: #3A3A3A;
-    --ss-card-text: #FFFFFF;
-    --ss-card-text-rgb: 255, 255, 255;
-    --ss-deep-top: #1E1E1E;
-    --ss-deep-bottom: #2A2A2A;
     --ss-chip-sheet: rgba(255, 255, 255, 0.10);
     --ss-primary-bg: #FFFFFF;
     --ss-primary-fg: #000000;
+    --ss-card-top: #2A2A2A;
+    --ss-card-bottom: #3A3A3A;
+    --ss-card-light-top: #2A2A2A;
+    --ss-card-light-bottom: #3A3A3A;
+    --ss-card-light-text: #FFFFFF;
+    --ss-card-light-text-rgb: 255, 255, 255;
+    --ss-grabber: #3A3A3A;
   }
 }
-:root[data-theme="dark"] {
+:root[data-theme="dark"], .ss-theme-dark {
   --ss-sheet: #111111;
   --ss-ink: #FFFFFF;
   --ss-ink-rgb: 255, 255, 255;
-  --ss-card-top: #2A2A2A;
-  --ss-card-bottom: #3A3A3A;
-  --ss-card-text: #FFFFFF;
-  --ss-card-text-rgb: 255, 255, 255;
-  --ss-deep-top: #1E1E1E;
-  --ss-deep-bottom: #2A2A2A;
   --ss-chip-sheet: rgba(255, 255, 255, 0.10);
   --ss-primary-bg: #FFFFFF;
   --ss-primary-fg: #000000;
-}
-
-/* A scoped dark sheet, for showing both variants on one page (gallery) or a dark panel inside a light one. */
-.ss-theme-dark {
-  --ss-sheet: #111111;
-  --ss-ink: #FFFFFF;
-  --ss-ink-rgb: 255, 255, 255;
   --ss-card-top: #2A2A2A;
   --ss-card-bottom: #3A3A3A;
-  --ss-card-text: #FFFFFF;
-  --ss-card-text-rgb: 255, 255, 255;
-  --ss-deep-top: #1E1E1E;
-  --ss-deep-bottom: #2A2A2A;
-  --ss-chip-sheet: rgba(255, 255, 255, 0.10);
-  --ss-primary-bg: #FFFFFF;
-  --ss-primary-fg: #000000;
+  --ss-card-light-top: #2A2A2A;
+  --ss-card-light-bottom: #3A3A3A;
+  --ss-card-light-text: #FFFFFF;
+  --ss-card-light-text-rgb: 255, 255, 255;
+  --ss-grabber: #3A3A3A;
   color-scheme: dark;
 }
-.ss-theme-light {
+:root[data-theme="light"], .ss-theme-light {
   --ss-sheet: #F0F0F0;
   --ss-ink: #000000;
   --ss-ink-rgb: 0, 0, 0;
-  --ss-card-top: #8E8E8E;
-  --ss-card-bottom: #B4B4B4;
-  --ss-card-text: #000000;
-  --ss-card-text-rgb: 0, 0, 0;
-  --ss-deep-top: #4A4A4A;
-  --ss-deep-bottom: #5A5A5A;
   --ss-chip-sheet: rgba(0, 0, 0, 0.06);
   --ss-primary-bg: #000000;
   --ss-primary-fg: #FFFFFF;
+  --ss-card-top: #555555;
+  --ss-card-bottom: #717171;
+  --ss-card-light-top: #8E8E8E;
+  --ss-card-light-bottom: #B4B4B4;
+  --ss-card-light-text: #000000;
+  --ss-card-light-text-rgb: 0, 0, 0;
+  --ss-grabber: #8E8E8E;
   color-scheme: light;
 }
 
@@ -194,7 +202,7 @@
 }
 @keyframes ss-pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
-  50%      { opacity: 0.45; transform: scale(0.82); }
+  50%      { opacity: 0.35; transform: scale(0.75); }
 }
 @media (prefers-reduced-motion: reduce) {
   :root { --ss-dur: 0ms; --ss-rise: 0px; }
