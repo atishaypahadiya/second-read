@@ -6,7 +6,7 @@
 // (DESIGN.md); this file only builds the markup those classes expect.
 
 (() => {
-  const BUILD = 20; // keep equal to page.js, background.js and server.py CLIENT_BUILD
+  const BUILD = 21; // keep equal to page.js, background.js and server.py CLIENT_BUILD
   const TAG = '[SecondRead]';
   // Dev mode gates ordinary logs; errors always print.
   const log = (...args) => { if (settings.devMode) console.log(TAG, ...args); };
@@ -80,8 +80,64 @@
     if (!settings.enabled) { log('disabled in popup; not analyzing'); return; }
     setBadge('reading captions', 'reading');
     attachPlayback();
-    askStored(videoId);
+    begin(videoId);
+  }
+
+  // Stored result first, captions only if needed. With a stored result on screen and the page reporting the same
+  // video (id, duration, description) it was made for, the captions are not read at all: no fetch, no CC click.
+  // Anything else (nothing stored, a mismatch, no answer from the page) reads them as before.
+  async function begin(videoId) {
+    const state = current;
+    const metaReply = requestMeta(videoId);
+    const stored = await askStored(videoId);
+    if (current !== state) return;
+    if (stored) {
+      const meta = await metaReply;
+      if (current !== state) return;
+      if (meta && await cleanHit(state, videoId, meta)) return;
+      if (current !== state) return;
+    }
     requestCaptions(videoId);
+  }
+
+  const META_WAIT_MS = 4000;
+  function requestMeta(videoId) {
+    const state = current;
+    return new Promise((resolve) => {
+      const done = (v) => { window.removeEventListener('message', onMessage); clearTimeout(timer); resolve(v); };
+      const onMessage = (ev) => {
+        const d = ev.source === window && ev.data;
+        if (!d || d.source !== 'sr-page' || d.type !== 'meta' || d.videoId !== videoId) return;
+        done(d.error || typeof d.description !== 'string' || !(d.duration > 0) ? null : d);
+      };
+      const timer = setTimeout(() => done(null), META_WAIT_MS);   // an older page.js never answers: read captions
+      window.addEventListener('message', onMessage);
+      state.cleanups.push(() => done(null));
+      window.postMessage({ source: 'sr-content', type: 'getMeta', videoId }, '*');
+    });
+  }
+
+  async function sha1Hex(text) {
+    try {
+      const buf = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(text));
+      return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('');
+    } catch (e) { return null; }
+  }
+
+  async function cleanHit(state, videoId, meta) {
+    const hash = await sha1Hex(meta.description);
+    if (!hash || current !== state) return false;
+    const res = await send({ type: 'storedCheck', videoId, duration: meta.duration, desc: hash.slice(0, 12) });
+    if (current !== state || !res || !res.ok || res.match !== true || !state.instant) return false;
+    clearTimeout(state.instantTimer);
+    state.instant = null;   // settled: the server vouches for it, nothing further will replace it
+    state.title = String(meta.title || '').slice(0, 300);
+    state.creator = String(meta.creator || '').slice(0, 100);
+    state.channelId = String(meta.channelId || '').slice(0, 40);
+    state.paidPromotion = typeof meta.paidPromotion === 'boolean' ? meta.paidPromotion : null;
+    log('cache: instant (no re-read)');
+    drawMarkers();   // the don't-skip list goes by channel, which is known only now
+    return true;
   }
 
   // Instant revisit. Reading the captions takes a few seconds, and only then can the server check its stored
@@ -91,14 +147,15 @@
   async function askStored(videoId) {
     const state = current;
     const res = await send({ type: 'stored', videoId });
-    if (current !== state || !res || !res.ok || !Array.isArray(res.segments)) return;
-    if (state.lastStatus) return;   // the validated answer got here first
-    if (state.noInstant) { log(`cache: stored result not used (${state.noInstant})`); return; }
+    if (current !== state || !res || !res.ok || !Array.isArray(res.segments)) return false;
+    if (state.lastStatus) return false;   // the validated answer got here first
+    if (state.noInstant) { log(`cache: stored result not used (${state.noInstant})`); return false; }
     state.instant = res.segments;
     state.instantTimer = setTimeout(() => withdrawInstant(state, `not validated within ${INSTANT_TRUST_MS / 1000} s`), INSTANT_TRUST_MS);
     state.cleanups.push(() => clearTimeout(state.instantTimer));
     log(`cache: instant (${res.segments.length} segment(s)), before the captions were read`);
     handleJob(videoId, { status: 'done', segments: res.segments, cached: true, instant: true });
+    return true;
   }
   // Fail closed. The stored result was drawn before anything checked it against this video's captions. If that
   // check cannot be made (captions unreadable, server gone, analysis failed) or does not even start in time,

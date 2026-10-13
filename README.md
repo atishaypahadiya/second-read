@@ -58,8 +58,10 @@ never delays a skip.
 Opening a video the server has already analyzed does not wait for any of that:
 the extension first asks for the stored result by video ID and, if it was made
 by the current pipeline versions, draws the markers and skips by it at once.
-The caption read still runs, and its answer confirms the stored result or
-replaces it.
+If the page reports the same duration and description the result was made
+for, the captions are not read at all. Otherwise the caption read runs as
+usual and its answer confirms the stored result or replaces it; a stored
+result that cannot be checked stops skipping.
 
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#3A3A3A', 'primaryTextColor': '#F0F0F0', 'primaryBorderColor': '#FF4A1C', 'lineColor': '#FF4A1C', 'secondaryColor': '#2A2A2A', 'tertiaryColor': '#2A2A2A', 'actorBkg': '#3A3A3A', 'actorTextColor': '#F0F0F0', 'actorBorder': '#FF4A1C', 'actorLineColor': '#FF4A1C', 'signalColor': '#FF4A1C', 'signalTextColor': '#F0F0F0', 'noteBkgColor': '#3A3A3A', 'noteTextColor': '#F0F0F0', 'noteBorderColor': '#FF4A1C', 'labelBoxBkgColor': '#3A3A3A', 'labelBoxBorderColor': '#FF4A1C', 'labelTextColor': '#F0F0F0', 'loopTextColor': '#F0F0F0'}, 'sequence': {'mirrorActors': false}}}%%
@@ -247,7 +249,7 @@ video with different request metadata, and one with a stand-in English
 analysis track) through the real pipeline from stored
 transcripts and stored model outputs, with zero model calls, and checks
 expected segments within 1.5 s, that must-not-skip videos have no skip, and
-that forbidden ranges stay empty. It also runs 54 rule checks and the
+that forbidden ranges stay empty. It also runs 57 rule checks and the
 extension wiring test. All sixteen rows pass at versions detect 3, refine 3,
 post 6, lead-in 2. The expectations were written from the same videos the prompt and
 thresholds were tuned on, so a pass says nothing has regressed and nothing
@@ -312,7 +314,8 @@ c = json.load(open(f"server/cache/{vid}.json"))
 api = "http://127.0.0.1:8766/analyze"
 body = {"videoId": vid, "lang": c["lang"], "title": c["title"], "lines": c["transcript"], "tag": "SPEED"}
 u.urlopen(u.Request(api, json.dumps(body).encode(), {"Content-Type": "application/json"}))
-while json.load(u.urlopen(f"{api}?v={vid}"))["status"] not in ("done", "error"):
+poll = u.Request(f"{api}?v={vid}", headers={"X-SR-Client": "extension"})   # the per-video GETs want this header
+while json.load(u.urlopen(poll))["status"] not in ("done", "error"):
     time.sleep(2)
 EOF
 tail -1 /tmp/sr-speed/results.local.md
@@ -383,6 +386,9 @@ channel go to `127.0.0.1:8765` and from there to Ollama on localhost. The
 server refuses requests whose `Host` is not localhost and requests from web
 origins. A request with no `Origin` header is still answered, which is how
 `curl` and the dashboard reach it, so any process on the machine can read it.
+The two endpoints that answer per video ID also require a header that only a
+scripted request can carry, so a web page cannot probe which videos have been
+analyzed by loading them as images or scripts.
 
 Everything the server writes is under `server/cache/` and is gitignored: one
 result file per video with its transcript, `results.local.md` (one row per
@@ -433,7 +439,10 @@ A video without captions is not analyzed at all. Auto-generated captions
 mishear brand names, and some auto tracks carry no word timing; on those the
 cut is placed on word times estimated from character position, which is less
 exact than a timed track and has not been checked against audio since the
-estimate was last changed.
+estimate was last changed. When the creator's own captions are used and an
+auto track in the same language exists, the text is taken from the former and
+the word timing from the latter; that path has unit checks but has not yet
+been seen working on a real video.
 
 On a first visit the first skip is published roughly 35 to 60 seconds after
 the video opens. A sponsor read that starts inside that window plays. The

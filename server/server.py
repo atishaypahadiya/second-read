@@ -53,7 +53,7 @@ def env(name, default=""):
 
 
 HOST, PORT = "127.0.0.1", int(env("PORT", "8765"))  # SR_PORT: run a second instance for testing
-CLIENT_BUILD = 20  # extension build this server expects (page.js / content.js / background.js BUILD)
+CLIENT_BUILD = 21  # extension build this server expects (page.js / content.js / background.js BUILD)
 ALLOWED_HOSTS = {f"127.0.0.1:{PORT}", f"localhost:{PORT}", "127.0.0.1", "localhost"}
 # Optional: restrict to one extension. Unpacked extension IDs differ per machine, so this is opt-in:
 #   SR_EXTENSION_ID=abcdefghijklmnopabcdefghijklmnop python3 server/server.py
@@ -1345,7 +1345,7 @@ def check_leadin(job, seg):
     seg["leadin"] = "checked"
     if seg.get("action") != "skip":
         return False
-    if job["alines"] is not lines:
+    if job.get("alang") != job.get("lang"):
         log(f"  lead-in {rng}: not checked (the analysis runs on a translated track; the cut is on the original)")
         return False
     sents = sentences_before(lines, cut)
@@ -1791,6 +1791,30 @@ def stored_result(video_id, build):
     return list(cached.get("segments") or []), "disk"
 
 
+STORED_DURATION_TOL_S = 2.0   # the page's lengthSeconds is whole seconds, the stored duration is the player's float
+
+
+def stored_matches(video_id, duration, desc_hash):
+    """Is the stored result still for this video as the page reports it now? (matches, why). The check that lets
+    the extension skip the caption read altogether: same video id (the lookup), same duration (within
+    STORED_DURATION_TOL_S) and the same description (by SHA-1 of its text, first 12 hex digits). A stored result
+    without a duration never matches."""
+    with jobs_lock:
+        job = jobs.get(video_id)
+        known = (job.get("duration"), job.get("description") or "") if job and job.get("status") == "done" else None
+    if known is None:
+        meta = (load_cache(video_id) or {}).get("meta") or {}
+        known = (meta.get("duration"), meta.get("description") or "")
+    stored_duration, stored_description = known
+    if not stored_duration:
+        return False, "the stored result has no duration"
+    if duration is None or abs(float(stored_duration) - duration) > STORED_DURATION_TOL_S:
+        return False, f"duration {'?' if duration is None else '%.0f s' % duration}, stored {float(stored_duration):.0f} s"
+    if hashlib.sha1(stored_description.encode("utf-8")).hexdigest()[:12] != desc_hash:
+        return False, "the description changed"
+    return True, "video id, duration and description match the stored result"
+
+
 def settle_instant(video_id, segments, how):
     """The validated answer for a video whose stored result was served instantly: say whether it held."""
     served = instant_served.pop(video_id, None)
@@ -1818,7 +1842,9 @@ def clean_capture(raw):
     def text(v, n=40):
         return re.sub(r"[^\w .:,/=+-]", "?", str(v))[:n]
     out = {k: text(raw.get(k)) for k in ("path", "via", "how", "retry", "picked") if raw.get(k) not in (None, "")}
-    for k in ("events", "withSegs", "withOffset", "multiSeg", "lines", "timed", "lastEnd", "videoSeconds"):
+    if raw.get("timing"):
+        out["timing"] = text(raw["timing"], 60)
+    for k in ("events", "withSegs", "withOffset", "multiSeg", "lines", "timed", "lastEnd", "videoSeconds", "timingLines"):
         if isinstance(raw.get(k), (int, float)) and not isinstance(raw.get(k), bool):
             out[k] = int(raw[k])
     if isinstance(raw.get("tracks"), list):
@@ -1843,7 +1869,9 @@ def log_capture(video_id, cap):
         f"(+{len(cap.get('others') or [])} other params); {cap.get('events', '?')} events, "
         f"{cap.get('withOffset', '?')} with word offsets, {cap.get('multiSeg', '?')} multi-seg; "
         f"{cap.get('lines', '?')} lines ({cap.get('timed', '?')} timed), ends {fmt_time(cap.get('lastEnd') or 0)} of "
-        f"{fmt_time(cap.get('videoSeconds') or 0)}{'; second read: ' + cap['retry'] if cap.get('retry') else ''}")
+        f"{fmt_time(cap.get('videoSeconds') or 0)}{'; second read: ' + cap['retry'] if cap.get('retry') else ''}"
+        f"; cut placement: {cap.get('timing', 'not reported')}"
+        f"{' (%d lines)' % cap['timingLines'] if cap.get('timingLines') else ''}")
 
 
 def log_meta(video_id, title, description, meta, position, hints):
@@ -2582,6 +2610,19 @@ class Handler(BaseHTTPRequestHandler):
             segments, where = stored_result(vid, build)
             if segments is None:
                 return self.send_json(404, {"error": "not stored", "why": where})
+            if "desc" in q or "dur" in q:
+                # second question, once the page's metadata is known: may the caption read be skipped altogether?
+                try:
+                    duration = float((q.get("dur") or [""])[0])
+                except ValueError:
+                    duration = None
+                match, why = stored_matches(vid, duration, (q.get("desc") or [""])[0][:12])
+                if match:
+                    instant_served.pop(vid, None)   # settled: nothing further will come to confirm or replace it
+                    log(f"[{vid}] cache: instant (no re-read): {why}")
+                else:
+                    log(f"[{vid}] cache: reading captions to validate the stored result ({why})")
+                return self.send_json(200, {"match": match, "why": why})
             instant_served.pop(vid, None)
             while len(instant_served) >= INSTANT_SERVED_MAX:   # never grows without bound
                 instant_served.pop(next(iter(instant_served)))
@@ -2590,6 +2631,8 @@ class Handler(BaseHTTPRequestHandler):
             log(f"[{vid}] cache: instant ({len(segments)} segment(s), {skips} to skip, from {where}), before the captions were read")
             return self.send_json(200, {"status": "done", "segments": segments, "cached": True, "instant": True})
         if u.path == "/analyze":
+            if not extension_request(self.headers):   # answers per video id, like /stored: the same gate
+                return self.send_json(403, {"error": "extension only"})
             vid = (parse_qs(u.query).get("v") or [""])[0]
             if not VIDEO_ID_RE.match(vid):
                 return self.send_json(400, {"error": "bad video id"})

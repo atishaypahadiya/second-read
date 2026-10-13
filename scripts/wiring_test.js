@@ -45,6 +45,25 @@ const check = (ok, msg) => { if (!ok) failures.push(msg); };
     { tStartMs: 1000, dDurationMs: 6000, segs: [{ utf8: 'hello', tOffsetMs: 0 }, { utf8: ' there', tOffsetMs: 600 }, { utf8: ' world.', tOffsetMs: 1500 }] },
     { tStartMs: 4000, dDurationMs: 3000, segs: [{ utf8: 'Next', tOffsetMs: 0 }, { utf8: ' line.', tOffsetMs: 500 }] },
   ]);
+  // timing track: a manual track is analyzed, the auto track of the same language places the cut
+  check(!!fn('timingTrackFor') && !!fn('hasWordTiming') && !!fn('assembleTracks'), 'could not locate the timing-track helpers in page.js');
+  const tt = vm.runInNewContext(`${fn('timingTrackFor')}\n${fn('hasWordTiming')}\n${fn('assembleTracks')}\n({ timingTrackFor, assembleTracks });`);
+  const T = { enManual: { languageCode: 'en' }, enAsr: { languageCode: 'en', kind: 'asr' }, deManual: { languageCode: 'de' } };
+  check(tt.timingTrackFor([T.enManual, T.enAsr], T.enManual) === T.enAsr && tt.timingTrackFor([T.deManual, T.enAsr], T.deManual) === null
+        && tt.timingTrackFor([T.enManual, T.enAsr], T.enAsr) === null,
+        'timing track: only a manual pick with an auto track in the same language gets one');
+  const manualLines = [{ start: 0, end: 4, text: 'Thanks to Odoo', timed: false }], asrLines = [{ start: 0, end: 4, text: 'thanks to udu', timed: true }];
+  const noOffsets = [{ start: 0, end: 4, text: 'thanks to udu', timed: false }], translated = [{ start: 0, end: 4, text: 'danke', timed: false }];
+  const two = tt.assembleTracks(manualLines, asrLines, null, 'en');
+  check(two.lines === asrLines && two.analysisLines === manualLines && two.analysisLang === 'en' && /asr track/.test(two.timing),
+        `timing track: manual text analyzed, auto track cut on; got ${JSON.stringify(two)}`);
+  for (const [name, timing] of [['the auto track could not be read', null], ['the auto track has no word offsets', noOffsets]]) {
+    const one = tt.assembleTracks(manualLines, timing, null, 'en');
+    check(one.lines === manualLines && one.analysisLines === null && /estimated/.test(one.timing), `timing track (${name}): must fall back to the picked track's estimates; got ${JSON.stringify(one)}`);
+  }
+  const three = tt.assembleTracks(manualLines, asrLines, translated, 'de');
+  check(three.lines === asrLines && three.analysisLines === translated && three.analysisLang === 'en', 'timing track + translation: the translation is analyzed, the auto track is cut on');
+
   // short-read guard: a transcript ending more than 15% before the video's end is read once more
   const num = (name) => (src.page.match(new RegExp(`const ${name} = ([\\d.]+);`)) || [])[1];
   check(!!fn('endsShort') && !!fn('betterRead') && !!num('SHORT_READ_FRACTION') && !!num('SHORT_READ_SAME_S'), 'could not locate the short-read guard in page.js');
@@ -81,6 +100,10 @@ const pageReply = {
              multiSeg: 1, lines: 1, timed: 1, lastEnd: 4, videoSeconds: 1012 },
 };
 
+// what page.js replies to 'getMeta': the page's own account of the video, no captions involved
+const pageMeta = { source: 'sr-page', type: 'meta', videoId: VIDEO_ID, build: builds.page, duration: 1012, description: DESCRIPTION,
+                   title: pageReply.title, creator: 'fern', channelId: pageReply.channelId, paidPromotion: true };
+
 // The segment the fake server answers with: a sponsor read the extension will skip.
 const SEG = { start: 100, end: 150, category: 'sponsor', style: 'read', brand: 'Cody', brand_canonical: 'Coddy', action: 'skip',
               confidence: 0.95, evidence: 'use code FERN20 for 20% off', reason: 'promo code and call to action', source: 'detect',
@@ -93,6 +116,8 @@ const KEEP2 = { ...KEEP, start: 500, end: 520 };
 let fetched = null;
 let storedUrl = null;   // GET /stored: the instant revisit asks by video id before the captions are read
 let storedHeaders = null;
+let checkUrl = null;     // GET /stored?...&dur=&desc=: may the caption read be skipped?
+const headersByRoute = {};
 const posts = { '/feedback': [], '/event': [] };
 const bgListeners = [];
 // background.js clears a few leftover storage keys and the toolbar badge when it starts
@@ -108,6 +133,9 @@ const bgSandbox = {
     fetchedRoutes.add(route);
     if (route === '/analyze' && init && init.method === 'POST') fetched = { url, init };
     if (posts[route] && init && init.method === 'POST') posts[route].push(JSON.parse(init.body));
+    const query = new URL(url).searchParams;
+    headersByRoute[`${(init && init.method) || 'GET'} ${route}`] = (init && init.headers) || {};
+    if (route === '/stored' && query.has('desc')) { checkUrl = url; return { ok: true, status: 200, json: async () => ({ match: false, why: 'test: the description changed' }) }; }
     if (route === '/stored') { storedUrl = url; storedHeaders = (init && init.headers) || {}; }
     return { ok: true, status: 200, json: async () => (route === '/analyze' ? { status: 'done', segments: [SEG, KEEP, KEEP2] }
       : route === '/stored' ? { status: 'done', segments: [SEG], cached: true, instant: true } : { ok: true }) };
@@ -153,12 +181,15 @@ const win = {
   addEventListener: (type, fn) => { if (type === 'message') messageListeners.push(fn); },
   removeEventListener: (type, fn) => { const i = messageListeners.indexOf(fn); if (i >= 0) messageListeners.splice(i, 1); },
   postMessage: (data) => {
-    if (data && data.source === 'sr-content' && data.type === 'getCaptions') {
-      setImmediate(() => { for (const fn of messageListeners.slice()) fn({ source: win, data: pageReply }); });
+    if (data && data.source === 'sr-content' && (data.type === 'getCaptions' || data.type === 'getMeta')) {
+      const reply = data.type === 'getMeta' ? pageMeta : pageReply;
+      pageAsked.push(data.type);
+      setImmediate(() => { for (const fn of messageListeners.slice()) fn({ source: win, data: reply }); });
     }
   },
 };
 const sent = [];
+const pageAsked = [];   // what content.js asked page.js for, in order
 const stored = {};   // chrome.storage.local
 const tabStateNow = () => { let st = null; for (const fn of contentRuntimeListeners) fn({ type: 'getState' }, {}, (r) => { st = r; }); return st; };
 const contentSandbox = {
@@ -173,6 +204,7 @@ const contentSandbox = {
   location: { href: `https://www.youtube.com/watch?v=${VIDEO_ID}` },
   console: { log() {}, warn() {}, error() {} },
   URL, setTimeout: () => 0, clearTimeout() {}, setInterval: () => 0, clearInterval() {},
+  crypto: require('crypto').webcrypto, TextEncoder, Uint8Array,
   chrome: {
     storage: { local: { get: (k, cb) => cb(JSON.parse(JSON.stringify(stored))), set: (o) => { Object.assign(stored, JSON.parse(JSON.stringify(o))); } },
                onChanged: { addListener() {} } },
@@ -200,6 +232,13 @@ setTimeout(() => {
   check(!!storedUrl && new RegExp(`[?&]v=${VIDEO_ID}(&|$)`).test(storedUrl) && new RegExp(`[?&]build=${builds.background}(&|$)`).test(storedUrl),
         `GET /stored url: ${storedUrl}`);
   check(storedHeaders && storedHeaders['X-SR-Client'] === 'extension', `GET /stored headers: ${JSON.stringify(storedHeaders)} (the server refuses it without X-SR-Client)`);
+  // the page's metadata is asked for before any captions, and the "may I skip the read?" question carries the
+  // duration and the description's SHA-1; the answer here is no, so the captions are read as before
+  const sha12 = require('crypto').createHash('sha1').update(DESCRIPTION, 'utf8').digest('hex').slice(0, 12);
+  check(pageAsked[0] === 'getMeta' && pageAsked.includes('getCaptions'), `page.js was asked: ${pageAsked}`);
+  check(!!checkUrl && new RegExp(`[?&]dur=1012(&|$)`).test(checkUrl) && new RegExp(`[?&]desc=${sha12}(&|$)`).test(checkUrl), `stored check url: ${checkUrl} (expected dur=1012, desc=${sha12})`);
+  for (const fn of bgListeners) fn({ type: 'poll', videoId: VIDEO_ID }, {}, () => {});
+  check((headersByRoute['GET /analyze'] || {})['X-SR-Client'] === 'extension', `the poll (GET /analyze) headers: ${JSON.stringify(headersByRoute['GET /analyze'])}`);
   check(!!fetched, 'background.js never called fetch for /analyze');
   let body = {};
   if (fetched) {
@@ -333,7 +372,11 @@ setTimeout(() => {
                       addEventListener(type, fn) { this.handlers[type] = fn; }, removeEventListener() {} };
       const listeners = [];
       const w = { addEventListener: (t, fn) => { if (t === 'message') listeners.push(fn); }, removeEventListener() {},
-                  postMessage: (d) => { if (d && d.type === 'getCaptions') setTimeout(() => listeners.slice().forEach((fn) => fn({ source: w, data: { source: 'sr-page', type: 'captions', videoId: VIDEO_ID, error: 'caption fetch failed' } })), 5); } };
+                  postMessage: (d) => {
+                    const data = d && d.type === 'getMeta' ? { source: 'sr-page', type: 'meta', videoId: VIDEO_ID, error: 'player not ready' }
+                      : d && d.type === 'getCaptions' ? { source: 'sr-page', type: 'captions', videoId: VIDEO_ID, error: 'caption fetch failed' } : null;
+                    if (data) setTimeout(() => listeners.slice().forEach((fn) => fn({ source: w, data })), 5);
+                  } };
       const asked = [];
       vm.runInNewContext(src.content, { ...contentSandbox, window: w,
         document: { ...contentSandbox.document, getElementById: () => makeEl(),
@@ -345,8 +388,33 @@ setTimeout(() => {
       return { video, asked };
     };
     const early = failClosed(0), late = failClosed(15);
+
+    // ---- clean hit: the stored result is on screen, the page reports the same duration and description, the
+    // server says they match -> no caption read at all (page.js is never asked for captions), and it still skips
+    const clean = (() => {
+      const video = { currentTime: 0, duration: 1012.4, seeking: false, handlers: {},
+                      addEventListener(type, fn) { this.handlers[type] = fn; }, removeEventListener() {} };
+      const listeners = [];
+      const asked = [], fromPage = [];
+      const w = { addEventListener: (t, fn) => { if (t === 'message') listeners.push(fn); }, removeEventListener() {},
+                  postMessage: (d) => { fromPage.push(d && d.type); if (d && d.type === 'getMeta') setTimeout(() => listeners.slice().forEach((fn) => fn({ source: w, data: pageMeta })), 2); } };
+      vm.runInNewContext(src.content, { ...contentSandbox, window: w,
+        document: { ...contentSandbox.document, getElementById: () => makeEl(),
+                    querySelector: (sel) => (String(sel).includes('video.html5-main-video') ? video : null) },
+        chrome: { ...contentSandbox.chrome, runtime: { ...contentSandbox.chrome.runtime, onMessage: { addListener() {} },
+          sendMessage: (msg, cb) => { asked.push(msg.type); setTimeout(() => cb(msg.type === 'stored'
+            ? { ok: true, status: 'done', segments: [SEG], cached: true, instant: true }
+            : msg.type === 'storedCheck' ? { ok: true, match: true, why: 'test' } : { ok: true }), 1); } } } },
+        { filename: 'content.js (clean hit)' });
+      return { video, asked, fromPage };
+    })();
     setTimeout(() => {
-      for (const [name, c] of [['stored result first, then the caption read fails', early], ['caption read fails first, stored result arrives after', late]]) {
+      check(clean.asked.includes('storedCheck') && !clean.asked.includes('analyze') && !clean.fromPage.includes('getCaptions'),
+            `clean hit: server was asked ${clean.asked}, page.js was asked ${clean.fromPage} (no caption read and no analyze expected)`);
+      clean.video.currentTime = SEG.start + 5;
+      if (clean.video.handlers.timeupdate) clean.video.handlers.timeupdate();
+      check(clean.video.currentTime === SEG.end, `clean hit: the stored skip did not fire (currentTime ${clean.video.currentTime})`);
+      for (const [name, c] of [['stored result first, then the caption read fails', early], ['stored result arrives late, then the caption read fails', late]]) {
         check(c.asked.includes('stored') && !c.asked.includes('analyze'), `fail closed (${name}): messages ${c.asked}`);
         c.video.currentTime = SEG.start + 5;
         if (c.video.handlers.timeupdate) c.video.handlers.timeupdate();
