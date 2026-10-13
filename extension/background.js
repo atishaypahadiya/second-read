@@ -35,6 +35,45 @@ function newInstallId() {
   return Array.from(a, (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
+// A snapshot comes back from the local server, which any local extension could have written to, so it is treated
+// as untrusted: only known fields with allowed values survive. Nothing in it can do more than what the popup
+// itself lets the user choose.
+const CATEGORY_KEYS = ['sponsor_read', 'affiliate', 'selfpromo', 'membership', 'crosspromo', 'charity', 'giveaway', 'interaction', 'intro', 'outro', 'recap'];
+const MAX_ALLOWLIST = 500;
+function sanitizeSnapshot(snap) {
+  const out = {};
+  const s = snap && snap.settings;
+  if (s && typeof s === 'object' && !Array.isArray(s)) {
+    const settings = {};
+    if (typeof s.enabled === 'boolean') settings.enabled = s.enabled;
+    if (typeof s.devMode === 'boolean') settings.devMode = s.devMode;
+    settings.actions = {};
+    if (s.actions && typeof s.actions === 'object') {
+      for (const k of CATEGORY_KEYS) {
+        const allowed = k === 'sponsor_read' ? ['skip', 'label'] : ['skip', 'label', 'off'];
+        if (allowed.includes(s.actions[k])) settings.actions[k] = s.actions[k];
+      }
+    }
+    settings.allowlist = {};
+    if (s.allowlist && typeof s.allowlist === 'object' && !Array.isArray(s.allowlist)) {
+      for (const [id, name] of Object.entries(s.allowlist).slice(0, MAX_ALLOWLIST)) {
+        if (/^[A-Za-z0-9_-]{10,40}$/.test(id) && typeof name === 'string') settings.allowlist[id] = name.slice(0, 100);
+      }
+    }
+    out.settings = settings;
+  }
+  const t = snap && snap.stats;
+  if (t && typeof t === 'object' && !Array.isArray(t)) {
+    const count = (x) => (Number.isFinite(x) && x >= 0 && x < 1e9 ? x : 0);
+    const stats = { all: { skips: Math.floor(count(t.all && t.all.skips)), saved: count(t.all && t.all.saved) } };
+    if (t.today && typeof t.today.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(t.today.date)) {
+      stats.today = { date: t.today.date, skips: Math.floor(count(t.today.skips)), saved: count(t.today.saved) };
+    }
+    out.stats = stats;
+  }
+  return out;
+}
+
 // What this install has (possibly nothing, possibly a few changes made before the server was reachable) combined
 // with the previous install's snapshot. Local, non-default choices win; lists are united; counters add up.
 function mergeState(local, prev) {
@@ -71,11 +110,12 @@ async function syncBackup() {
     const prev = await call(`/client-state?not=${installId}`);
     if (!prev.ok) return; // server not reachable: look again next time, and do not upload before having looked
     const update = { restoreChecked: true };
-    if (prev.settings || prev.stats) {
-      const merged = mergeState({ settings: st.settings, stats: st.stats }, prev);
+    const clean = sanitizeSnapshot(prev);
+    if (clean.settings || clean.stats) {
+      const merged = mergeState({ settings: st.settings, stats: st.stats }, clean);
       if (merged.settings) update.settings = merged.settings;
       if (merged.stats) update.stats = merged.stats;
-      console.log(`[SecondRead:bg] restored settings and stats from a previous install (${prev.from}, saved ${prev.saved_at})`);
+      console.log('[SecondRead:bg] restored settings and stats from a previous install', String(prev.from).slice(0, 40), 'saved', String(prev.saved_at).slice(0, 25));
     }
     await chrome.storage.local.set(update);
     Object.assign(st, update);
