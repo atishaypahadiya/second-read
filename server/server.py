@@ -1457,8 +1457,7 @@ def plan_job(job):
     wins = windows(alines)
     chapter_segs = chapter_segments(job)
     if chapter_segs:
-        job["final"].extend(chapter_segs)
-        publish(job)
+        job["final"].extend(chapter_segs)  # published below, once the plan exists (still before any model call)
     hint_cands = hint_candidates(job)  # may drop too-common terms from job["terms"]
     terms = job["terms"]
     regions = [(c["start"] - HINT_REGION_PAD_S, c["end"] + HINT_REGION_PAD_S) for c in hint_cands]
@@ -1493,6 +1492,8 @@ def plan_job(job):
         f"order: {[('hint ' if u[0] == 'hint' else '') + fmt_time(alines[u[1]['start_line'] if u[0] == 'hint' else u[1]]['start']) for u in units]}")
     for c in hint_cands:
         log(f"[{job['video_id']}] hint region {fmt_time(c['start'])}-{fmt_time(c['end'])} ({c['reason']}) -> refine directly")
+    if chapter_segs:
+        publish(job)
 
 
 def run_unit(job, unit):
@@ -1549,7 +1550,8 @@ def publish(job):
             return
         job["segments"] = finalize(job, verbose=False)
         total = job["n_sent"] + sum(1 for u in job.get("units_all", []) if u[0] == "hint")
-        job["progress"] = f"{max(0, total - len(job['pending']))}/{total}"
+        left = len(job["pending"]) if job.get("pending") is not None else total
+        job["progress"] = f"{max(0, total - left)}/{total}"
         if job["ttfs"] is None and any(x["action"] == "skip" for x in job["segments"]):
             job["ttfs"] = time.time() - job["t_start"]
             log(f"[{job['video_id']}] first skip published after {job['ttfs']:.1f}s")

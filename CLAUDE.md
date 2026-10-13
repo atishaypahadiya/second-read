@@ -141,6 +141,9 @@ API:
   structure beats, and a better-placement suggestion (timestamp, reason, verbatim quote, flagged if not verbatim).
 - Dashboard "Ad cards": mini timeline (ad, chapters, heat, peaks), all metrics, tags, suggestion. "Insights":
   aggregates and distributions across all ads.
+- **Disclosure check:** page.js sends YouTube's "Includes paid promotion" flag (`paidContentOverlay` in the player
+  response); the server also checks the description for an (ad)/sponsor/partner line. A sponsor read with neither is
+  flagged `undisclosed: true` on the segment, counted per brand in the stats table, and marked on its ad card.
 
 Status values: `queued → classifying → done` (or `error`); `paused: true` while the video isn't being polled.
 Every GET/POST for a video counts as a poll.
