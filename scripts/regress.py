@@ -6,9 +6,14 @@
     python3 scripts/regress.py --allow-model   # permit Ollama calls when a cached output is missing/outdated
 
 Runs the server pipeline in-process (no HTTP). With matching DETECT/REFINE versions every model call is served
-from server/cache/<id>.json, so a run takes a second or two and makes zero Ollama calls; a prompt change will
-need the model (pass --allow-model, or just run the videos once through the real server first).
-Stats go to a throwaway SQLite DB, results.local.md is not touched. Exit code 1 on any failure.
+from stored model outputs, so a run takes a second or two and makes zero Ollama calls; a prompt change needs the
+model once (--allow-model).
+
+Isolation: SR_DATA_DIR points at a fresh temp dir before the server is imported, so its result cache, stats DB,
+results log and feedback file all live there. The test-set videos' cache files are COPIED in from server/cache;
+nothing is ever written back to server/cache. Model outputs the harness itself paid for (--allow-model) are kept
+in server/testset.calls.local.json (gitignored) and merged into the copies on the next run.
+Exit code 1 on any failure.
 """
 
 import json
@@ -21,6 +26,11 @@ import tempfile
 import time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+REAL_CACHE = os.path.join(ROOT, "server", "cache")  # read-only for the harness
+CALLS_STORE = os.path.join(ROOT, "server", "testset.calls.local.json")
+DATA_DIR = tempfile.mkdtemp(prefix="sr-regress-")
+os.environ["SR_DATA_DIR"] = DATA_DIR  # before the imports below: the server resolves every local path from it
+os.environ.pop("SS_DATA_DIR", None)
 sys.path.insert(0, os.path.join(ROOT, "server"))
 
 import server  # noqa: E402
@@ -33,6 +43,42 @@ DEFAULT_TOL = 1.5
 def load_testset():
     with open(os.path.join(ROOT, "server", "testset.json"), "r", encoding="utf-8") as f:
         return json.load(f)["videos"]
+
+
+def read_json(path):
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return None
+
+
+def seed_data_dir(video_ids):
+    """Copy the videos' cache files into the temp data dir, with the harness's own stored model outputs merged in
+    (a stored output replaces the copy's only when it was made under a newer or equal version)."""
+    store = read_json(CALLS_STORE) or {}
+    for vid in video_ids:
+        data = read_json(os.path.join(REAL_CACHE, f"{vid}.json"))
+        if not data:
+            continue
+        calls = data.setdefault("calls", {})
+        for key, out in (store.get(vid) or {}).items():
+            if key not in calls or (out.get("v") or 0) >= (calls[key].get("v") or 0):
+                calls[key] = out
+        server.save_cache(vid, data)  # CACHE_DIR is the temp dir (checked in main)
+    return store
+
+
+def keep_model_outputs(video_ids, store):
+    """After --allow-model: remember every model output of the test-set videos, so the next run needs no model."""
+    for vid in video_ids:
+        calls = (read_json(os.path.join(DATA_DIR, f"{vid}.json")) or {}).get("calls")
+        if calls:
+            store[vid] = calls
+    tmp = CALLS_STORE + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(store, f, ensure_ascii=False, indent=1)
+    os.replace(tmp, CALLS_STORE)
 
 
 def run_video(entry, allow_model):
@@ -303,11 +349,10 @@ def unit_checks():
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     allow_model = "--allow-model" in sys.argv
-    tmp = tempfile.mkdtemp(prefix="sr-regress-")
-    # Nothing the harness does may land in the user's local data: stats, results log and feedback go to a temp dir.
-    stats.DB_PATH = os.path.join(tmp, "stats.db")
-    server.RESULTS_MD = os.path.join(tmp, "results.md")
-    server.FEEDBACK_JSONL = os.path.join(tmp, "feedback.jsonl")
+    # Nothing the harness does may land in the user's local data. Refuse to run if any path escaped the temp dir.
+    paths = (server.CACHE_DIR, stats.DB_PATH, server.RESULTS_MD, server.FEEDBACK_JSONL)
+    if server.CACHE_DIR != DATA_DIR or not all(os.path.realpath(p).startswith(os.path.realpath(DATA_DIR)) for p in paths):
+        sys.exit(f"regress: not isolated, refusing to run: {paths}")
     intel._embed_available = False  # no embedding calls during regression
     server.log = lambda *a: None  # quiet; set SR_REGRESS_VERBOSE=1 to see the pipeline log
     if os.environ.get("SR_REGRESS_VERBOSE") or os.environ.get("SS_REGRESS_VERBOSE"):
@@ -319,6 +364,8 @@ def main():
     entries = load_testset()
     if args:
         entries = [e for e in entries if e["video"] in args or e.get("id") in args]
+    video_ids = sorted({e["video"] for e in entries})
+    store = seed_data_dir(video_ids)
     failures = 0
     rows = []
     if not args:
@@ -349,6 +396,9 @@ def main():
         ok = all(r[0] for r in results)
         failures += 0 if ok else 1
         rows.append((label, e.get("creator", ""), "PASS" if ok else "FAIL", [m for _, m in results], time.time() - t0))
+    if allow_model:
+        keep_model_outputs(video_ids, store)
+    shutil.rmtree(DATA_DIR, ignore_errors=True)
     print(f"{'video':22} {'creator':14} {'result':6} {'time':>6}  details")
     print("-" * 110)
     for vid, cr, res, details, dt in rows:

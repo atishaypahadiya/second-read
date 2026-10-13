@@ -34,7 +34,11 @@ everything runs on Atishay's M4 Pro MacBook.
 - **Before every commit run `python3 scripts/regress.py`.** It replays `server/testset.json` from cached transcripts
   and cached model outputs (zero Ollama calls when versions match), checks expected segments within ±1.5s, asserts
   must-not-skip videos have no skips and forbidden ranges stay empty, and prints a pass/fail table. After a prompt
-  change the cached outputs are outdated: run the videos through the real server once (or `--allow-model`).
+  change the stored outputs are outdated: run it once with `--allow-model`.
+  **It is isolated:** `SR_DATA_DIR` is set to a fresh temp dir before the server is imported, the test-set videos'
+  cache files are copied in, and nothing is written back to `server/cache/` (it used to overwrite those files,
+  including their stored description). Model outputs it computes with `--allow-model` are kept in
+  `server/testset.calls.local.json` (gitignored) and merged into the copies on the next run.
 - If a decision in "Open decisions" comes up, ask; don't pick silently.
 
 ## Repo layout
@@ -66,6 +70,7 @@ second-read/                 (the folder may still be called sponsor-skipper on 
     ├── intel.py         ad intelligence: tier-1 metrics at job end, idle-only tier-2 Qwen analysis, /ads.json
     ├── testset.md       curated test videos, expectations, verdicts (human-readable)
     ├── testset.json     the same expectations for scripts/regress.py
+    ├── testset.calls.local.json   model outputs the regression harness computed itself (gitignored)
     └── cache/           <videoId>.json results, results.local.md, feedback.local.jsonl, stats.local.db (all gitignored)
 ```
 
@@ -147,8 +152,7 @@ API:
 A `false_skip` without a valid segment, or any report without a playhead, is rejected with 400; the client sends
 the whole segment (times, brand, canonical brand, evidence, reason, source) plus the pre-skip playhead, and the
 server adds the cached pipeline context and versions. Rows that predate validation are ignored by the report.
-**Tests never write to `server/cache/`**: use `SR_DATA_DIR`, or redirect `FEEDBACK_JSONL` / `stats.DB_PATH` as
-`scripts/regress.py` does.
+**Tests never write to `server/cache/`**: set `SR_DATA_DIR` before importing the server, as `scripts/regress.py` does.
 
 ### Stats (server/stats.py, `server/cache/stats.local.db`, gitignored)
 - Tables: `videos` (id, channel, title, lang, duration, versions, hints), `segments` (every final segment with
