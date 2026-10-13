@@ -15,7 +15,7 @@ import urllib.request
 
 import stats
 
-ANALYSIS_VERSION = 1
+ANALYSIS_VERSION = 2  # 2: persuasion quotes matched like evidence (v1 dropped every quote that crossed a line break)
 EMBED_MODEL = "nomic-embed-text"
 OLLAMA = "http://localhost:11434"
 HOOK_S = 60.0
@@ -77,6 +77,24 @@ OFFER_PATTERNS = [
 
 def words_of(text):
     return [w for w in re.sub(r"[^\w\s]", " ", text.lower()).split() if w]
+
+
+QUOTE_MIN_RUN = 6  # as the server's evidence gate: the whole quote, or any verbatim run of this many words
+LINE_LABEL_RE = re.compile(r"\bL\d+\b")  # the model sometimes copies the "L3" labels of the prompt into a quote
+
+
+def quote_in(quote, hay):
+    """Is the model's quote really in the text (hay = words_of(text), no line labels)? Matched like evidence:
+    normalized, then the whole quote or any run of QUOTE_MIN_RUN words from it must appear verbatim. A quote that
+    runs over a line break or respells one misheard word ("headsp space") is still that passage."""
+    q = words_of(LINE_LABEL_RE.sub(" ", quote))
+
+    def has(run):
+        n = len(run)
+        return any(hay[j:j + n] == run for j in range(len(hay) - n + 1))
+    if not q:
+        return False
+    return has(q) or any(has(q[i:i + QUOTE_MIN_RUN]) for i in range(len(q) - QUOTE_MIN_RUN + 1))
 
 
 def content_words(text):
@@ -384,13 +402,19 @@ def run_analysis(row, chat_fn, load_transcript):
     _log(f"[{vid}] intel: tier-2 analysis started for {row['brand']!r} {stats.fmt_time(row['seg_start'])}-{stats.fmt_time(row['seg_end'])} (idle)")
     try:
         result = chat_fn(prompt, ANALYSIS_SCHEMA)
-        # keep only quotes that are really in the ad (verbatim, normalized)
-        ad_norm = " ".join(words_of(ad_block))
-        pers = []
-        for p in result.get("persuasion", []) or []:
-            q = " ".join(words_of(str(p.get("quote", ""))))
-            if q and q in ad_norm:
-                pers.append({"tag": p.get("tag"), "quote": str(p.get("quote", ""))[:200]})
+        # Keep only quotes that are really in the ad. Matched against the ad's words alone: with the prompt's "L3"
+        # labels in the haystack, every quote that ran over a line break was dropped.
+        ad_words = words_of(" ".join(l["text"] for l in ad_lines))
+        returned = [p for p in (result.get("persuasion") or []) if isinstance(p, dict)]
+        pers, dropped = [], []
+        for p in returned:
+            quote = str(p.get("quote", ""))
+            if quote_in(quote, ad_words):
+                pers.append({"tag": p.get("tag"), "quote": quote[:200]})
+            else:
+                dropped.append(f"{p.get('tag')}: {quote[:60]!r}")
+        tag_note = "model returned none" if not returned else f"model returned {len(returned)}" + (
+            f"; {len(dropped)} dropped, quote not in the ad: " + " | ".join(dropped) if dropped else "")
         bp = result.get("better_placement") or {}
         try:
             t = float(bp.get("time_s", row["seg_start"]))
@@ -428,7 +452,7 @@ def run_analysis(row, chat_fn, load_transcript):
         c.execute("INSERT OR REPLACE INTO ad_analysis(segment_id, version, created_at, analysis, error) VALUES (?,?,?,?,?)",
                   (sid, ANALYSIS_VERSION, stats.now(), json.dumps(analysis) if analysis else None, err))
     _log(f"[{vid}] intel: tier-2 analysis for {row['brand']!r} {stats.fmt_time(row['seg_start'])}-{stats.fmt_time(row['seg_end'])}"
-         f" {'failed: ' + err if err else 'in %.1fs, %d tag(s)' % (time.time() - t0, len(analysis['persuasion']))}")
+         f" {'failed: ' + err if err else 'in %.1fs, %d tag(s) (%s)' % (time.time() - t0, len(analysis['persuasion']), tag_note)}")
 
 
 # ---------------------------------------------------------------------------

@@ -196,7 +196,8 @@ server adds the cached pipeline context and versions. Rows that predate validati
   polled), one segment per idle step, and is **preemptible**: the call is streamed over a raw `http.client`
   connection and a watchdog shuts the socket down the moment a watched job is waiting (≈0.2s; closing the response
   object from another thread does not unblock a read that is waiting for the first token). A preempted analysis
-  records nothing and is retried when idle. Per segment: persuasion tags with verbatim quotes (quotes not found in the ad are dropped),
+  records nothing and is retried when idle. Per segment: persuasion tags with verbatim quotes (a quote must be in the ad, matched like evidence: normalized,
+  whole quote or a run of ≥ 6 words; the log says how many the model returned and which were dropped),
   structure beats, and a better-placement suggestion (timestamp, reason, verbatim quote, flagged if not verbatim).
 - Dashboard "Ad cards": mini timeline (ad, chapters, heat, peaks), all metrics, tags, suggestion. "Insights":
   aggregates and distributions across all ads.
