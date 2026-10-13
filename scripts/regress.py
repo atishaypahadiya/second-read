@@ -231,6 +231,32 @@ def unit_checks():
                [r["brand"] for r in c.execute("SELECT brand FROM brand_aliases WHERE alias = 'headspace'")])
     eq("brands: old rows re-normalized (segments, events, codes, aliases)", got, (["Headspace", ""], ["Headspace"], ["Headspace"], []))
     eq("brands: re-normalization runs once per rules version", stats.renormalize_brands(), None)
+    # tier-2: a persuasion quote is matched like evidence (whole quote or a 6-word run), across line breaks
+    ad = [{"start": 456.8 + 4 * i, "end": 460.8 + 4 * i, "text": t} for i, t in enumerate((
+        "Yeah. Yeah. They sent me a free subscription and I've been taking their",
+        "finding focus course, which is basically 10-minute sessions of guided",
+        "sustain attention. In one study, people who meditated with headsp space for a",
+        "month were less distractable than a control group who did these standard brain training exercises"))]
+    hay = intel.words_of(" ".join(l["text"] for l in ad))
+    eq("tier-2 quotes: across lines / 6-word run despite a respelled word / invented / short and present",
+       [intel.quote_in(q, hay) for q in (
+           "They sent me a free subscription and I've been taking their finding focus course",
+           "In one study, people who meditated with headspace for a month were less distractable",
+           "Headspace changed my life and it will change yours", "a free subscription")], [True, True, False, True])
+    with stats.connect() as c:
+        c.execute("INSERT INTO segments(video_id, seg_start, seg_end, category, style, action, brand_raw, brand, source) "
+                  "VALUES ('tier2video0', 456.8, 472.8, 'sponsor', 'read', 'skip', 'Headspace', 'Headspace', 'detect')")
+        row = dict(c.execute("SELECT id, video_id, seg_start, seg_end, brand FROM segments WHERE video_id = 'tier2video0'").fetchone())
+    said = []
+    intel.set_logger(said.append)
+    intel.run_analysis(row, lambda prompt, schema: {"persuasion": [
+        {"tag": "testimony", "quote": "They sent me a free subscription and I've been taking their finding focus course"},
+        {"tag": "authority", "quote": "Doctors everywhere recommend it"}], "beats": [], "better_placement": {}}, lambda vid: ad)
+    intel.set_logger(server.log)
+    with stats.connect() as c:
+        kept = json.loads(c.execute("SELECT analysis FROM ad_analysis WHERE segment_id = ?", (row["id"],)).fetchone()["analysis"])["persuasion"]
+    eq("tier-2 tags: the real quote is kept, the invented one dropped, and the log says which",
+       ([p["tag"] for p in kept], [("model returned 2" in m, "Doctors everywhere" in m) for m in said if "tag(s)" in m]), (["testimony"], [(True, True)]))
     # disclosure is 'undisclosed' only when both signals are known and negative
     table = {(p, d): server.disclosure_state(p, d) for p in (True, False, None) for d in (True, False, None)}
     eq("disclosure: only (False, False) is undisclosed", sorted(k for k, v in table.items() if v == "undisclosed"), [(False, False)])
@@ -276,7 +302,7 @@ def main():
         results = unit_checks()
         bad = [m for ok, m in results if not ok]
         failures += 1 if bad else 0
-        rows.append(("rules", "server", "FAIL" if bad else "PASS", bad or [f"{len(results)} rule checks ok (cleaning, hints, halls, brands, disclosure)"], time.time() - t0))
+        rows.append(("rules", "server", "FAIL" if bad else "PASS", bad or [f"{len(results)} rule checks ok (cleaning, hints, halls, brands, tier-2 quotes, disclosure)"], time.time() - t0))
     for e in entries:
         t0 = time.time()
         label = e.get("id", e["video"])
