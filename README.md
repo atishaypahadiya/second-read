@@ -55,6 +55,12 @@ published after every window, results are cached by transcript hash, and the
 stats and ad-analysis code runs after a job or while the worker is idle, so it
 never delays a skip.
 
+Opening a video the server has already analyzed does not wait for any of that:
+the extension first asks for the stored result by video ID and, if it was made
+by the current pipeline versions, draws the markers and skips by it at once.
+The caption read still runs, and its answer confirms the stored result or
+replaces it.
+
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#3A3A3A', 'primaryTextColor': '#F0F0F0', 'primaryBorderColor': '#FF4A1C', 'lineColor': '#FF4A1C', 'secondaryColor': '#2A2A2A', 'tertiaryColor': '#2A2A2A', 'actorBkg': '#3A3A3A', 'actorTextColor': '#F0F0F0', 'actorBorder': '#FF4A1C', 'actorLineColor': '#FF4A1C', 'signalColor': '#FF4A1C', 'signalTextColor': '#F0F0F0', 'noteBkgColor': '#3A3A3A', 'noteTextColor': '#F0F0F0', 'noteBorderColor': '#FF4A1C', 'labelBoxBkgColor': '#3A3A3A', 'labelBoxBorderColor': '#FF4A1C', 'labelTextColor': '#F0F0F0', 'loopTextColor': '#F0F0F0'}, 'sequence': {'mirrorActors': false}}}%%
 sequenceDiagram
@@ -241,7 +247,7 @@ video with different request metadata, and one with a stand-in English
 analysis track) through the real pipeline from stored
 transcripts and stored model outputs, with zero model calls, and checks
 expected segments within 1.5 s, that must-not-skip videos have no skip, and
-that forbidden ranges stay empty. It also runs 51 rule checks and the
+that forbidden ranges stay empty. It also runs 54 rule checks and the
 extension wiring test. All sixteen rows pass at versions detect 3, refine 3,
 post 6, lead-in 2. The expectations were written from the same videos the prompt and
 thresholds were tuned on, so a pass says nothing has regressed and nothing

@@ -19,7 +19,7 @@
 
   // Bumped together in page.js, content.js, background.js and server.py (CLIENT_BUILD). The server logs all three
   // and warns when they differ, which is how a half-reloaded extension shows up.
-  const BUILD = 18;
+  const BUILD = 19;
   const TAG = '[SecondRead:page]';
   const dbg = (...a) => console.log(TAG, ...a);
   const MAX_LINE_SECONDS = 8;
@@ -28,6 +28,9 @@
   const CC_ON_CAPTURE_WAIT_MS = 8000;
   const SETTLE_MS = 1500;            // let YouTube apply its saved CC preference before we touch anything
   const EMPTY_RETRY_DELAY_MS = 2000; // retry once after a 0-byte response
+  const SHORT_READ_FRACTION = 0.15;  // a transcript that ends this far before the video does is read once more
+  const SHORT_RETRY_DELAY_MS = 1500;
+  const SHORT_READ_SAME_S = 2;       // two reads ending this close together agree: the rest of the video has no speech
 
   // ---------------------------------------------------------------------------
   // Path B infrastructure: capture /api/timedtext request URLs as they START.
@@ -231,6 +234,34 @@
     dbg(`json3: ${evs.length} events, ${withSegs} with segs, ${multiSeg} multi-seg, ${withOffset} with tOffsetMs, ${appends} aAppend`);
     const sample = evs.filter((ev) => ev && Array.isArray(ev.segs) && ev.segs.some((sg) => sg && sg.utf8 && sg.utf8.trim())).slice(0, 2);
     dbg(`json3 sample: ${JSON.stringify(sample).slice(0, 400)}`);
+    return { events: evs.length, withSegs, multiSeg, withOffset, appends };
+  }
+
+  // What was actually requested, for the server's log: the parameters that choose a track and a rendering, by
+  // value; every other parameter (tokens, signatures, ids) by name only.
+  function describeRequest(url) {
+    const shown = ['lang', 'kind', 'name', 'tlang', 'fmt', 'variant', 'xorb', 'xobt', 'xovt', 'type', 'caps'];
+    const u = new URL(url);
+    const params = {};
+    const others = [];
+    for (const [k, v] of u.searchParams) {
+      if (shown.includes(k)) params[k] = String(v).slice(0, 24);
+      else others.push(k);
+    }
+    return { params, others: others.slice(0, 40) };
+  }
+
+  // Short-read guard. A transcript whose last line ends well before the video does is either a real silent tail
+  // (music, credits) or a read that came back incomplete. It is read once more: if the second read ends in the
+  // same place the tail is real, if it ends later it replaces the first.
+  function endsShort(lines, videoSeconds) {
+    const last = lines.length ? lines[lines.length - 1].end : 0;
+    return videoSeconds > 0 && last < videoSeconds * (1 - SHORT_READ_FRACTION);
+  }
+  function betterRead(first, second) {
+    const end = (ls) => (ls && ls.length ? ls[ls.length - 1].end : 0);
+    if (end(second) > end(first) + SHORT_READ_SAME_S) return { lines: second, retry: 'longer' };
+    return { lines: first, retry: end(second) > 0 ? 'same end: no speech after it' : 'second read failed' };
   }
 
   // ---------------------------------------------------------------------------
@@ -370,9 +401,11 @@
     dbg(`CC restored: state=${subtitlesOn() ? 'on' : 'off'} track=${trackKey(getTrack())}`);
   }
 
+  let captureHow = '';   // how path B got its URL, for the capture report
   async function obtainTimedtextUrl(videoId, stale) {
+    captureHow = '';
     const existing = captured.get(videoId);
-    if (existing) { dbg('URL already captured from the player\'s own request'); return existing; }
+    if (existing) { captureHow = 'earlier player request'; dbg('URL already captured from the player\'s own request'); return existing; }
 
     const ready = await waitForPlayerReady();
     if (stale()) return null;
@@ -380,7 +413,7 @@
 
     const settled = await settle(videoId);
     if (stale()) return null;
-    if (settled) { dbg('URL captured from the player\'s own request while settling; not clicking'); return settled; }
+    if (settled) { captureHow = 'player request while settling'; dbg('URL captured from the player\'s own request while settling; not clicking'); return settled; }
 
     const ccWasOn = subtitlesOn();
     const trackBefore = getTrack();
@@ -388,6 +421,7 @@
 
     if (ccWasOn) {
       const entry = await waitForCapture(videoId, CC_ON_CAPTURE_WAIT_MS);
+      captureHow = 'cc was on';
       dbg(entry ? 'URL captured from the player (CC was on)' : `no timedtext request within ${CC_ON_CAPTURE_WAIT_MS}ms with CC on`);
       return entry;
     }
@@ -395,6 +429,7 @@
     let entry = null;
     try {
       entry = await clickOnCaptureClickOff(videoId, 'click 1');
+      captureHow = 'cc click';
       if (stale()) return null;
       if (!entry) entry = await clickOnCaptureClickOff(videoId, 'click 2');
       if (stale()) return null;
@@ -406,6 +441,7 @@
           try { p.loadModule('captions'); } catch (e) { dbg('loadModule threw', e); }
           entry = await waitForCapture(videoId, CLICK_CAPTURE_WAIT_MS);
           try { p.unloadModule('captions'); dbg('unloadModule(captions) done'); } catch (e) { dbg('unloadModule threw', e); }
+          if (entry) captureHow = 'loadModule';
           dbg(entry ? 'URL captured via loadModule' : 'loadModule produced no timedtext request');
         } else {
           dbg('fallback unavailable: player.loadModule missing');
@@ -436,8 +472,9 @@
     if (!Array.isArray(tracks) || tracks.length === 0) return reply({ error: 'no captions' });
 
     const track = pickTrack(tracks);
-    const lang = track.languageCode || 'und';
-    const kind = track.kind === 'asr' ? 'asr' : 'manual';
+    let lang = track.languageCode || 'und';
+    let kind = track.kind === 'asr' ? 'asr' : 'manual';
+    let via = 'direct';   // direct (path A) | retargeted | as-is (path B)
     dbg(`${tracks.length} track(s); picked lang=${lang} kind=${kind}`);
 
     // Path A: direct fetch of the track with fmt=json3. Cheap; works if YouTube stops requiring the token.
@@ -464,13 +501,21 @@
         dbg('path B: fetching captured URL retargeted at picked track');
         const retargeted = buildFetchUrl(entry.url, track);
         data = await fetchJson3(retargeted);
-        if (data) sourceUrl = retargeted;
+        if (data) { sourceUrl = retargeted; via = 'retargeted'; }
         if (stale()) return;
         if (!data) {
           dbg('path B: retargeted fetch empty; fetching captured URL as-is');
           const asis = buildFallbackUrl(entry.url);
           data = await fetchJson3(asis);
-          if (data) sourceUrl = asis;
+          if (data) {
+            // This is whatever track the player itself asked for, not necessarily the one we picked: say so,
+            // or an English transcript goes out labeled with the picked track's language.
+            sourceUrl = asis; via = 'as-is';
+            const got = new URL(asis).searchParams;
+            if (got.get('lang')) lang = got.get('lang');
+            kind = got.get('kind') === 'asr' ? 'asr' : 'manual';
+            dbg(`path B: as-is read is lang=${lang} kind=${kind} (picked ${track.languageCode}/${track.kind || 'manual'})`);
+          }
           if (stale()) return;
         }
       }
@@ -478,12 +523,33 @@
 
     if (!data) return reply({ error: 'caption fetch failed' });
 
-    describeJson3(data);
-    const lines = mergeCues(eventsToCues(data.events));
+    let shape = describeJson3(data);
+    let lines = mergeCues(eventsToCues(data.events));
+    const vd = pr.videoDetails || {};
+    const videoSeconds = Number(vd.lengthSeconds) || 0;
+    let retry = '';
+    if (lines.length && endsShort(lines, videoSeconds) && sourceUrl) {
+      dbg(`transcript ends at ${Math.round(lines[lines.length - 1].end)}s of ${videoSeconds}s; reading once more`);
+      await sleep(SHORT_RETRY_DELAY_MS);
+      const again = await fetchJson3(sourceUrl);
+      if (stale()) return;
+      const second = again ? mergeCues(eventsToCues(again.events)) : [];
+      const pick = betterRead(lines, second);
+      retry = pick.retry;
+      if (pick.lines !== lines) { lines = pick.lines; shape = describeJson3(again); }
+      dbg(`second read: ${retry}`);
+    }
     const timed = lines.filter((l) => l.timed).length;
     dbg(`path ${path}: ${lines.length} lines, ${timed} with word timing`);
     if (lines.length === 0) return reply({ error: 'no captions' });
-    const vd = pr.videoDetails || {};
+    const capture = {
+      path, via, how: path === 'B' ? captureHow : 'own request', retry,
+      tracks: tracks.slice(0, 16).map((t) => `${t.languageCode || '?'}${t.kind === 'asr' ? ':asr' : ''}`),
+      picked: `${track.languageCode || '?'}${track.kind === 'asr' ? ':asr' : ''}`,
+      request: sourceUrl ? describeRequest(sourceUrl) : null,
+      events: shape.events, withSegs: shape.withSegs, withOffset: shape.withOffset, multiSeg: shape.multiSeg,
+      lines: lines.length, timed, lastEnd: Math.round(lines[lines.length - 1].end), videoSeconds,
+    };
     const title = typeof vd.title === 'string' ? vd.title : '';
     const creator = typeof vd.author === 'string' ? vd.author : '';
     const channelId = typeof vd.channelId === 'string' ? vd.channelId : '';
@@ -510,7 +576,7 @@
         `description=${description.length} heat=${heat.length} paidPromotion=${paidPromotion} kind=${kind} ` +
         `videoDetails=${pr.videoDetails ? 'present' : 'MISSING'} build=${BUILD}`);
     reply({ build: BUILD, lang, kind, path, lines, title, creator, channelId, description, heat, paidPromotion,
-            analysisLines, analysisLang: analysisLines ? 'en' : lang });
+            analysisLines, analysisLang: analysisLines ? 'en' : lang, capture });
   }
 
   // "Most replayed" graph: the player draws it as an SVG path (x 0..1000, y 0..100, y grows downward).

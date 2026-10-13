@@ -53,7 +53,7 @@ def env(name, default=""):
 
 
 HOST, PORT = "127.0.0.1", int(env("PORT", "8765"))  # SR_PORT: run a second instance for testing
-CLIENT_BUILD = 18  # extension build this server expects (page.js / content.js / background.js BUILD)
+CLIENT_BUILD = 19  # extension build this server expects (page.js / content.js / background.js BUILD)
 ALLOWED_HOSTS = {f"127.0.0.1:{PORT}", f"localhost:{PORT}", "127.0.0.1", "localhost"}
 # Optional: restrict to one extension. Unpacked extension IDs differ per machine, so this is opt-in:
 #   SR_EXTENSION_ID=abcdefghijklmnopabcdefghijklmnop python3 server/server.py
@@ -1754,10 +1754,85 @@ def inputs_digest(thash, title, description, paid, alines, lines=()):
     return h.hexdigest()[:12]
 
 
+instant_served = {}   # video id -> signature of the segments served by GET /stored, until the POST validates them
+
+
+def segments_signature(segments):
+    return sorted((s.get("action"), s.get("category"), round(s.get("start", 0), 1), round(s.get("end", 0), 1)) for s in segments or [])
+
+
+def stored_result(video_id, build):
+    """The finished result for a video, by id alone, for the instant revisit: (segments, where) or (None, why).
+    Only a complete result made by the current detect/refine/post/leadin versions and model is served, and only
+    to a client on this server's build. The transcript and the request metadata are not checked here: the POST
+    that follows the caption read does that and confirms or replaces what was served."""
+    if build != CLIENT_BUILD:
+        return None, f"client build {build} is not {CLIENT_BUILD}"
+    with jobs_lock:
+        job = jobs.get(video_id)
+        if job and job.get("status") == "done":
+            return list(job.get("segments") or []), "memory"
+    cached = load_cache(video_id)
+    if not cached:
+        return None, "nothing stored"
+    if cached.get("partial") or cached.get("versions") != versions() or cached.get("model") != MODEL:
+        return None, "stored by other versions"
+    return list(cached.get("segments") or []), "disk"
+
+
+def settle_instant(video_id, segments, how):
+    """The validated answer for a video whose stored result was served instantly: say whether it held."""
+    served = instant_served.pop(video_id, None)
+    if served is None:
+        return
+    now = segments_signature(segments)
+    if now == served:
+        log(f"[{video_id}] cache: confirmed ({how})")
+    else:
+        log(f"[{video_id}] cache: replaced ({how}): served {served}, now {now}")
+
+
 def cache_valid(cached, thash, inputs=None):
     """Final segments can be served as-is only if nothing changed."""
     return (bool(cached) and cached.get("hash") == thash and cached.get("model") == MODEL
             and cached.get("versions") == versions() and cached.get("inputs") == inputs)
+
+
+def clean_capture(raw):
+    """page.js's report of how it got the captions (track, path, request parameters, counts). Diagnostics only:
+    kept small and flat, never interpreted."""
+    if not isinstance(raw, dict):
+        return None
+
+    def text(v, n=40):
+        return re.sub(r"[^\w .:,/=+-]", "?", str(v))[:n]
+    out = {k: text(raw.get(k)) for k in ("path", "via", "how", "retry", "picked") if raw.get(k) not in (None, "")}
+    for k in ("events", "withSegs", "withOffset", "multiSeg", "lines", "timed", "lastEnd", "videoSeconds"):
+        if isinstance(raw.get(k), (int, float)) and not isinstance(raw.get(k), bool):
+            out[k] = int(raw[k])
+    if isinstance(raw.get("tracks"), list):
+        out["tracks"] = [text(t, 12) for t in raw["tracks"][:16]]
+    req = raw.get("request") if isinstance(raw.get("request"), dict) else {}
+    if isinstance(req.get("params"), dict):
+        out["params"] = {text(k, 12): text(v, 24) for k, v in list(req["params"].items())[:12]}
+    if isinstance(req.get("others"), list):
+        out["others"] = [text(k, 16) for k in req["others"][:40]]
+    return out or None
+
+
+def log_capture(video_id, cap):
+    """One line saying which caption track was read and how, so two different transcripts for one video can be
+    told apart afterwards (lang and kind alone could not: both reads of vpn3VmGvIXA were 'en asr')."""
+    if not cap:
+        log(f"[{video_id}] captions: no capture report from page.js (older build)")
+        return
+    params = " ".join(f"{k}={v}" for k, v in (cap.get("params") or {}).items())
+    log(f"[{video_id}] captions: path {cap.get('path', '?')} via {cap.get('via', '?')} ({cap.get('how', '?')}); "
+        f"picked {cap.get('picked', '?')} of [{', '.join(cap.get('tracks') or [])}]; request {params or '?'} "
+        f"(+{len(cap.get('others') or [])} other params); {cap.get('events', '?')} events, "
+        f"{cap.get('withOffset', '?')} with word offsets, {cap.get('multiSeg', '?')} multi-seg; "
+        f"{cap.get('lines', '?')} lines ({cap.get('timed', '?')} timed), ends {fmt_time(cap.get('lastEnd') or 0)} of "
+        f"{fmt_time(cap.get('videoSeconds') or 0)}{'; second read: ' + cap['retry'] if cap.get('retry') else ''}")
 
 
 def log_meta(video_id, title, description, meta, position, hints):
@@ -1777,6 +1852,7 @@ def log_meta(video_id, title, description, meta, position, hints):
     if missing:
         log(f"[{video_id}] WARNING: metadata missing: {', '.join(missing)}. Hints, brand names, creator stats and the "
             f"disclosure check depend on it.")
+    log_capture(video_id, meta.get("capture"))
     seen = [client.get(k) for k in ("page", "content", "background")]
     if any(b != CLIENT_BUILD for b in seen):
         log(f"[{video_id}] WARNING: extension builds [{builds}] do not all match this server's CLIENT_BUILD {CLIENT_BUILD}: "
@@ -2053,6 +2129,7 @@ def finish_job(job):
             log(f"[{video_id}] job superseded; discarding result")
             return
     log_segments(video_id, segments)
+    settle_instant(video_id, segments, "re-analyzed: the transcript, the metadata or the versions differ from the stored result")
     sync_stats(job, segments)  # also sets brand_canonical on each segment
     save_cache(video_id, {"videoId": video_id, "versions": versions(), "hash": job["hash"], "inputs": job.get("inputs"),
                           "lang": job["lang"], "title": job["title"], "meta": job_meta(job), "model": MODEL,
@@ -2082,7 +2159,7 @@ def job_meta(job):
     """Request metadata kept in the cache file (gitignored) so a video can be replayed exactly as it was sent."""
     return {"creator": job.get("creator", ""), "channelId": job.get("channel_id", ""), "kind": job.get("kind", ""),
             "duration": job.get("duration"), "paidPromotion": job.get("paid_promotion"),
-            "description": job.get("description", ""), "client": job.get("client")}
+            "description": job.get("description", ""), "client": job.get("client"), "capture": job.get("capture")}
 
 
 def sync_stats(job, segments):
@@ -2311,7 +2388,8 @@ def start_or_get_job(video_id, lang, lines, title="", meta=None, alines=None, al
             "alines": lines if same else alines, "alang": lang if same else (alang or "en"),
             "video_id": video_id, "kind": meta.get("kind", ""), "creator": meta.get("creator", ""),
             "tag": meta.get("tag", ""), "channel_id": meta.get("channel_id", ""), "duration": meta.get("duration"),
-            "client": meta.get("client"), "heat": meta.get("heat") or [], "chapter_times": hints.get("chapter_times", []),
+            "client": meta.get("client"), "capture": meta.get("capture"), "heat": meta.get("heat") or [],
+            "chapter_times": hints.get("chapter_times", []),
             # Both disclosure signals are tri-state. None = we were not told (no description / no flag from the client).
             "paid_promotion": paid, "disclosed": any(is_ad_line(l) for l in description.splitlines()) if description else None,
             "position": position, "hints": hints, "terms": terms, "header": hints_header(hints),
@@ -2323,6 +2401,7 @@ def start_or_get_job(video_id, lang, lines, title="", meta=None, alines=None, al
             touch(job)
             changed = apply_meta(job, meta)
             if job["status"] == "done":
+                settle_instant(video_id, job["segments"], "same transcript and metadata, result still in memory")
                 job["cached"] = True  # reused, not computed for this request
                 if changed:
                     resync = (job, job["segments"], f"metadata arrived later: {', '.join(changed)}")
@@ -2335,6 +2414,7 @@ def start_or_get_job(video_id, lang, lines, title="", meta=None, alines=None, al
                 job = {**base, "status": "done", "segments": cached.get("segments", []), "cached": True}
                 jobs[video_id] = job
                 log(f"[{video_id}] cache hit ({len(job['segments'])} segment(s))")
+                settle_instant(video_id, job["segments"], "same transcript and metadata, result on disk")
                 resync = (job, job["segments"], "cache hit")
             else:
                 why = ""
@@ -2477,6 +2557,22 @@ class Handler(BaseHTTPRequestHandler):
             # build: so the popup can say when the running server is older than the extension's files
             return self.send_json(200, {"ok": True, "model": MODEL, "ollama": ok, "loaded": ok and model_loaded(MODEL),
                                         "build": CLIENT_BUILD})
+        if u.path == "/stored":
+            q = parse_qs(u.query)
+            vid = (q.get("v") or [""])[0]
+            if not VIDEO_ID_RE.match(vid):
+                return self.send_json(400, {"error": "bad video id"})
+            try:
+                build = int((q.get("build") or [""])[0])
+            except ValueError:
+                build = None
+            segments, where = stored_result(vid, build)
+            if segments is None:
+                return self.send_json(404, {"error": "not stored", "why": where})
+            instant_served[vid] = segments_signature(segments)
+            skips = sum(1 for s in segments if s.get("action") == "skip")
+            log(f"[{vid}] cache: instant ({len(segments)} segment(s), {skips} to skip, from {where}), before the captions were read")
+            return self.send_json(200, {"status": "done", "segments": segments, "cached": True, "instant": True})
         if u.path == "/analyze":
             vid = (parse_qs(u.query).get("v") or [""])[0]
             if not VIDEO_ID_RE.match(vid):
@@ -2539,6 +2635,7 @@ class Handler(BaseHTTPRequestHandler):
                          if isinstance(p, list) and len(p) == 2],
                 # tri-state: True / False as reported by the page, None when the client did not say
                 "paid_promotion": data.get("paidPromotion") if isinstance(data.get("paidPromotion"), bool) else None,
+                "capture": clean_capture(data.get("capture")),
                 "client": {k: (v if isinstance(v, int) and not isinstance(v, bool) else None)
                            for k, v in ((k, (data.get("client") or {}).get(k) if isinstance(data.get("client"), dict) else None)
                                         for k in ("page", "content", "background"))}}

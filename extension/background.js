@@ -4,7 +4,7 @@
 // send messages here and we relay them over fetch. host_permissions covers this.
 
 const SERVER = 'http://127.0.0.1:8765';
-const BUILD = 18; // keep equal to page.js, content.js and server.py CLIENT_BUILD
+const BUILD = 19; // keep equal to page.js, content.js and server.py CLIENT_BUILD
 
 async function call(path, init) {
   let res;
@@ -44,6 +44,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     }
     case 'poll':
       p = call(`/analyze?v=${encodeURIComponent(msg.videoId)}`);
+      break;
+    case 'stored':   // instant revisit: a finished result by video id, before the captions are read
+      p = call(`/stored?v=${encodeURIComponent(msg.videoId)}&build=${BUILD}`);
       break;
     case 'codes':
       p = call(`/codes.json?q=${encodeURIComponent(msg.q || '')}`);

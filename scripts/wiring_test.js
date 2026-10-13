@@ -45,6 +45,18 @@ const check = (ok, msg) => { if (!ok) failures.push(msg); };
     { tStartMs: 1000, dDurationMs: 6000, segs: [{ utf8: 'hello', tOffsetMs: 0 }, { utf8: ' there', tOffsetMs: 600 }, { utf8: ' world.', tOffsetMs: 1500 }] },
     { tStartMs: 4000, dDurationMs: 3000, segs: [{ utf8: 'Next', tOffsetMs: 0 }, { utf8: ' line.', tOffsetMs: 500 }] },
   ]);
+  // short-read guard: a transcript ending more than 15% before the video's end is read once more
+  const num = (name) => (src.page.match(new RegExp(`const ${name} = ([\\d.]+);`)) || [])[1];
+  check(!!fn('endsShort') && !!fn('betterRead') && !!num('SHORT_READ_FRACTION') && !!num('SHORT_READ_SAME_S'), 'could not locate the short-read guard in page.js');
+  const guard = vm.runInNewContext(`const SHORT_READ_FRACTION = ${num('SHORT_READ_FRACTION')}; const SHORT_READ_SAME_S = ${num('SHORT_READ_SAME_S')};\n` +
+                                   `${fn('endsShort')}\n${fn('betterRead')}\n({ endsShort, betterRead });`);
+  const upTo = (t) => [{ start: 0, end: 10 }, { start: t - 5, end: t }];
+  check(guard.endsShort(upTo(800), 1000) === true && guard.endsShort(upTo(900), 1000) === false && guard.endsShort(upTo(800), 0) === false,
+        'short-read guard: 800 of 1000 s is short, 900 of 1000 s is not, an unknown video length never is');
+  const full = upTo(995), cut = upTo(800);
+  check(guard.betterRead(cut, full).lines === full && guard.betterRead(cut, full).retry === 'longer', 'short-read guard: a longer second read must replace the first');
+  check(guard.betterRead(cut, upTo(801)).lines === cut && /no speech/.test(guard.betterRead(cut, upTo(801)).retry), 'short-read guard: two reads ending together mean a real silent tail');
+  check(guard.betterRead(cut, []).lines === cut, 'short-read guard: a failed second read keeps the first');
   check(JSON.stringify(timed.map((l) => l.words.map((w) => w[0]))) === '[[1,1.6,2.5],[4,4.5]]' && timed.every((l) => l.timed),
         `timed track: word starts must stay exactly as given, got ${JSON.stringify(timed.map((l) => l.words))}`);
 }
@@ -64,6 +76,9 @@ const pageReply = {
   lines: [{ start: 0, end: 4, text: 'hello there', words: [[0, 2, 'hello'], [2, 4, 'there']], timed: true }],
   title: 'Facebook’s Most Dangerous App', creator: 'fern', channelId: 'UCODHrzPMGbNv67e84WDZhQQ',
   description: DESCRIPTION, heat: [[0, 10], [1, 20]], paidPromotion: true, analysisLines: null, analysisLang: 'en',
+  capture: { path: 'B', via: 'retargeted', how: 'cc click', retry: '', tracks: ['en:asr'], picked: 'en:asr',
+             request: { params: { lang: 'en', kind: 'asr', fmt: 'json3' }, others: ['pot'] }, events: 1, withSegs: 1, withOffset: 1,
+             multiSeg: 1, lines: 1, timed: 1, lastEnd: 4, videoSeconds: 1012 },
 };
 
 // The segment the fake server answers with: a sponsor read the extension will skip.
@@ -76,6 +91,7 @@ const KEEP2 = { ...KEEP, start: 500, end: 520 };
 
 // ---------------------------------------------------------------------------- sandbox
 let fetched = null;
+let storedUrl = null;   // GET /stored: the instant revisit asks by video id before the captions are read
 const posts = { '/feedback': [], '/event': [] };
 const bgListeners = [];
 // background.js clears a few leftover storage keys and the toolbar badge when it starts
@@ -91,7 +107,9 @@ const bgSandbox = {
     fetchedRoutes.add(route);
     if (route === '/analyze' && init && init.method === 'POST') fetched = { url, init };
     if (posts[route] && init && init.method === 'POST') posts[route].push(JSON.parse(init.body));
-    return { ok: true, status: 200, json: async () => (route === '/analyze' ? { status: 'done', segments: [SEG, KEEP, KEEP2] } : { ok: true }) };
+    if (route === '/stored') storedUrl = url;
+    return { ok: true, status: 200, json: async () => (route === '/analyze' ? { status: 'done', segments: [SEG, KEEP, KEEP2] }
+      : route === '/stored' ? { status: 'done', segments: [SEG], cached: true, instant: true } : { ok: true }) };
   },
   encodeURIComponent, JSON, URL,
 };
@@ -175,6 +193,11 @@ vm.runInNewContext(src.content, contentSandbox, { filename: 'content.js' });
 // ---------------------------------------------------------------------------- assertions (after the async hops)
 setTimeout(() => {
   check(sent.some((m) => m.type === 'analyze'), 'content.js never sent an analyze message');
+  // instant revisit: the stored result is asked for by id first, with the build, before the caption read is answered
+  const order = sent.map((m) => m.type);
+  check(order.indexOf('stored') >= 0 && order.indexOf('stored') < order.indexOf('analyze'), `message order: ${order.slice(0, 4)}`);
+  check(!!storedUrl && new RegExp(`[?&]v=${VIDEO_ID}(&|$)`).test(storedUrl) && new RegExp(`[?&]build=${builds.background}(&|$)`).test(storedUrl),
+        `GET /stored url: ${storedUrl}`);
   check(!!fetched, 'background.js never called fetch for /analyze');
   let body = {};
   if (fetched) {
@@ -188,6 +211,7 @@ setTimeout(() => {
   for (const [k, v] of Object.entries(expect)) check(body[k] === v, `POST body.${k} = ${JSON.stringify(body[k])}, expected ${JSON.stringify(v)}`);
   check(Array.isArray(body.lines) && body.lines.length === 1 && Array.isArray(body.lines[0].words), 'POST body.lines lost or without words');
   check(Array.isArray(body.heat) && body.heat.length === 2, `POST body.heat = ${JSON.stringify(body.heat)}`);
+  check(body.capture && body.capture.path === 'B' && body.capture.via === 'retargeted', `POST body.capture = ${JSON.stringify(body.capture)}`);
   const c = body.client || {};
   check(c.page === builds.page && c.content === builds.content && c.background === builds.background,
         `POST body.client = ${JSON.stringify(c)}, expected all ${builds.content}`);
@@ -297,7 +321,7 @@ setTimeout(() => {
     check(!fetchedRoutes.has('/client-state'), 'background.js still talks to /client-state');
     check(['installId', 'restoreChecked', 'restoreOffer'].every((k) => bgRemoved.includes(k)), `leftover storage keys not cleared: ${JSON.stringify(bgRemoved)}`);
     check(bgSandbox.badge === '', 'the toolbar badge was not cleared');
-    check([...fetchedRoutes].every((r) => ['/analyze', '/event', '/feedback'].includes(r)), `unexpected server routes: ${[...fetchedRoutes]}`);
+    check([...fetchedRoutes].every((r) => ['/analyze', '/event', '/feedback', '/stored'].includes(r)), `unexpected server routes: ${[...fetchedRoutes]}`);
 
     if (failures.length) {
       console.log(`wiring: FAIL (${failures.length})`);
