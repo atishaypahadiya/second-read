@@ -1283,10 +1283,14 @@ def mentions_outside(seg, lines):
     return n
 
 
-def ad_markers(seg, lines, terms=()):
-    """The ad markers that back a sponsor label, [] if there are none: an ad marker or a description hint in the
-    evidence quote or in the segment's lines (+-1), or the same brand next to an ad marker elsewhere in the video
-    ("sponsored by X" at the top, X used later). Without any, the brand is just part of what the creator is telling."""
+def ad_markers(seg, lines, terms=(), paid=None):
+    """The ad markers that back a sponsor label, [] if there are none: YouTube's paid-promotion flag when it was
+    received and is true (the creator declared the video as paid, so an integration needs no code or link of its
+    own); an ad marker or a description hint in the evidence quote or in the segment's lines (+-1); or the same
+    brand next to an ad marker elsewhere in the video ("sponsored by X" at the top, X used later). Without any, the
+    brand is just part of what the creator is telling. A flag that is false or was not received changes nothing."""
+    if paid is True:
+        return ["YouTube paid-promotion flag"]
     s0, s1 = seg.get("line_start", seg["start"]), seg.get("line_end", seg["end"])
     idx = [i for i, l in enumerate(lines) if l["end"] > s0 and l["start"] < s1]
     lo, hi = (max(0, idx[0] - 1), min(len(lines) - 1, idx[-1] + 1)) if idx else (0, -1)
@@ -1305,7 +1309,7 @@ def ad_markers(seg, lines, terms=()):
     return []
 
 
-def post_filter(segments, title, lines, verbose=True, terms=()):
+def post_filter(segments, title, lines, verbose=True, terms=(), paid=None):
     """Final safety net for keep/show markers (skips are left alone and only logged):
     - drop keep/show whose evidence/reason reads like a sponsor disclaimer;
     - drop keep/show whose brand is the video's subject (in the title, or mentioned in >= TOPIC_MENTIONS
@@ -1333,9 +1337,10 @@ def post_filter(segments, title, lines, verbose=True, terms=()):
             if n >= TOPIC_MENTIONS:
                 say(f"  filter: dropped {s['action']} {rng} {s['brand']!r}: brand mentioned in {n} lines outside the segment (subject)")
                 continue
-            if s.get("category") == "sponsor" and not ad_markers(s, lines, terms):
+            if s.get("category") == "sponsor" and not ad_markers(s, lines, terms, paid):
                 say(f"  filter: dropped {s['action']} {rng} {s['brand']!r}: sponsor label with no ad marker (no sponsorship "
-                    f"language, call to action, link, code or offer, and no description hint): story, not an ad")
+                    f"language, call to action, link, code or offer, no description hint, and the video is not flagged "
+                    f"as a paid promotion): story, not an ad")
                 continue
             if s["action"] == "show" and s["confidence"] < SHOW_THRESHOLD:
                 say(f"  filter: dropped show {rng} {s['brand']!r}: conf {s['confidence']:.2f} < {SHOW_THRESHOLD}")
@@ -1830,7 +1835,8 @@ def finalize(job, verbose):
     out = []
     kept = [x for x in job["final"] if x.get("action") != "drop"]
     state = disclosure_state(job.get("paid_promotion"), job.get("disclosed"))
-    for x in post_filter(merge_segments(kept), job["title"], job["alines"], verbose, job.get("terms") or ()):
+    for x in post_filter(merge_segments(kept), job["title"], job["alines"], verbose, job.get("terms") or (),
+                         job.get("paid_promotion")):
         x.pop("undisclosed", None)
         if x.get("category") == "sponsor" and x.get("style") == "read":
             x["disclosure"] = state

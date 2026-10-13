@@ -232,13 +232,14 @@ def unit_checks():
              {"start": 54.64, "end": 61.44, "text": "we will go shoot come back home and have coffee I will talk to you later"},
              {"start": 400.0, "end": 406.0, "text": "then we went for ice cream at the market with everyone"}]
 
-    def labeled(lines, terms=(), **over):
+    def labeled(lines, terms=(), paid=None, **over):
         seg = {"start": 48.64, "end": 54.64, "line_start": 48.64, "line_end": 54.64, "start_line": 1, "end_line": 1,
                "category": "sponsor", "style": "integration", "action": "keep", "brand": "fossil", "confidence": 0.8,
                "evidence": "shooting for fossil for this new watch", "source": "detect",
                "reason": "Creator is shooting for Fossil for a new watch, indicating a collaboration with the brand."}
         seg.update(over)
-        return [s["action"] for s in server.post_filter([seg], "Back in Delhi and somehow won an award??", server.clean_lines(lines), False, terms)]
+        return [s["action"] for s in server.post_filter([seg], "Back in Delhi and somehow won an award??", server.clean_lines(lines),
+                                                        False, terms, paid)]
 
     def with_line(i, text):
         return [dict(l, text=text) if k == i else l for k, l in enumerate(story)]
@@ -249,6 +250,8 @@ def unit_checks():
         labeled(with_line(0, "this part of the vlog is sponsored by fossil and")),
         labeled(story, terms=["Fossil", "fossil"]),
         labeled(with_line(3, "thanks to fossil for sponsoring, use code CHIRAG for 10% off"))], [["keep"]] * 4)
+    eq("filter: YouTube's paid-promotion flag is an ad marker only when received and true",
+       [labeled(story, paid=True), labeled(story, paid=False), labeled(story, paid=None)], [["keep"], [], []])
     eq("filter: skips and other categories are not touched by it",
        (labeled(story, style="read", action="skip", confidence=0.95), labeled(story, category="selfpromo", action="show")), (["skip"], ["show"]))
     # description hints: only sponsor lines count; the creator's own links, socials and name do not

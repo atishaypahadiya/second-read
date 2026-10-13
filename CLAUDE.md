@@ -347,7 +347,8 @@ Every GET/POST for a video counts as a poll.
     `SHOW_THRESHOLD` (0.7). Logged once, at the end.
     **Ad markers** (`AD_MARKER_RE`, `ad_markers()`): sponsorship language, a code, an offer, a link or a call to
     action, or a description hint, in the evidence quote or the segment's lines ± 1, or next to the same brand
-    elsewhere in the video ("sponsored by X" at the top, X used later). A creator narrating their own brand work as
+    elsewhere in the video ("sponsored by X" at the top, X used later); or YouTube's paid-promotion flag, when it
+    was received and is true (false or not received changes nothing). A creator narrating their own brand work as
     part of the story ("we're shooting for Fossil today") has none and is content, not an integration. This is a
     filter and not a prompt rule because the prompt did not hold: two wordings of a "never label" rule left
     qwen3:14b's answer unchanged (sponsor/integration, 0.90 in detect, 0.80 in refine) on that line.

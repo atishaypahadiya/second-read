@@ -115,7 +115,7 @@ stateDiagram-v2
   keep --> post
   labelOnly --> post
   post --> published
-  post --> dropped: disclaimer, the video's subject, no ad marker, or a label under 0.7
+  post --> dropped: disclaimer, the video's subject, a sponsor label with no ad marker, or a label under 0.7
   published --> [*]
   dropped --> [*]
 ```
@@ -147,7 +147,7 @@ checking it against the video, is "built".
 | Category | Detected by | Default action | Status |
 | --- | --- | --- | --- |
 | `sponsor`, scripted read | model (detect, then refine); description-hint fast path; chapter fast path | skip at confidence 0.85 or more with a verbatim sponsor cue, else label | verified live on three videos (Odoo, Incogni, Coddy) |
-| `sponsor`, integration | model | keep: always plays, not a setting | built; markers seen in real runs, no verdict recorded |
+| `sponsor`, integration | model; needs an ad marker or YouTube's paid-promotion flag, else it is dropped | keep: always plays, not a setting | built; markers seen in real runs, no verdict recorded |
 | `selfpromo` | model | label | verified live on one video (newpress.com) |
 | `affiliate` | model | label | built |
 | `membership` | model | label | built |
@@ -173,7 +173,8 @@ disclaimer, and mark the product the video is about. A fourth is guarded by
 the regression set: a creator narrating their own brand work as part of the
 story ("we're shooting for Fossil today") is content. A sponsor label that is
 not a skip needs an ad marker (sponsorship language, a call to action, a link,
-a code or an offer), or it is dropped.
+a code or an offer), or YouTube's paid-promotion flag on the video, or it is
+dropped.
 
 ## UI
 
@@ -225,7 +226,7 @@ video with different request metadata, and one with a stand-in English
 analysis track) through the real pipeline from stored
 transcripts and stored model outputs, with zero model calls, and checks
 expected segments within 1.5 s, that must-not-skip videos have no skip, and
-that forbidden ranges stay empty. It also runs 43 rule checks and the
+that forbidden ranges stay empty. It also runs 44 rule checks and the
 extension wiring test. All eleven rows pass at versions detect 3, refine 3,
 post 5. The expectations were written from the same videos the prompt and
 thresholds were tuned on, so a pass says nothing has regressed and nothing
