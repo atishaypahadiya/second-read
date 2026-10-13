@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Sponsor Skipper",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Skips scripted sponsor reads by reading the video's captions with a local Qwen model.",
   "host_permissions": [
     "http://localhost:8765/*",

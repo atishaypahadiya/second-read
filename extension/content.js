@@ -5,6 +5,7 @@
 // Stage 6: progress-bar markers, live skipping with Undo toast, status badge.
 
 (() => {
+  const BUILD = 14; // keep equal to page.js, background.js and server.py CLIENT_BUILD
   const TAG = '[SponsorSkipper]';
   // Dev mode gates ordinary logs; errors always print.
   const log = (...args) => { if (settings.devMode) console.log(TAG, ...args); };
@@ -109,12 +110,24 @@
       current.channelId = typeof d.channelId === 'string' ? d.channelId.slice(0, 40) : '';
       current.kind = d.kind;
       current.description = typeof d.description === 'string' ? d.description.slice(0, 5000) : '';
-      current.paidPromotion = d.paidPromotion === true;
+      // null = page.js did not say (older page.js, or no player response); never coerce "unknown" to false
+      current.paidPromotion = typeof d.paidPromotion === 'boolean' ? d.paidPromotion : null;
       current.heat = Array.isArray(d.heat) && d.heat.length <= 200 && d.heat.every((p) => Array.isArray(p) && p.length === 2 && Number.isFinite(p[0]) && Number.isFinite(p[1])) ? d.heat : [];
       current.analysisLines = validLines(d.analysisLines) ? d.analysisLines : null;
       current.analysisLang = typeof d.analysisLang === 'string' ? d.analysisLang.slice(0, 12) : d.lang;
+      current.pageBuild = Number.isInteger(d.build) ? d.build : null;
       if (current.analysisLines) log(`analysis track: ${current.analysisLang}, ${current.analysisLines.length} lines`);
-      analyze(videoId, d.lang, d.lines, current.title);
+      log(`metadata from page.js (lengths): title=${current.title.length} creator=${current.creator.length} ` +
+          `channelId=${current.channelId.length} description=${current.description.length} heat=${current.heat.length} ` +
+          `paidPromotion=${current.paidPromotion} kind=${current.kind} pageBuild=${current.pageBuild} contentBuild=${BUILD}`);
+      const missing = [];
+      if (!current.title) missing.push('title');
+      if (!current.creator) missing.push('creator');
+      if (!current.channelId) missing.push('channelId');
+      if (current.paidPromotion === null) missing.push('paidPromotion');
+      if (current.pageBuild !== BUILD) missing.push(`page.js build ${current.pageBuild} != ${BUILD}`);
+      if (missing.length) logErr(`metadata missing from page.js: ${missing.join(', ')} (reload the extension, then refresh this tab)`);
+      analyze(videoId);
     };
     window.addEventListener('message', onMessage);
     current.cleanups.push(() => window.removeEventListener('message', onMessage));
@@ -135,17 +148,26 @@
     });
   }
 
-  async function analyze(videoId, lang, lines, title) {
+  // Everything the server's POST /analyze reads. This object is the request body: background.js forwards it
+  // as is (it used to re-list the fields and silently dropped channelId and duration).
+  function analyzePayload(state) {
+    const v = videoEl();
+    return {
+      videoId: state.videoId, lang: state.lang, lines: state.lines,
+      title: state.title, creator: state.creator, channelId: state.channelId, kind: state.kind,
+      description: state.description, paidPromotion: state.paidPromotion, heat: state.heat || [],
+      duration: v && isFinite(v.duration) && v.duration > 0 ? v.duration : null,
+      position: v && isFinite(v.currentTime) ? v.currentTime : 0,
+      analysisLines: state.analysisLines, analysisLang: state.analysisLang,
+      client: { page: state.pageBuild, content: BUILD },
+    };
+  }
+
+  async function analyze(videoId) {
     const state = current;
     const alive = () => current === state && state.videoId === videoId;
     setBadge('analyzing', 'busy');
-    const v = videoEl();
-    const position = v && isFinite(v.currentTime) ? v.currentTime : 0;
-    const res = await send({ type: 'analyze', videoId, lang, lines, title, kind: state.kind, creator: state.creator,
-                             channelId: state.channelId, duration: v && isFinite(v.duration) ? v.duration : null, heat: state.heat || [],
-                             paidPromotion: !!state.paidPromotion,
-                             description: state.description, position,
-                             analysisLines: state.analysisLines, analysisLang: state.analysisLang });
+    const res = await send({ type: 'analyze', payload: analyzePayload(state) });
     if (!alive()) return;
     if (!res.ok) { logErr('server:', res.error); setBadge(res.error === 'server offline' ? 'server offline' : `server: ${res.error}`, 'error'); return; }
     handleJob(videoId, res);
@@ -244,7 +266,7 @@
       el.style.width = `${(Math.max(0, Math.min(dur, s.end) - Math.max(0, s.start)) / dur) * 100}%`;
       el.title = [
         `${eff.toUpperCase()}${eff !== s.action ? ` (server: ${s.action})` : ''} ${fmtTime(s.start)}–${fmtTime(s.end)}`,
-        `${s.category}${s.category === 'sponsor' ? `/${s.style}` : ''}${s.brand ? ` · ${s.brand}` : ''} · conf ${Number(s.confidence).toFixed(2)}${s.source && s.source !== 'detect' ? ` · ${s.source}` : ''}`,
+        `${s.category}${s.category === 'sponsor' ? `/${s.style}` : ''}${(s.brand_canonical || s.brand) ? ` · ${s.brand_canonical || s.brand}` : ''} · conf ${Number(s.confidence).toFixed(2)}${s.source && s.source !== 'detect' ? ` · ${s.source}` : ''}`,
         s.evidence ? `evidence: ${s.evidence}` : '',
         s.reason || '',
       ].filter(Boolean).join('\n');
@@ -365,7 +387,8 @@
           sendEvent('skip', s, { playhead: from, saved });
           const names = { affiliate: 'affiliate plug', selfpromo: 'self-promo', membership: 'membership ask', crosspromo: 'cross-promo',
                           charity: 'donation appeal', giveaway: 'giveaway', interaction: 'like & subscribe', intro: 'intro', outro: 'outro', recap: 'recap' };
-          const what = s.category === 'sponsor' ? `${s.brand ? `${s.brand} ` : ''}read` : (names[s.category] || s.category);
+          const brand = s.brand_canonical || s.brand;
+          const what = s.category === 'sponsor' ? `${brand ? `${brand} ` : ''}read` : (names[s.category] || s.category);
           const undo = () => {
             const v = videoEl();
             if (!v) return;

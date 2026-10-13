@@ -17,6 +17,9 @@
   if (window.__sponsorSkipperPageLoaded) return;
   window.__sponsorSkipperPageLoaded = true;
 
+  // Bumped together in page.js, content.js, background.js and server.py (CLIENT_BUILD). The server logs all three
+  // and warns when they differ, which is how a half-reloaded extension shows up.
+  const BUILD = 14;
   const TAG = '[SponsorSkipper:page]';
   const dbg = (...a) => console.log(TAG, ...a);
   const MAX_LINE_SECONDS = 8;
@@ -498,7 +501,11 @@
     const paidPromotion = !!(pr.paidContentOverlay && pr.paidContentOverlay.paidContentOverlayRenderer);
     const heat = readHeatmap();
     if (heat.length) dbg(`heatmap: ${heat.length} samples from the player's most-replayed graph`);
-    reply({ lang, kind, path, lines, title, creator, channelId, description, heat, paidPromotion, analysisLines, analysisLang: analysisLines ? 'en' : lang });
+    dbg(`metadata (lengths): title=${title.length} creator=${creator.length} channelId=${channelId.length} ` +
+        `description=${description.length} heat=${heat.length} paidPromotion=${paidPromotion} kind=${kind} ` +
+        `videoDetails=${pr.videoDetails ? 'present' : 'MISSING'} build=${BUILD}`);
+    reply({ build: BUILD, lang, kind, path, lines, title, creator, channelId, description, heat, paidPromotion,
+            analysisLines, analysisLang: analysisLines ? 'en' : lang });
   }
 
   // "Most replayed" graph: the player draws it as an SVG path (x 0..1000, y 0..100, y grows downward).

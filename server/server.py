@@ -44,7 +44,8 @@ import stats  # server/stats.py: SQLite store, brand normalization, metrics, das
 # transcript cannot overwrite the result for the real one, and (b) placed in the model prompt, where
 # the output is constrained by a JSON schema, line indices are validated against the window, and a
 # skip needs a verbatim quote from the transcript itself. Prompt text can at most mislabel its own video.
-HOST, PORT = "127.0.0.1", 8765
+HOST, PORT = "127.0.0.1", int(os.environ.get("SS_PORT", "8765"))  # SS_PORT: run a second instance for testing
+CLIENT_BUILD = 14  # extension build this server expects (page.js / content.js / background.js BUILD)
 ALLOWED_HOSTS = {f"127.0.0.1:{PORT}", f"localhost:{PORT}", "127.0.0.1", "localhost"}
 # Optional: restrict to one extension. Unpacked extension IDs differ per machine, so this is opt-in:
 #   SS_EXTENSION_ID=abcdefghijklmnopabcdefghijklmnop python3 server/server.py
@@ -94,7 +95,8 @@ MAX_HINT_REGION_S = 240.0   # a hint region longer than this is split (keeps ref
 MAX_CHAPTER_AD_S = 240.0    # a "sponsor" chapter longer than this is not trusted as the ad's bounds
 CHAPTER_AD_RE = re.compile(r"\b(sponsor|sponsored|sponsorship|advert|advertisement|\(ad\)|\bad\b|ad break|paid promotion|"
                            r"promo|partner|partnership|brought to you|werbung|publicité|anuncio|patrocin|広告|スポンサー|विज्ञापन|प्रायोजक)", re.I)
-CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cache")
+# SS_DATA_DIR redirects every local file (result cache, stats DB, results log, feedback) for an isolated test instance.
+CACHE_DIR = os.environ.get("SS_DATA_DIR") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "cache")
 RESULTS_MD = os.path.join(CACHE_DIR, "results.local.md")  # gitignored: it records which videos were watched
 FEEDBACK_JSONL = os.path.join(CACHE_DIR, "feedback.local.jsonl")  # gitignored: wrong-skip / missed-ad reports
 VIDEO_ID_RE = re.compile(r"^[A-Za-z0-9_-]{11}$")
@@ -1123,7 +1125,7 @@ def merge_segments(segs):
 
 def public_segment(seg):
     keys = ("start", "end", "category", "style", "brand", "confidence", "evidence", "reason", "action", "line_start", "line_end",
-            "source", "undisclosed")
+            "source", "undisclosed", "brand_canonical")
     return {k: seg[k] for k in keys if k in seg}
 
 
@@ -1444,10 +1446,45 @@ def versions():
     return {"detect": DETECT_VERSION, "refine": REFINE_VERSION, "post": POST_VERSION}
 
 
-def cache_valid(cached, thash):
+def inputs_digest(thash, title, description, paid, alines):
+    """Everything besides the transcript that changes the analysis: title and description (hints, chapters,
+    disclosure), the paid-promotion flag, and the analysis track. A POST that brings a different digest for the
+    same transcript is re-processed (model calls are reused where their own inputs are unchanged), so a job or
+    cache entry created without metadata can never mask a later request that has it."""
+    h = hashlib.sha1()
+    h.update(json.dumps([thash, title, description, paid, transcript_hash(alines) if alines else ""],
+                        ensure_ascii=False).encode("utf-8"))
+    return h.hexdigest()[:12]
+
+
+def cache_valid(cached, thash, inputs=None):
     """Final segments can be served as-is only if nothing changed."""
     return (bool(cached) and cached.get("hash") == thash and cached.get("model") == MODEL
-            and cached.get("versions") == versions())
+            and cached.get("versions") == versions() and cached.get("inputs") == inputs)
+
+
+def log_meta(video_id, title, description, meta, position, hints):
+    """One line per POST with the presence (lengths only) of every metadata field, plus loud warnings when the
+    extension did not deliver something it always should."""
+    client = meta.get("client") or {}
+    builds = ", ".join(f"{k} {client[k] if client.get(k) is not None else '?'}" for k in ("page", "content", "background"))
+    dur = meta.get("duration")
+    paid = meta.get("paid_promotion")
+    log(f"[{video_id}] meta (lengths): client=[{builds}] title={len(title)} creator={len(meta.get('creator', ''))} "
+        f"channelId={len(meta.get('channel_id', ''))} kind={meta.get('kind') or 'MISSING'} description={len(description)} "
+        f"chapters={len(hints.get('chapter_times', []))} duration={'%.0fs' % dur if dur else 'MISSING'} "
+        f"heat={len(meta.get('heat') or [])} paidPromotion={'MISSING' if paid is None else paid} position={fmt_time(position)}")
+    missing = [name for name, ok in (("title", title), ("creator", meta.get("creator")), ("channelId", meta.get("channel_id")),
+                                     ("kind", meta.get("kind")), ("duration", dur), ("paidPromotion", paid is not None),
+                                     ("description", description)) if not ok]
+    if missing:
+        log(f"[{video_id}] WARNING: metadata missing: {', '.join(missing)}. Hints, brand names, creator stats and the "
+            f"disclosure check depend on it.")
+    seen = [client.get(k) for k in ("page", "content", "background")]
+    if any(b != CLIENT_BUILD for b in seen):
+        log(f"[{video_id}] WARNING: extension builds [{builds}] do not all match this server's CLIENT_BUILD {CLIENT_BUILD}: "
+            f"reload the extension on chrome://extensions, then refresh the YouTube tab (or restart the server if it is the older one).")
+    return missing
 
 
 class CallCache:
@@ -1687,9 +1724,10 @@ def publish(job):
 
 def save_partial(job):
     """Persist model outputs so a paused/evicted job resumes without repeating Ollama calls."""
-    save_cache(job["video_id"], {"videoId": job["video_id"], "versions": None, "hash": job["hash"], "lang": job["lang"],
-                                 "title": job["title"], "model": MODEL, "segments": job["segments"],
-                                 "calls": job["calls"].calls, "transcript": job["lines"], "partial": True})
+    save_cache(job["video_id"], {"videoId": job["video_id"], "versions": None, "hash": job["hash"], "inputs": job.get("inputs"),
+                                 "lang": job["lang"], "title": job["title"], "meta": job_meta(job), "model": MODEL,
+                                 "segments": job["segments"], "calls": job["calls"].calls, "transcript": job["lines"],
+                                 "partial": True})
 
 
 def finish_job(job):
@@ -1700,9 +1738,10 @@ def finish_job(job):
             log(f"[{video_id}] job superseded; discarding result")
             return
     log_segments(video_id, segments)
-    save_cache(video_id, {"videoId": video_id, "versions": versions(), "hash": job["hash"], "lang": job["lang"],
-                          "title": job["title"], "model": MODEL, "segments": segments,
-                          "calls": job["calls"].calls, "transcript": job["lines"]})
+    sync_stats(job, segments)  # also sets brand_canonical on each segment
+    save_cache(video_id, {"videoId": video_id, "versions": versions(), "hash": job["hash"], "inputs": job.get("inputs"),
+                          "lang": job["lang"], "title": job["title"], "meta": job_meta(job), "model": MODEL,
+                          "segments": segments, "calls": job["calls"].calls, "transcript": job["lines"]})
     job_time = time.time() - job["t_start"]
     if job["ttfs"] is None and any(x["action"] == "skip" for x in segments):
         job["ttfs"] = job_time
@@ -1718,16 +1757,43 @@ def finish_job(job):
         f"model calls: {calls.reused} reused / {calls.computed} computed, {job_time:.1f}s wall "
         f"({job['work_s']:.1f}s working), first skip at {'%.1fs' % job['ttfs'] if job['ttfs'] is not None else '-'}, cached")
     append_result(job, segments, job_time, calls, job["ttfs"])
+    with work_available:
+        work_available.notify()  # wake the worker for idle-time tier-2 analysis
+
+
+def job_meta(job):
+    """Request metadata kept in the cache file (gitignored) so a video can be replayed exactly as it was sent."""
+    return {"creator": job.get("creator", ""), "channelId": job.get("channel_id", ""), "kind": job.get("kind", ""),
+            "duration": job.get("duration"), "paidPromotion": job.get("paid_promotion"),
+            "description": job.get("description", ""), "client": job.get("client")}
+
+
+def sync_stats(job, segments):
+    """Record the video, its segments (canonical brands), codes and tier-1 ad metrics. Idempotent: segment ids are
+    stable, so it also runs for cache hits and when a later request brings metadata the first one lacked."""
+    video_id = job["video_id"]
     try:
         seg_ids = stats.record_video(job, segments, versions())
         n_codes = stats.record_codes(job, segments)
         if n_codes:
             log(f"[{video_id}] codes: {n_codes} new code/link/offer row(s) in the vault")
         intel.compute_tier1(job, segments, seg_ids, job.get("terms", []))
-        with work_available:
-            work_available.notify()  # wake the worker for idle-time tier-2 analysis
     except Exception as e:  # noqa: BLE001 - stats must never break analysis
         log(f"[{video_id}] stats/intel: failed: {e!r}")
+
+
+META_FIELDS = ("creator", "channel_id", "kind", "duration", "heat", "client")
+
+
+def apply_meta(job, meta):
+    """Fill metadata an existing job is missing from a newer request. Returns the names that changed."""
+    changed = []
+    for k in META_FIELDS:
+        new = meta.get(k)
+        if new and not job.get(k):
+            job[k] = new
+            changed.append(k)
+    return changed
 
 
 def fail_job(job, e):
@@ -1847,64 +1913,82 @@ def touch(job):
 def start_or_get_job(video_id, lang, lines, title="", meta=None, alines=None, alang=None, position=0.0, description=""):
     meta = meta or {}
     thash = transcript_hash(lines)
+    paid = meta.get("paid_promotion")
+    inputs = inputs_digest(thash, title, description, paid, alines)
+    hints = extract_hints(description)
+    terms = hint_terms(hints)
+    same = alines is None
+    # Fields every job has, whether it is computed or served from the cache (stats need them either way).
+    base = {"hash": thash, "inputs": inputs, "lang": lang, "lines": lines, "title": title, "description": description,
+            "alines": lines if same else alines, "alang": lang if same else (alang or "en"),
+            "video_id": video_id, "kind": meta.get("kind", ""), "creator": meta.get("creator", ""),
+            "tag": meta.get("tag", ""), "channel_id": meta.get("channel_id", ""), "duration": meta.get("duration"),
+            "client": meta.get("client"), "heat": meta.get("heat") or [], "chapter_times": hints.get("chapter_times", []),
+            "paid_promotion": paid, "disclosed": bool(AD_LINE_RE.search(description or "")),
+            "position": position, "hints": hints, "terms": terms, "header": hints_header(hints),
+            "last_poll": time.time(), "paused": False}
+    resync = None
     with work_available:
         job = jobs.get(video_id)
-        if job and job["hash"] == thash and job["status"] != "error":
+        if job and job["hash"] == thash and job.get("inputs") == inputs and job["status"] != "error":
             touch(job)
+            changed = apply_meta(job, meta)
             if job["status"] == "done":
                 job["cached"] = True  # reused, not computed for this request
+                if changed:
+                    resync = (job, job["segments"], f"metadata arrived later: {', '.join(changed)}")
             else:
                 job["position"] = position
             work_available.notify()
-            return job
-        cached = load_cache(video_id)
-        if cache_valid(cached, thash):
-            job = {"status": "done", "segments": cached.get("segments", []), "hash": thash, "lang": lang,
-                   "lines": lines, "cached": True, "video_id": video_id, "last_poll": time.time()}
-            jobs[video_id] = job
-            log(f"[{video_id}] cache hit ({len(job['segments'])} segment(s))")
-            return job
-        why = ""
-        if job:
-            why = " (transcript changed; replacing running job)" if job["status"] != "error" else " (previous attempt errored)"
-        elif cached:
-            why = (" (cache versions %s/%s; now %s/%s: re-processing, reusing model calls where valid)"
-                   % (cached.get("versions"), cached.get("model"), versions(), MODEL)
-                   if cached.get("hash") == thash else " (cached transcript hash differs)")
-        # Admission: never refuse the video being watched; evict the least-recently-polled unfinished job.
-        active = [j for v, j in jobs.items() if j["status"] not in ("done", "error") and v != video_id]
-        while len(active) >= MAX_ACTIVE_JOBS:
-            victim = min(active, key=lambda j: j["last_poll"])
-            active.remove(victim)
-            log(f"[{victim['video_id']}] evicted (least recently polled, {time.time() - victim['last_poll']:.0f}s ago); "
-                f"partial results stay on disk")
-            del jobs[victim["video_id"]]
-        finished = [v for v, j in jobs.items() if j["status"] in ("done", "error")]
-        if len(finished) >= MAX_JOBS_IN_MEMORY:
-            for v in finished[: len(finished) - MAX_JOBS_IN_MEMORY + 1]:
-                del jobs[v]
-        prior_calls = cached.get("calls") if cached and cached.get("hash") == thash and cached.get("model") == MODEL else None
-        hints = extract_hints(description)
-        terms = hint_terms(hints)
-        same = alines is None
-        job = {"status": "queued", "segments": [], "hash": thash, "lang": lang, "lines": lines, "title": title,
-               "alines": lines if same else alines, "alang": lang if same else (alang or "en"),
-               "video_id": video_id, "kind": meta.get("kind", ""), "creator": meta.get("creator", ""),
-               "tag": meta.get("tag", ""), "channel_id": meta.get("channel_id", ""), "duration": meta.get("duration"),
-               "heat": meta.get("heat") or [], "chapter_times": hints.get("chapter_times", []),
-               "paid_promotion": bool(meta.get("paid_promotion")), "disclosed": bool(AD_LINE_RE.search(description or "")),
-               "position": position, "hints": hints, "terms": terms,
-               "header": hints_header(hints), "calls": CallCache(prior_calls), "final": [], "pending": None,
-               "n_windows": 0, "n_sent": 0, "ttfs": None, "t_start": time.time(), "work_s": 0.0,
-               "last_poll": time.time(), "paused": False}
-        jobs[video_id] = job
-        work_available.notify()
-    log(f"[{video_id}] new job: {len(lines)} lines{'' if same else f' + {len(alines)} analysis lines ({alang})'}, "
-        f"lang={lang}, kind={job['kind']}, hash={thash}, title={title!r}{why}")
-    if prior_calls:
-        log(f"[{video_id}] {len(prior_calls)} cached model call(s) available")
-    if any(hints.values()):
-        log(f"[{video_id}] hints: brands={hints['brands']} codes={hints['codes']} domains={hints['domains']} chapters={len(hints['chapters'])}")
+        else:
+            cached = load_cache(video_id)
+            if cache_valid(cached, thash, inputs):
+                job = {**base, "status": "done", "segments": cached.get("segments", []), "cached": True}
+                jobs[video_id] = job
+                log(f"[{video_id}] cache hit ({len(job['segments'])} segment(s))")
+                resync = (job, job["segments"], "cache hit")
+            else:
+                why = ""
+                if job and job["hash"] == thash and job["status"] != "error":
+                    why = " (title/description/paid flag differ from the existing job: re-processing with them)"
+                elif job:
+                    why = " (transcript changed; replacing running job)" if job["status"] != "error" else " (previous attempt errored)"
+                elif cached and cached.get("hash") == thash and cached.get("versions") == versions() and cached.get("model") == MODEL:
+                    why = " (cached result was made with different title/description/paid flag: re-processing, reusing model calls where valid)"
+                elif cached:
+                    why = (" (cache versions %s/%s; now %s/%s: re-processing, reusing model calls where valid)"
+                           % (cached.get("versions"), cached.get("model"), versions(), MODEL)
+                           if cached.get("hash") == thash else " (cached transcript hash differs)")
+                # Admission: never refuse the video being watched; evict the least-recently-polled unfinished job.
+                active = [j for v, j in jobs.items() if j["status"] not in ("done", "error") and v != video_id]
+                while len(active) >= MAX_ACTIVE_JOBS:
+                    victim = min(active, key=lambda j: j["last_poll"])
+                    active.remove(victim)
+                    log(f"[{victim['video_id']}] evicted (least recently polled, {time.time() - victim['last_poll']:.0f}s ago); "
+                        f"partial results stay on disk")
+                    del jobs[victim["video_id"]]
+                finished = [v for v, j in jobs.items() if j["status"] in ("done", "error")]
+                if len(finished) >= MAX_JOBS_IN_MEMORY:
+                    for v in finished[: len(finished) - MAX_JOBS_IN_MEMORY + 1]:
+                        del jobs[v]
+                prior_calls = cached.get("calls") if cached and cached.get("hash") == thash and cached.get("model") == MODEL else None
+                job = {**base, "status": "queued", "segments": [], "calls": CallCache(prior_calls), "final": [], "pending": None,
+                       "n_windows": 0, "n_sent": 0, "ttfs": None, "t_start": time.time(), "work_s": 0.0}
+                jobs[video_id] = job
+                work_available.notify()
+                log(f"[{video_id}] new job: {len(lines)} lines{'' if same else f' + {len(alines)} analysis lines ({alang})'}, "
+                    f"lang={lang}, kind={job['kind'] or 'MISSING'}, hash={thash}, inputs={inputs}, title={title!r}{why}")
+                if prior_calls:
+                    log(f"[{video_id}] {len(prior_calls)} cached model call(s) available")
+                if any(hints.values()):
+                    log(f"[{video_id}] hints: brands={hints['brands']} codes={hints['codes']} domains={hints['domains']} chapters={len(hints['chapters'])}")
+                else:
+                    log(f"[{video_id}] hints: none ({'description is empty' if not description else 'nothing sponsor-like in the description'})")
+    if resync:
+        # Outside the lock and off the request thread: keeps POST fast.
+        j, segs, reason = resync
+        log(f"[{video_id}] stats: syncing ({reason})")
+        threading.Thread(target=sync_stats, args=(j, segs), daemon=True).start()
     return job
 
 
@@ -2041,7 +2125,11 @@ class Handler(BaseHTTPRequestHandler):
                 "channel_id": str(data.get("channelId") or "")[:40], "duration": finite(data.get("duration")),
                 "heat": [[finite(p[0], 0.0), finite(p[1], 0.0)] for p in (data.get("heat") or [])[:200]
                          if isinstance(p, list) and len(p) == 2],
-                "paid_promotion": data.get("paidPromotion") is True}
+                # tri-state: True / False as reported by the page, None when the client did not say
+                "paid_promotion": data.get("paidPromotion") if isinstance(data.get("paidPromotion"), bool) else None,
+                "client": {k: (v if isinstance(v, int) and not isinstance(v, bool) else None)
+                           for k, v in ((k, (data.get("client") or {}).get(k) if isinstance(data.get("client"), dict) else None)
+                                        for k in ("page", "content", "background"))}}
         description = str(data.get("description") or "")[:5000]
         try:
             position = max(0.0, float(data.get("position") or 0.0))
@@ -2051,6 +2139,7 @@ class Handler(BaseHTTPRequestHandler):
         if alines is not None and (len(alines) == 0 or len(alines) > MAX_LINES):
             alines = None
         alang = str(data.get("analysisLang") or "en")[:12]
+        log_meta(vid, title, description, meta, position, extract_hints(description))
         job = start_or_get_job(vid, lang, lines, title, meta, alines, alang, position, description)
         with jobs_lock:
             return self.send_json(200, public_job(job))

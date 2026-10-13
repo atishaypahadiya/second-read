@@ -50,6 +50,7 @@ sponsor-skipper/
 │   ├── com.sponsor-skipper.server.plist   LaunchAgent template (install.sh fills in paths)
 │   ├── install.sh / uninstall.sh          launchctl bootstrap / bootout
 │   ├── regress.py       regression harness over server/testset.json (run before every commit)
+│   ├── wiring_test.js   extension metadata path test (node, no deps; run by regress.py)
 │   └── make_icons.py    generates extension/icons
 └── server/
     ├── server.py        localhost:8765, runs Qwen on the transcript, returns segments
@@ -104,6 +105,19 @@ sponsor-skipper/
 
 ### [4] Handoff
 - content.js → `chrome.runtime.sendMessage` → background.js → `fetch('http://127.0.0.1:8765/...')`.
+- **One payload, forwarded untouched.** `analyzePayload()` in content.js builds the whole POST body (videoId, lang,
+  lines, title, creator, channelId, kind, description, paidPromotion, heat, duration, position, analysisLines,
+  analysisLang, client builds). background.js sends `msg.payload` as is and only stamps its own build. Never re-list
+  fields in background.js: that is how `channelId` and `duration` were silently dropped.
+- **Build stamps.** `BUILD` in page.js, content.js, background.js and `CLIENT_BUILD` in server.py are the same number;
+  bump all four together when the extension↔server contract changes. The server logs the three it received and warns
+  when they differ (a half-reloaded extension).
+- **Presence logging (lengths only).** page.js, content.js (dev mode), the service worker console and the server each
+  log which metadata fields they hold. Server: `[id] meta (lengths): client=[…] title=… creator=… …` plus
+  `WARNING: metadata missing: …` when something that should always be there is not.
+- `scripts/wiring_test.js` runs the real content.js and background.js against stubs and checks the POST body
+  (and, statically, that page.js replies with everything content.js reads and that the server reads nothing the
+  extension doesn't send). `scripts/regress.py` runs it first.
 - Reason: content scripts can't call localhost (cross-origin + private network access). `host_permissions` covers the worker.
 
 ### [5]–[7] Server (server.py)
@@ -123,6 +137,9 @@ API:
   `brand_raw` as the model spelled it and canonical `brand`), `events` (ts, kind, video, channel, segment times,
   playhead, saved seconds; kinds: skip, undo, seek_into, false_skip, missed_ad, allowlisted), `brand_aliases`.
   **User-agnostic**: no user identity in any row, so rows can later be pooled across users.
+- Segment ids are stable across re-records (upsert on video + start + end), so stats are synced on every finished
+  job, on cache hits, and when metadata arrives later, without orphaning ad metrics or analyses. `duration_s` falls
+  back to the end of the transcript when the client sent none. Segments carry `brand_canonical` for the toast/tooltip.
 - Brand normalization order: alias table → fuzzy match against the video's description hints (brands, domain
   labels/paths; ≥ 0.55, e.g. "Udo" → Odoo via fern.deals/odoo) → the single hint if there is only one → fuzzy
   against brands already in the DB (≥ 0.8) → raw spelling. Learned aliases are stored with how they were made.
@@ -168,7 +185,13 @@ Every GET/POST for a video counts as a poll.
   - `REFINE_VERSION`: `SYSTEM_PROMPT`, `REFINE_INSTRUCTIONS`, `OUTPUT_SCHEMA` anchors, context size,
     `WORD_PROMPT`/`WORD_SCHEMA`;
   - `POST_VERSION`: evidence gate, thresholds, snapping, merge, filters (no model calls; re-process is < 1s).
-  A rubric change in `SYSTEM_PROMPT` affects both passes: bump DETECT and REFINE. The server logs how many
+  A rubric change in `SYSTEM_PROMPT` affects both passes: bump DETECT and REFINE.
+  **Inputs digest:** besides the transcript hash, a job/cache entry carries `inputs` = hash of (transcript, title,
+  description, paid-promotion flag, analysis track). A request with a different digest for the same transcript is
+  re-processed (model calls reused where their own inputs are unchanged), so a job created without metadata can
+  never mask a later request that has it. Metadata that doesn't change the analysis (creator, channelId, kind,
+  duration, heat) is filled into the existing job and synced to stats instead. The cache file also stores the
+  request `meta` (incl. the description) so a video can be replayed exactly. The server logs how many
   model calls were reused vs computed. A POST with a new hash while a job is running supersedes it; the old
   thread's result is discarded.
 - Access: Host must be localhost/127.0.0.1 (DNS rebinding), http(s) Origins are refused, and
@@ -350,6 +373,8 @@ ollama serve &                 # or the Ollama app
 ollama pull qwen3:14b
 python3 server/server.py       # http://localhost:8765
 # optional: SS_EXTENSION_ID=<your unpacked extension's ID from chrome://extensions> python3 server/server.py
+# isolated second instance for testing (own port, own data dir; never touches server/cache):
+#   SS_PORT=8766 SS_DATA_DIR=/tmp/ss-test python3 server/server.py
 # as a login item (KeepAlive, logs to ~/Library/Logs/sponsor-skipper.log):
 scripts/install.sh             # scripts/uninstall.sh to remove; launchctl kickstart -k gui/$(id -u)/com.sponsor-skipper.server to restart
 ```

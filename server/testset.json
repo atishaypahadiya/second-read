@@ -1,5 +1,5 @@
 {
-  "_comment": "Machine-readable expectations for scripts/regress.py. Times in seconds; tol = +-seconds (default 1.5). 'category' is checked when given. 'forbid' ranges must not overlap any segment; must_not_skip = zero skip segments. Keep in sync with testset.md. 'start_late_ok' allows a later-than-expected start by that many seconds.",
+  "_comment": "Machine-readable expectations for scripts/regress.py. Times in seconds; tol = +-seconds (default 1.5). 'category' is checked when given. 'forbid' ranges must not overlap any segment; must_not_skip = zero skip segments. Keep in sync with testset.md. 'start_late_ok' allows a later-than-expected start by that many seconds. An entry may carry 'meta' (title, creator, channelId, kind, description, paidPromotion, duration) sent with the request, an 'id' when the same video appears twice, and 'expect_meta' (hints, brand, creator, duration, disclosure) checked against the job and the stats row.",
   "videos": [
     {
       "video": "dU7gCt-7kKk",
@@ -98,6 +98,44 @@
           "tol": 3
         }
       ]
+    },
+    {
+      "id": "SOQynHuWPeI+meta",
+      "video": "SOQynHuWPeI",
+      "creator": "fern",
+      "note": "Same video WITH request metadata. Guards the metadata path: description must reach the server and produce hints, the asr brand 'Cody' must resolve to Coddy, the creator must reach stats. The description is a stand-in built from the two facts reported about the real one: it has an '(ad)' line and the link https://fern.deals/coddy.",
+      "meta": {
+        "title": "Facebook’s Most Dangerous App",
+        "creator": "fern",
+        "channelId": "UCODHrzPMGbNv67e84WDZhQQ",
+        "kind": "asr",
+        "duration": 1012.0,
+        "paidPromotion": true,
+        "description": "Learn to code with Coddy (ad): https://fern.deals/coddy\n\nIn 2013 Facebook bought a small Israeli startup called Onavo.\n\nSources and music are listed at the end of the video."
+      },
+      "expect": [
+        {
+          "action": "skip",
+          "start": 287.4,
+          "end": 339.5
+        }
+      ],
+      "forbid": [
+        {
+          "start": 71,
+          "end": 87
+        },
+        {
+          "start": 717,
+          "end": 734
+        }
+      ],
+      "expect_meta": {
+        "hints": true,
+        "brand": "Coddy",
+        "creator": "fern",
+        "duration": true
+      }
     }
   ]
 }

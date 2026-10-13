@@ -13,6 +13,9 @@ Stats go to a throwaway SQLite DB, results.local.md is not touched. Exit code 1 
 
 import json
 import os
+import shutil
+import sqlite3
+import subprocess
 import sys
 import tempfile
 import time
@@ -44,9 +47,14 @@ def run_video(entry, allow_model):
             raise RuntimeError("model call needed but --allow-model not given")
         server.ollama_chat = no_model
     server.cache_valid = lambda *a, **k: False  # always re-process (reusing cached calls)
-    job = server.start_or_get_job(vid, cached.get("lang", "en"), lines, cached.get("title", ""),
-                                  {"creator": entry.get("creator", ""), "kind": "", "tag": "REGRESS"},
-                                  None, None, 0.0, "")
+    server.jobs.clear()  # entries may share a video (with and without metadata)
+    m = entry.get("meta") or {}
+    meta = {"creator": m.get("creator", entry.get("creator", "")), "kind": m.get("kind", ""), "tag": "REGRESS",
+            "channel_id": m.get("channelId", ""), "duration": m.get("duration"),
+            "paid_promotion": m.get("paidPromotion") if isinstance(m.get("paidPromotion"), bool) else None,
+            "heat": [], "client": None}
+    job = server.start_or_get_job(vid, cached.get("lang", "en"), lines, m.get("title", cached.get("title", "")),
+                                  meta, None, None, 0.0, m.get("description", ""))
     t0 = time.time()
     while job["status"] not in ("done", "error"):
         server.touch(job)
@@ -60,7 +68,39 @@ def run_video(entry, allow_model):
         if not allow_model:
             return None, "a model output is missing or outdated in the cache; run the video through the server once, or pass --allow-model"
         return None, f"job error: {job.get('error')}"
-    return job["segments"], None
+    return job, None
+
+
+def check_meta(entry, job):
+    """expect_meta: what the server must have derived from the request metadata (hints, canonical brand, stats row)."""
+    out = []
+    em = entry.get("expect_meta") or {}
+    if not em:
+        return out
+    hints = job.get("hints") or {}
+    if "hints" in em:
+        got = bool(hints.get("brands") or hints.get("codes") or hints.get("domains"))
+        out.append((got == em["hints"], f"hints {'found' if got else 'none'}: brands={hints.get('brands')} domains={hints.get('domains')}"
+                    + ("" if got == em["hints"] else f" (expected {'some' if em['hints'] else 'none'})")))
+    skips = [s for s in job["segments"] if s["action"] == "skip"]
+    if "brand" in em:
+        got = skips[0].get("brand_canonical") if skips else None
+        out.append((got == em["brand"], f"brand {skips[0].get('brand')!r} -> {got!r}" if skips else "brand: no skip segment"
+                    if got == em["brand"] else f"brand {skips[0].get('brand') if skips else None!r} -> {got!r}, expected {em['brand']!r}"))
+    c = sqlite3.connect(stats.DB_PATH)
+    c.row_factory = sqlite3.Row
+    row = c.execute("SELECT * FROM videos WHERE video_id = ?", (job["video_id"],)).fetchone()
+    c.close()
+    if "creator" in em:
+        got = row["channel_name"] if row else None
+        out.append((got == em["creator"], f"stats creator {got!r}" + ("" if got == em["creator"] else f", expected {em['creator']!r}")))
+    if em.get("duration"):
+        got = row["duration_s"] if row else None
+        out.append((bool(got), f"stats duration {got}"))
+    if "disclosure" in em:
+        got = sorted({s.get("disclosure") for s in job["segments"] if s.get("category") == "sponsor" and s.get("style") == "read"})
+        out.append((got == [em["disclosure"]], f"disclosure {got}" + ("" if got == [em["disclosure"]] else f", expected {em['disclosure']!r}")))
+    return out
 
 
 def check(entry, segments):
@@ -102,8 +142,10 @@ def main():
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     allow_model = "--allow-model" in sys.argv
     tmp = tempfile.mkdtemp(prefix="ss-regress-")
+    # Nothing the harness does may land in the user's local data: stats, results log and feedback go to a temp dir.
     stats.DB_PATH = os.path.join(tmp, "stats.db")
     server.RESULTS_MD = os.path.join(tmp, "results.md")
+    server.FEEDBACK_JSONL = os.path.join(tmp, "feedback.jsonl")
     intel._embed_available = False  # no embedding calls during regression
     server.log = lambda *a: None  # quiet; set SS_REGRESS_VERBOSE=1 to see the pipeline log
     if os.environ.get("SS_REGRESS_VERBOSE"):
@@ -113,27 +155,39 @@ def main():
     intel.set_logger(server.log)
     entries = load_testset()
     if args:
-        entries = [e for e in entries if e["video"] in args]
+        entries = [e for e in entries if e["video"] in args or e.get("id") in args]
     failures = 0
     rows = []
+    if not args:
+        # Extension wiring first: metadata must survive page.js -> content.js -> background.js -> POST /analyze.
+        t0 = time.time()
+        node = shutil.which("node")
+        if node:
+            r = subprocess.run([node, os.path.join(ROOT, "scripts", "wiring_test.js")], capture_output=True, text=True)
+            out = [l.strip() for l in (r.stdout + r.stderr).strip().splitlines() if l.strip()] or ["(no output)"]
+            failures += 0 if r.returncode == 0 else 1
+            rows.append(("wiring", "extension", "PASS" if r.returncode == 0 else "FAIL", out, time.time() - t0))
+        else:
+            rows.append(("wiring", "extension", "SKIP", ["not run: node not found"], 0.0))
     for e in entries:
         t0 = time.time()
-        segs, err = run_video(e, allow_model)
+        label = e.get("id", e["video"])
+        job, err = run_video(e, allow_model)
         if err:
-            rows.append((e["video"], e.get("creator", ""), "SKIP", [f"not run: {err}"], time.time() - t0))
+            rows.append((label, e.get("creator", ""), "SKIP", [f"not run: {err}"], time.time() - t0))
             continue
-        results = check(e, segs)
+        results = check(e, job["segments"]) + check_meta(e, job)
         ok = all(r[0] for r in results)
         failures += 0 if ok else 1
-        rows.append((e["video"], e.get("creator", ""), "PASS" if ok else "FAIL", [m for _, m in results], time.time() - t0))
-    print(f"{'video':12} {'creator':14} {'result':6} {'time':>6}  details")
-    print("-" * 100)
+        rows.append((label, e.get("creator", ""), "PASS" if ok else "FAIL", [m for _, m in results], time.time() - t0))
+    print(f"{'video':17} {'creator':14} {'result':6} {'time':>6}  details")
+    print("-" * 110)
     for vid, cr, res, details, dt in rows:
-        print(f"{vid:12} {cr[:14]:14} {res:6} {dt:5.1f}s  {details[0]}")
+        print(f"{vid:17} {cr[:14]:14} {res:6} {dt:5.1f}s  {details[0]}")
         for d in details[1:]:
-            print(f"{'':12} {'':14} {'':6} {'':>6}  {d}")
+            print(f"{'':17} {'':14} {'':6} {'':>6}  {d}")
     skipped = sum(1 for r in rows if r[2] == "SKIP")
-    print("-" * 100)
+    print("-" * 110)
     print(f"{len(rows) - failures - skipped} passed, {failures} failed, {skipped} not run"
           f"  (versions detect={server.DETECT_VERSION} refine={server.REFINE_VERSION} post={server.POST_VERSION})")
     sys.exit(1 if failures else 0)
