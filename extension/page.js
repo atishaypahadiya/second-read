@@ -478,6 +478,7 @@
     const vd = pr.videoDetails || {};
     const title = typeof vd.title === 'string' ? vd.title : '';
     const creator = typeof vd.author === 'string' ? vd.author : '';
+    const channelId = typeof vd.channelId === 'string' ? vd.channelId : '';
     const description = typeof vd.shortDescription === 'string' ? vd.shortDescription.slice(0, 5000) : '';
 
     // Non-English video: also fetch the English auto-translation of the same track. The server analyzes
@@ -493,7 +494,7 @@
         dbg('analysis track: en translation unavailable; analyzing the original language');
       }
     }
-    reply({ lang, kind, path, lines, title, creator, description, analysisLines, analysisLang: analysisLines ? 'en' : lang });
+    reply({ lang, kind, path, lines, title, creator, channelId, description, analysisLines, analysisLang: analysisLines ? 'en' : lang });
   }
 
   function withTranslation(url, tlang) {

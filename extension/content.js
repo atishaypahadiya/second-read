@@ -6,7 +6,40 @@
 
 (() => {
   const TAG = '[SponsorSkipper]';
-  const log = (...args) => console.log(TAG, ...args);
+  // Dev mode gates ordinary logs; errors always print.
+  const log = (...args) => { if (settings.devMode) console.log(TAG, ...args); };
+  const logErr = (...args) => console.warn(TAG, ...args);
+
+  // ---------------------------------------------------------------------------
+  // Settings (chrome.storage.local, edited by the popup; applied here instantly)
+  // ---------------------------------------------------------------------------
+  const DEFAULT_SETTINGS = {
+    enabled: true,
+    actions: { sponsor_read: 'skip', selfpromo: 'show', interaction: 'show' },
+    devMode: false,
+    allowlist: {}, // channelId -> channel name; markers show, nothing skips
+  };
+  let settings = { ...DEFAULT_SETTINGS };
+
+  function mergeSettings(stored) {
+    const s = { ...DEFAULT_SETTINGS, ...(stored || {}) };
+    s.actions = { ...DEFAULT_SETTINGS.actions, ...((stored && stored.actions) || {}) };
+    s.allowlist = (stored && stored.allowlist) || {};
+    return s;
+  }
+
+  // What this segment does for this user right now: 'skip' | 'keep' | 'show' | 'off'.
+  function effectiveAction(seg) {
+    if (!settings.enabled) return 'off';
+    let a;
+    if (seg.category === 'sponsor') {
+      a = seg.style === 'integration' ? 'keep' : (seg.action === 'skip' ? settings.actions.sponsor_read : seg.action);
+    } else {
+      a = settings.actions[seg.category] || 'show';
+    }
+    if (a === 'skip' && current && current.channelId && settings.allowlist[current.channelId]) a = 'show';
+    return a;
+  }
 
   // Run once per page. If Chrome injects this script a second time (e.g. after an
   // extension reload with the tab still open), the second copy must not add its own
@@ -35,6 +68,7 @@
   function setup(videoId) {
     current = { videoId, cleanups: [], segments: [], handled: new Set() };
     log('video', videoId);
+    if (!settings.enabled) { log('disabled in popup; not analyzing'); return; }
     setBadge('reading captions', 'busy');
     attachPlayback();
     requestCaptions(videoId);
@@ -50,7 +84,8 @@
       window.removeEventListener('message', onMessage);
       if (d.error) {
         log('captions:', String(d.error).slice(0, 80));
-        setBadge(d.error === 'no captions' ? 'no captions' : 'captions unavailable', 'off');
+        current.captionsNote = d.error === 'no captions' ? 'no captions' : 'captions unavailable';
+        setBadge(current.captionsNote, 'off');
         return;
       }
       // Any page script can post a message shaped like this one, so validate before trusting it.
@@ -65,6 +100,7 @@
       current.lang = d.lang;
       current.title = typeof d.title === 'string' ? d.title.slice(0, 300) : '';
       current.creator = typeof d.creator === 'string' ? d.creator.slice(0, 100) : '';
+      current.channelId = typeof d.channelId === 'string' ? d.channelId.slice(0, 40) : '';
       current.kind = d.kind;
       current.description = typeof d.description === 'string' ? d.description.slice(0, 5000) : '';
       current.analysisLines = validLines(d.analysisLines) ? d.analysisLines : null;
@@ -101,7 +137,7 @@
                              description: state.description, position,
                              analysisLines: state.analysisLines, analysisLang: state.analysisLang });
     if (!alive()) return;
-    if (!res.ok) { log('server:', res.error); setBadge(res.error === 'server offline' ? 'server offline' : `server: ${res.error}`, 'error'); return; }
+    if (!res.ok) { logErr('server:', res.error); setBadge(res.error === 'server offline' ? 'server offline' : `server: ${res.error}`, 'error'); return; }
     handleJob(videoId, res);
     if (res.status === 'done' || res.status === 'error') return;
 
@@ -111,7 +147,7 @@
     timer = setInterval(async () => {
       const r = await send({ type: 'poll', videoId });
       if (!alive()) { stop(); return; }
-      if (!r.ok) { log('server:', r.error); setBadge(r.error === 'server offline' ? 'server offline' : `server: ${r.error}`, 'error'); stop(); return; }
+      if (!r.ok) { logErr('server:', r.error); setBadge(r.error === 'server offline' ? 'server offline' : `server: ${r.error}`, 'error'); stop(); return; }
       handleJob(videoId, r);
       if (r.status === 'done' || r.status === 'error') stop();
     }, POLL_MS);
@@ -155,6 +191,7 @@
     const state = current;
     if (!state) return;
     state.badgeText = text; state.badgeKind = kind; // remembered so the tick can (re)place it
+    if (!settings.devMode) return;
     const p = playerEl();
     if (!p) return;
     if (!state.badge || !state.badge.isConnected) {
@@ -187,13 +224,15 @@
     box.className = 'ss-markers';
     const dur = video.duration;
     for (const s of state.segments) {
+      const eff = effectiveAction(s);
+      if (eff === 'off') continue;
       const el = document.createElement('div');
       el.className = 'ss-marker';
-      el.dataset.action = s.action;
+      el.dataset.action = eff;
       el.style.left = `${(Math.max(0, s.start) / dur) * 100}%`;
       el.style.width = `${(Math.max(0, Math.min(dur, s.end) - Math.max(0, s.start)) / dur) * 100}%`;
       el.title = [
-        `${s.action.toUpperCase()} ${fmtTime(s.start)}–${fmtTime(s.end)}`,
+        `${eff.toUpperCase()}${eff !== s.action ? ` (server: ${s.action})` : ''} ${fmtTime(s.start)}–${fmtTime(s.end)}`,
         `${s.category}/${s.style}${s.brand ? ` · ${s.brand}` : ''} · conf ${Number(s.confidence).toFixed(2)}`,
         s.evidence ? `evidence: ${s.evidence}` : '',
         s.reason || '',
@@ -209,6 +248,20 @@
     }
     bar.appendChild(box);
     state.markers = box;
+  }
+
+  // --- stats (today + all-time), read by the popup
+  function recordSkip(savedSeconds) {
+    chrome.storage.local.get('stats', (res) => {
+      const today = new Date().toISOString().slice(0, 10);
+      const st = res.stats || {};
+      const t = st.today && st.today.date === today ? st.today : { date: today, skips: 0, saved: 0 };
+      const a = st.all || { skips: 0, saved: 0 };
+      const d = savedSeconds >= 0 ? 1 : -1;
+      t.skips = Math.max(0, t.skips + d); t.saved = Math.max(0, t.saved + savedSeconds);
+      a.skips = Math.max(0, a.skips + d); a.saved = Math.max(0, a.saved + savedSeconds);
+      chrome.storage.local.set({ stats: { today: t, all: a } });
+    });
   }
 
   // --- toast
@@ -246,20 +299,24 @@
       if (!video || adShowing() || video.seeking) return;
       const t = video.currentTime;
       for (const s of state.segments) {
-        if (s.action !== 'skip') continue;
+        if (effectiveAction(s) !== 'skip') continue;
         const key = segKey(s);
         if (state.handled.has(key)) continue;
         if (t >= s.start && t < s.end - SKIP_GUARD_S) {
           state.handled.add(key);
           const from = t;
+          const saved = s.end - from;
           ourSeek = true;
           video.currentTime = s.end;
-          log(`skipped ${s.brand || 'sponsor'} read ${fmtTime(s.start)}-${fmtTime(s.end)} (from ${fmtTime(from)})`);
-          showToast(`Skipped ${s.brand ? `${s.brand} ` : ''}read (${fmtTime(s.end - s.start)})`, () => {
+          log(`skipped ${s.brand || 'sponsor'} ${s.category === 'sponsor' ? 'read' : s.category} ${fmtTime(s.start)}-${fmtTime(s.end)} (from ${fmtTime(from)})`);
+          recordSkip(saved);
+          const what = s.category === 'sponsor' ? `${s.brand ? `${s.brand} ` : ''}read` : (s.category === 'selfpromo' ? 'self-promo' : 'like & subscribe');
+          showToast(`Skipped ${what} (${fmtTime(saved)})`, () => {
             const v = videoEl();
             if (!v) return;
             ourSeek = true;
             v.currentTime = from;
+            recordSkip(-saved);
             log(`undo: back to ${fmtTime(from)}; segment stays handled`);
           });
           return;
@@ -273,7 +330,7 @@
       // The user seeked. If they landed inside a skip segment, they want to watch it.
       const t = video.currentTime;
       for (const s of state.segments) {
-        if (s.action === 'skip' && t >= s.start && t < s.end && !state.handled.has(segKey(s))) {
+        if (effectiveAction(s) === 'skip' && t >= s.start && t < s.end && !state.handled.has(segKey(s))) {
           state.handled.add(segKey(s));
           log(`manual seek into ${fmtTime(s.start)}-${fmtTime(s.end)}; letting it play`);
         }
@@ -304,7 +361,7 @@
       const v = videoEl();
       if (v !== video) bind(v);
       if (state.segments.length && (!state.markers || !state.markers.isConnected)) drawMarkers();
-      if ((!state.badge || !state.badge.isConnected) && state.badgeText) setBadge(state.badgeText, state.badgeKind);
+      if (settings.devMode && (!state.badge || !state.badge.isConnected) && state.badgeText) setBadge(state.badgeText, state.badgeKind);
     }, 1000);
 
     bind(videoEl());
@@ -345,7 +402,44 @@
     if (videoId) setup(videoId);
   }
 
-  document.addEventListener('yt-navigate-finish', onNavigate);
-  window.addEventListener('popstate', onNavigate);
-  onNavigate(); // initial page load
+  function applySettingsChange(prev) {
+    if (!current) return;
+    if (prev.enabled !== settings.enabled) {
+      // Turning off tears everything down; turning on re-runs the current video.
+      const id = current.videoId;
+      teardown();
+      if (settings.enabled && id) setup(id);
+      return;
+    }
+    if (!settings.devMode && current.badge) { current.badge.remove(); current.badge = null; }
+    if (settings.devMode && current.badgeText) setBadge(current.badgeText, current.badgeKind);
+    drawMarkers();
+  }
+
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'local' || !changes.settings) return;
+    const prev = settings;
+    settings = mergeSettings(changes.settings.newValue);
+    applySettingsChange(prev);
+  });
+
+  // Popup asks what is going on in this tab.
+  chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    if (!msg || msg.type !== 'getState') return false;
+    const v = videoEl();
+    sendResponse(current ? {
+      videoId: current.videoId, channelId: current.channelId || '', channelName: current.creator || '',
+      title: current.title || '', position: v ? v.currentTime : 0, status: current.lastStatus || '',
+      captions: current.captionsNote || '',
+      segments: (current.segments || []).map((s) => ({ ...s, effective: effectiveAction(s) })),
+    } : {});
+    return false;
+  });
+
+  chrome.storage.local.get('settings', (stored) => {
+    settings = mergeSettings(stored && stored.settings);
+    document.addEventListener('yt-navigate-finish', onNavigate);
+    window.addEventListener('popstate', onNavigate);
+    onNavigate(); // initial page load
+  });
 })();

@@ -786,6 +786,16 @@ def refine_words(lines, s_line, e_line, seg, calls):
     return apply_picks(lines, s_line, e_line, s_words, fw, e_words, lw, "labeled word pass")
 
 
+def model_loaded(name):
+    """Is the model currently resident in Ollama (GET /api/ps)?"""
+    try:
+        with urllib.request.urlopen(f"{OLLAMA}/api/ps", timeout=2) as resp:
+            ps = json.loads(resp.read().decode("utf-8"))
+        return any(m.get("name") == name for m in ps.get("models", []))
+    except (OSError, ValueError):
+        return False
+
+
 def ollama_available():
     try:
         with urllib.request.urlopen(f"{OLLAMA}/api/tags", timeout=2) as resp:
@@ -1568,7 +1578,8 @@ class Handler(BaseHTTPRequestHandler):
             return
         u = urlparse(self.path)
         if u.path == "/health":
-            return self.send_json(200, {"ok": True, "model": MODEL, "ollama": ollama_available()})
+            ok = ollama_available()
+            return self.send_json(200, {"ok": True, "model": MODEL, "ollama": ok, "loaded": ok and model_loaded(MODEL)})
         if u.path == "/analyze":
             vid = (parse_qs(u.query).get("v") or [""])[0]
             if not VIDEO_ID_RE.match(vid):

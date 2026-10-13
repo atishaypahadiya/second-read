@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Sponsor Skipper</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <img src="icons/icon32.png" width="20" height="20" alt="">
+    <h1>Sponsor Skipper</h1>
+    <label class="switch" title="Master on/off">
+      <input type="checkbox" id="enabled">
+      <span class="slider"></span>
+    </label>
+  </header>
+
+  <section id="status" class="row status">
+    <span class="dot" id="statusDot"></span>
+    <span id="statusText">checking server…</span>
+  </section>
+
+  <section id="video" class="row video hidden">
+    <span id="videoText"></span>
+  </section>
+
+  <section class="card">
+    <h2>What to do with…</h2>
+    <div class="row">
+      <span class="label">Sponsor reads</span>
+      <div class="seg" data-key="sponsor_read">
+        <button data-value="skip">Skip</button><button data-value="show">Show</button>
+      </div>
+    </div>
+    <div class="row">
+      <span class="label">Self-promo</span>
+      <div class="seg" data-key="selfpromo">
+        <button data-value="skip">Skip</button><button data-value="show">Show</button><button data-value="off">Off</button>
+      </div>
+    </div>
+    <div class="row">
+      <span class="label">Like &amp; subscribe</span>
+      <div class="seg" data-key="interaction">
+        <button data-value="skip">Skip</button><button data-value="show">Show</button><button data-value="off">Off</button>
+      </div>
+    </div>
+    <p class="hint">Integrated sponsors (green) always play. Changes apply instantly.</p>
+  </section>
+
+  <section class="card stats">
+    <div><span class="num" id="skipsToday">0</span><span class="cap">skips today</span></div>
+    <div><span class="num" id="savedToday">0:00</span><span class="cap">saved today</span></div>
+    <div><span class="num" id="skipsAll">0</span><span class="cap">skips all-time</span></div>
+    <div><span class="num" id="savedAll">0:00</span><span class="cap">saved all-time</span></div>
+  </section>
+
+  <footer class="row">
+    <label class="check"><input type="checkbox" id="devMode"> Dev mode <span class="hint">badge + console logs</span></label>
+    <span class="version" id="version"></span>
+  </footer>
+
+  <script src="popup.js"></script>
+</body>
+</html>
