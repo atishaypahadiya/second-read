@@ -148,6 +148,27 @@ def unit_checks():
     for t in (">> >> So it needed insights.", "expensive, >> especially >> in the US", "[Music] >> [Applause] >> hello"):
         once = server.strip_noise(t)
         eq(f"strip_noise({t!r}) has no '>>' and is stable", (">>" in once, server.strip_noise(once) == once), (False, True))
+    # end snap: never past the picked last ad word into the next sentence (tdIUMkXxtHg: an auto track without word
+    # timing, word starts estimated past their line's end; the snap took the capped ends for pauses and went +4 words)
+    def wl(start, end, words):
+        return {"start": start, "end": end, "text": " ".join(w[2] for w in words), "words": words, "timed": False}
+    est = server.clean_lines([
+        wl(513.2, 517.84, [[513.2, 513.61, "with"], [513.61, 514.02, "this"], [514.02, 514.51, "link,"], [514.51, 514.84, "you"],
+                           [514.84, 515.17, "get"], [515.17, 515.33, "a"], [515.33, 515.75, "full"], [515.75, 515.99, "60"],
+                           [515.99, 516.4, "days"], [516.4, 517.31, "completely"], [517.31, 517.8, "free."], [517.8, 518.37, "Before"],
+                           [518.37, 518.62, "we"], [518.62, 518.95, "get"], [518.95, 519.19, "to"], [519.19, 519.6, "Tik"]]),
+        wl(517.84, 522.0, [[517.84, 518.34, "Tok,"], [518.34, 519.14, "there's"], [519.14, 519.34, "a"], [519.34, 520.03, "bigger"]])])
+    eq("words: never start after their line's end, and cleaning is stable",
+       (all(w[0] <= w[1] <= l["end"] for l in est for w in l["words"]), server.clean_lines(est) == est), (True, True))
+    eq("end snap: no pause at the pick -> stays (was 517.84, +4 words)", server.snap_end(est, 0, 0, 517.8)[0], None)
+
+    def gapped(after_free, after_before):
+        t = 517.8 + after_free
+        return [wl(513.2, 530.0, [[516.4, 517.31, "completely"], [517.31, 517.8, "free."], [t, t + 0.3, "Before"],
+                                  [t + 0.3 + after_before, t + 0.9 + after_before, "we"]])]
+    eq("end snap: a pause right after the pick ends there", server.snap_end(gapped(0.6, 0.0), 0, 0, 517.8)[0], 517.8)
+    eq("end snap: a pause one word into the next sentence is not used", server.snap_end(gapped(0.0, 0.9), 0, 0, 517.8)[0], None)
+    eq("end snap: a pick mid-sentence still extends to its own sentence end", server.snap_end(gapped(0.6, 0.0), 0, 0, 517.31)[0], 517.8)
     # description hints: only sponsor lines count; the creator's own links, socials and name do not
     h = server.extract_hints("Learn to code with Coddy (ad): https://fern.deals/coddy")
     eq("hints: (ad) line -> brand + link", (h["brands"], h["domains"]), (["Coddy"], ["fern.deals/coddy"]))
@@ -302,7 +323,7 @@ def main():
         results = unit_checks()
         bad = [m for ok, m in results if not ok]
         failures += 1 if bad else 0
-        rows.append(("rules", "server", "FAIL" if bad else "PASS", bad or [f"{len(results)} rule checks ok (cleaning, hints, halls, brands, tier-2 quotes, disclosure)"], time.time() - t0))
+        rows.append(("rules", "server", "FAIL" if bad else "PASS", bad or [f"{len(results)} rule checks ok (cleaning, end snap, hints, halls, brands, tier-2 quotes, disclosure)"], time.time() - t0))
     for e in entries:
         t0 = time.time()
         label = e.get("id", e["video"])

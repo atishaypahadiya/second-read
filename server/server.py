@@ -75,7 +75,7 @@ KEEP_ALIVE = -1                                       # keep the model loaded be
 # Rubric changes in SYSTEM_PROMPT affect both passes: bump DETECT and REFINE.
 DETECT_VERSION = 3
 REFINE_VERSION = 3
-POST_VERSION = 3
+POST_VERSION = 4
 NUM_CTX = 8192
 LLM_TIMEOUT_S = 600
 MAX_BODY_BYTES = 8 * 1024 * 1024
@@ -93,7 +93,6 @@ MERGE_GAP_S = 1.0           # merge same-action, same-brand segments this close
 MIN_SKIP_S = 3.0            # a skip shorter than this after inward fallback is too uncertain -> show
 SNAP_GAP_S = 0.25           # an inter-word gap this long counts as a pause
 SNAP_FORWARD_MAX_S = 5.0    # never move a start later than this to find a clean cut
-SNAP_END_WINDOW_S = 1.0     # look this far after the last ad word for a pause to end on
 TOPIC_MENTIONS = 3          # brand mentioned in this many lines outside the segment -> it's the subject
 HINT_CLUSTER_GAP_S = 120.0  # transcript mentions of a description hint closer than this form one region
 HINT_REGION_PAD_S = 60.0    # detect windows overlapping a hint region (+- this) are skipped: refine runs directly
@@ -173,9 +172,13 @@ def clean_words(raw, start, end):
             ws, we, wt = float(w[0]), float(w[1]), strip_noise(str(w[2]))
         except (TypeError, ValueError, IndexError):
             continue
-        if not wt or we < ws:
+        if not wt:
             continue
-        out.append([round(max(start, ws), 2), round(min(end, max(ws, we)), 2), wt])
+        # Both ends inside the line, start <= end. A track without word timing has its words spread over each cue's
+        # display time, which runs past the next cue's start: capping only the end left words that "start" after
+        # they end, and the gaps between them read as pauses.
+        ws = min(max(start, ws), end)
+        out.append([round(ws, 2), round(max(ws, min(end, we)), 2), wt])
     return out
 
 
@@ -808,35 +811,29 @@ def snap_start(lines, s_line, e_line, picked_t):
 
 
 def snap_end(lines, s_line, e_line, picked_end_t):
-    """Move the end to a natural cut.
+    """Move the end to a natural cut, never past the sentence of the picked last ad word.
     1. If the sentence containing the last ad word ENDS inside the ad lines, extend to that sentence end
        (still ad; avoids cutting mid-sentence).
-    2. Then end on the largest pause (>= SNAP_GAP_S) that begins within SNAP_END_WINDOW_S after that word;
-       the end is the start of the pause (no inset needed).
+    2. If a pause (>= SNAP_GAP_S) follows that word directly, end at the start of the pause (no inset needed).
+       A pause after any later word is never used: that word already belongs to the next sentence, which is content.
     Returns (time, note); time None if nothing to snap to (caller keeps pick - inset)."""
     words = all_words(lines, s_line, min(len(lines) - 1, e_line + 1))
-    if not words:
-        return None, "no words"
-    q = min(range(len(words)), key=lambda i: abs(words[i][1] - picked_end_t))
+    upto = [i for i, w in enumerate(words) if w[1] <= picked_end_t + 1e-6]
+    if not upto:
+        return None, "no words at/before pick"
+    q = min(upto, key=lambda i: abs(words[i][1] - picked_end_t))
     notes = []
     se = sentence_end_index(words, q)
     if se > q and words[se][3] <= e_line:
         notes.append(f"extended to sentence end {words[se][2]!r} (+{se - q} word(s), inside ad lines)")
         q = se
-    best, best_gap = None, 0.0
-    for i in range(q, len(words) - 1):
-        if words[i][1] > words[q][1] + SNAP_END_WINDOW_S:
-            break
-        g = words[i + 1][0] - words[i][1]
-        if g >= SNAP_GAP_S and g > best_gap:
-            best, best_gap = i, g
-    if best is not None:
-        extra = f", +{best - q} word(s)" if best > q else ""
-        notes.append(f"pause {best_gap:.2f}s after {words[best][2]!r}{extra}")
-        return words[best][1], "; ".join(notes) + "; no inset needed"
+    gap = words[q + 1][0] - words[q][1] if q + 1 < len(words) else 0.0
+    if gap >= SNAP_GAP_S:
+        notes.append(f"pause {gap:.2f}s after {words[q][2]!r}")
+        return words[q][1], "; ".join(notes) + "; no inset needed"
     if notes:  # extended but no pause: end at the sentence's last word, keep the inset
         return max(words[q][0], words[q][1] - END_INSET_S), "; ".join(notes) + "; no pause, inset applied"
-    return None, "no pause found; keeping pick"
+    return None, "no pause right after the pick; keeping pick"
 
 
 def find_phrase(words, phrase):

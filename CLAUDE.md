@@ -310,8 +310,11 @@ Every GET/POST for a video counts as a poll.
   - **Snap to natural pauses** (word ends are capped at their cue end, so pauses between cues show as gaps):
     start: if the sentence containing the pick begins inside the ad lines, snap backward to that sentence start
     (still ad); else forward to the nearest sentence start, else the largest gap ≥ 0.25s, within 5s and inside
-    the ad lines. End: if the sentence containing the last word ends inside the ad lines, extend to it; then end
-    at the start of the largest gap ≥ 0.25s beginning within 1s. Original and snapped times are logged.
+    the ad lines. End: if the sentence containing the last word ends inside the ad lines, extend to it; then, if a
+    pause ≥ 0.25s follows that word directly, end at the start of the pause, else keep the pick − 0.3s. **The end
+    never moves past the picked last ad word into the next sentence**: a pause after a later word is not used
+    (that word is content). Word times are clamped into their line (start ≤ end) before any of this.
+    Original and snapped times are logged.
   - Action (server default): sponsor+read with confidence ≥ `SKIP_THRESHOLD` (0.85) → `skip`; sponsor+integration
     → `keep`; every other category → `show` (label-only). The user re-maps each category to skip / label / off in
     the popup; content.js applies it instantly. Charity never auto-skips unless the user sets it.
@@ -406,6 +409,10 @@ Each stage ends with a "done when" check on a real video.
    - run-to-run variance: fern's start was 9:03 ("Psych. It's an ad.") one run and 9:17 ("Udu,") the next, because
      pass 1 gave a different candidate range (L101–L110 vs L103–L109) so refine saw a different window. Errs safe.
      Consider widening the refine window or anchoring on the earliest candidate line.
+   - auto tracks without word timing (`tdIUMkXxtHg`, `yTwtg9cwr90`: kind asr, 0 timed lines, one multi-word seg
+     per cue): page.js spreads each cue's words over its display time, which overlaps the next cue, so estimated
+     word starts run past the line end (about a quarter of all words). The server now clamps them; the better fix
+     is to spread the words over the clamped cue span in page.js (`eventsToCues`).
    - fern's end boundary logged "estimated (track has no word timing)" although 428/496 lines have word timing:
      the end line's `timed` flag seems lost (last line of a merged / aAppend event?). End still landed inside
      "year." so it's safe, but find out why.
