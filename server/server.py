@@ -76,7 +76,7 @@ SNAP_FORWARD_MAX_S = 5.0    # never move a start later than this to find a clean
 SNAP_END_WINDOW_S = 1.0     # look this far after the last ad word for a pause to end on
 TOPIC_MENTIONS = 3          # brand mentioned in this many lines outside the segment -> it's the subject
 CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cache")
-RESULTS_MD = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "results.md")
+RESULTS_MD = os.path.join(CACHE_DIR, "results.local.md")  # gitignored: it records which videos were watched
 VIDEO_ID_RE = re.compile(r"^[A-Za-z0-9_-]{11}$")
 
 jobs = {}                 # videoId -> job dict
@@ -1044,7 +1044,12 @@ def append_result(job, segments, job_time, calls, ttfs):
         f"{job_time:.0f}s", calls.computed, f"{ttfs:.0f}s" if ttfs is not None else "-",
         time.strftime("%Y-%m-%d %H:%M")]) + " |\n"
     try:
+        new_file = not os.path.exists(RESULTS_MD)
         with open(RESULTS_MD, "a", encoding="utf-8") as f:
+            if new_file:
+                f.write("# Sponsor Skipper — local results log (gitignored; one row per finished job)\n\n"
+                        "| video | creator | lang | kind | expected | actual | verdict | notes | job time | calls | first skip | when |\n"
+                        "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n")
             f.write(row)
     except OSError as e:
         log(f"results.md append failed: {e}")
