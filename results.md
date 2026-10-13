@@ -28,3 +28,4 @@ verdict · notes · total job time · Ollama calls · time-to-first-skip · when
 | O7LvhSQ5Te4 | Johnny Harris | en | asr |  | SKIP 10:27-11:51 Incogni (0.95); SHOW 29:53-30:38 newpress.com (0.95) |  | AFTER-14B v2/1/1 detect=qwen3:14b refine=qwen3:14b; windows 4/15; 0 reused | 90s | 6 | 47s | 2026-10-13 06:35 |
 | SOQynHuWPeI | fern | en | asr |  | SKIP 4:47-5:39 Cody (0.95) |  | AFTER-14B v2/1/1 detect=qwen3:14b refine=qwen3:14b; windows 3/6; 0 reused | 67s | 6 | 60s | 2026-10-13 06:36 |
 | vGoRpjE-svI | Hindi vlog | hi | asr |  | none |  | AFTER-14B v2/1/1 detect=qwen3:14b refine=qwen3:14b; windows 0/6; 0 reused | 0s | 0 | - | 2026-10-13 06:36 |
+| SyNtH3t1c05 |  | en |  |  | SKIP 0:41-1:06 Coddy (0.90) |  | v2/1/1 detect=qwen3:14b refine=qwen3:14b; windows 1/1; 0 reused | 39s | 3 | 39s | 2026-10-13 06:41 |
