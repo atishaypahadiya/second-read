@@ -9,7 +9,8 @@ everything runs on Atishay's M4 Pro MacBook.
 - **Text only.** The transcript comes from YouTube's own caption track, read inside the page.
   No audio download, no Whisper, no yt-dlp.
 - **No external datasets.** No SponsorBlock, no third-party APIs.
-- **Local LLM only.** Qwen 14B (`qwen3:14b`) via Ollama at `http://localhost:11434` for everything. No API keys.
+- **Local LLM only.** Qwen 14B (`qwen3:14b`) via Ollama at `http://localhost:11434` for everything; optional
+  `nomic-embed-text` for topic-fit embeddings. No API keys.
   (`SS_DETECT_MODEL=qwen3:8b` can run pass-1 on a smaller model, but both models then stay loaded, ~18 GB, which
   thrashed and timed out on this 24 GB Mac. Only for ≥ 32 GB machines.)
 - **Server is stdlib Python.** No pip dependencies unless asked. `server/stats.py` (SQLite via `sqlite3`) holds
@@ -47,6 +48,7 @@ sponsor-skipper/
 └── server/
     ├── server.py        localhost:8765, runs Qwen on the transcript, returns segments
     ├── stats.py         SQLite stats (segments + client events), brand normalization, /stats.json, /dashboard
+    ├── intel.py         ad intelligence: tier-1 metrics at job end, idle-only tier-2 Qwen analysis, /ads.json
     ├── testset.md       curated test videos, expectations, verdicts
     └── cache/           <videoId>.json results, results.local.md, feedback.local.jsonl, stats.local.db (all gitignored)
 ```
@@ -122,7 +124,23 @@ API:
   (ad density s/min, integration %, brands), overall (time saved, ads per video, % videos with a sponsor, 10-bin
   ad-position histogram), 💀 Hall of Shame (skip rate × avg read length), 🏆 Hall of Fame (integration % /
   watch-through / never skipped).
-- `GET /dashboard` is one HTML page, inline CSS/JS, fetches `/stats.json`. Linked from the popup footer.
+- `GET /dashboard` is one HTML page, inline CSS/JS, with tabs Stats (`/stats.json`), Ad cards and Insights
+  (`/ads.json`). Linked from the popup footer.
+
+### Ad intelligence (server/intel.py; never blocks skipping)
+- **Tier 1**, deterministic, computed right after a job's segments are recorded, stored in `ad_metrics`:
+  position % of the video, seconds after the 60s hook, chapter + at-boundary/mid-chapter (chapter times parsed
+  from the description), distance to the next "most replayed" peak and whether the ad precedes a top-3 peak (page.js
+  samples the player's `.ytp-heat-map-path` SVG into 100 columns), segue type (hard cut / topical bridge / humor
+  fake-out / none, from rules on the ad's first sentence and the preceding 30s), reading pace vs the creator's
+  median outside ads, CTA count and offers (regex), template similarity (5-word shingle Jaccard vs the same brand's
+  ads by other creators; ≥ 0.7 = "template script"), topic fit (cosine of `nomic-embed-text` embeddings, ad vs rest
+  of video; skipped if the model isn't pulled).
+- **Tier 2**, Qwen, `ANALYSIS_VERSION`, stored in `ad_analysis`: runs only when the worker is idle (no job being
+  polled), one segment per idle step: persuasion tags with verbatim quotes (quotes not found in the ad are dropped),
+  structure beats, and a better-placement suggestion (timestamp, reason, verbatim quote, flagged if not verbatim).
+- Dashboard "Ad cards": mini timeline (ad, chapters, heat, peaks), all metrics, tags, suggestion. "Insights":
+  aggregates and distributions across all ads.
 
 Status values: `queued → classifying → done` (or `error`); `paused: true` while the video isn't being polled.
 Every GET/POST for a video counts as a poll.

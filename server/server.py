@@ -16,6 +16,7 @@ API
   GET  /feedback                                                  -> {count, recent}
   POST /event          {videoId, kind: skip|undo|seek_into|allowlisted, segment, playhead, saved} -> {ok}
   GET  /stats.json, GET /dashboard                                local stats (server/stats.py)
+  GET  /ads.json                                                  ad intelligence per segment + insights (server/intel.py)
   python3 server/server.py --feedback-report                      prints a summary for tuning sessions
 
 Status: queued -> classifying -> done | error  (+ paused:true while the video isn't being polled)
@@ -34,6 +35,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
+import intel  # server/intel.py: ad intelligence (tier-1 metrics, idle-only tier-2 Qwen analysis)
 import stats  # server/stats.py: SQLite store, brand normalization, metrics, dashboard
 
 # Threat model: the transcript, title and words come from whatever the YouTube page handed the
@@ -220,7 +222,7 @@ STOPWORDS = {"the", "this", "video", "sponsored", "sponsor", "by", "thanks", "to
 
 def extract_hints(description):
     """Brands, promo codes, domains and chapter titles from the video description."""
-    hints = {"brands": [], "codes": [], "domains": [], "chapters": []}
+    hints = {"brands": [], "codes": [], "domains": [], "chapters": [], "chapter_times": []}
     if not description:
         return hints
     for line in description.splitlines():
@@ -230,6 +232,11 @@ def extract_hints(description):
         m = CHAPTER_RE.match(line)
         if m:
             hints["chapters"].append(m.group(1).strip()[:60])
+            tm = re.match(r"^\s*((?:\d+:)?\d{1,2}:\d{2})", line)
+            if tm:
+                parts = [int(x) for x in tm.group(1).split(":")]
+                secs = parts[0] * 60 + parts[1] if len(parts) == 2 else parts[0] * 3600 + parts[1] * 60 + parts[2]
+                hints.setdefault("chapter_times", []).append([secs, m.group(1).strip()[:60]])
         for c in CODE_RE.findall(line):
             hints["codes"].append(c)
         for d in DOMAIN_RE.findall(line):
@@ -247,12 +254,13 @@ def extract_hints(description):
                     continue  # sentence-initial capital ("Learn to code with...") is usually not a brand;
                     # but "Coddy (ad): ..." or "Odoo: odoo.com/x" keeps it
                 hints["brands"].append(w)
-    for k in hints:
+    for k in ("brands", "codes", "domains", "chapters"):
         seen = []
         for x in hints[k]:
             if x not in seen:
                 seen.append(x)
         hints[k] = seen[:12]
+    hints["chapter_times"] = sorted(hints.get("chapter_times", []))[:60]
     return hints
 
 
@@ -400,10 +408,10 @@ def format_window(lines, first, last, lang, title="", header=""):
     return "\n".join(out)
 
 
-def ollama_chat(user_content, schema=None, model=None):
+def ollama_chat(user_content, schema=None, model=None, system=None):
     payload = {
         "model": model or MODEL,
-        "messages": [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": user_content}],
+        "messages": [{"role": "system", "content": system or SYSTEM_PROMPT}, {"role": "user", "content": user_content}],
         "stream": False,
         "format": schema or OUTPUT_SCHEMA,
         "think": False,
@@ -418,12 +426,12 @@ def ollama_chat(user_content, schema=None, model=None):
     return json.loads(content), data
 
 
-def ollama_chat_retry(user_content, schema=None, label="", model=None):
+def ollama_chat_retry(user_content, schema=None, label="", model=None, system=None):
     try:
-        return ollama_chat(user_content, schema, model)
+        return ollama_chat(user_content, schema, model, system)
     except json.JSONDecodeError:
         log(f"  {label}: model returned non-JSON, retrying once")
-        return ollama_chat(user_content, schema, model)
+        return ollama_chat(user_content, schema, model, system)
 
 
 def warm_models():
@@ -1526,9 +1534,12 @@ def finish_job(job):
         f"({job['work_s']:.1f}s working), first skip at {'%.1fs' % job['ttfs'] if job['ttfs'] is not None else '-'}, cached")
     append_result(job, segments, job_time, calls, job["ttfs"])
     try:
-        stats.record_video(job, segments, versions())
+        seg_ids = stats.record_video(job, segments, versions())
+        intel.compute_tier1(job, segments, seg_ids, job.get("terms", []))
+        with work_available:
+            work_available.notify()  # wake the worker for idle-time tier-2 analysis
     except Exception as e:  # noqa: BLE001 - stats must never break analysis
-        log(f"[{video_id}] stats: record failed: {e!r}")
+        log(f"[{video_id}] stats/intel: failed: {e!r}")
 
 
 def fail_job(job, e):
@@ -1569,18 +1580,28 @@ def pick_job():
 
 def worker_step():
     """One scheduling step. Returns the job it worked on (or None if idle)."""
-    job = None
+    pending = None
     with work_available:
         job = pick_job()
         if job is None:
-            work_available.wait(timeout=1.0)
-            return None
-        if job.get("paused"):
-            job["paused"] = False
-            log(f"[{job['video_id']}] resumed")
-        job["status"] = "classifying"
-        needs_plan = job["pending"] is None
-        unit = None if needs_plan else (job["pending"].pop(0) if job["pending"] else None)
+            pending = intel.pending_analysis(1)
+            if not pending:
+                work_available.wait(timeout=1.0)
+                return None
+        else:
+            if job.get("paused"):
+                job["paused"] = False
+                log(f"[{job['video_id']}] resumed")
+            job["status"] = "classifying"
+            needs_plan = job["pending"] is None
+            unit = None if needs_plan else (job["pending"].pop(0) if job["pending"] else None)
+    if job is None:
+        # Idle: one tier-2 ad analysis. Real jobs win again as soon as one is being polled.
+        try:
+            intel.run_analysis(pending[0], analysis_chat, load_transcript)
+        except Exception as e:  # noqa: BLE001
+            log(f"intel: tier-2 step failed: {e!r}")
+        return None
     # Everything below runs without the lock so HTTP handlers never wait on model or planning work.
     try:
         if needs_plan:
@@ -1602,6 +1623,20 @@ class JobError(Exception):
     def __init__(self, job, cause):
         super().__init__(repr(cause))
         self.job, self.cause = job, cause
+
+
+ANALYSIS_SYSTEM = "You are a concise analyst of sponsorship segments in YouTube videos. Answer only with the JSON schema."
+
+
+def analysis_chat(prompt, schema):
+    with llm_lock:
+        result, _meta = ollama_chat_retry(prompt, schema, label="intel", model=MODEL, system=ANALYSIS_SYSTEM)
+    return result
+
+
+def load_transcript(video_id):
+    cached = load_cache(video_id)
+    return cached.get("transcript") if cached else None
 
 
 def worker():
@@ -1668,6 +1703,7 @@ def start_or_get_job(video_id, lang, lines, title="", meta=None, alines=None, al
                "alines": lines if same else alines, "alang": lang if same else (alang or "en"),
                "video_id": video_id, "kind": meta.get("kind", ""), "creator": meta.get("creator", ""),
                "tag": meta.get("tag", ""), "channel_id": meta.get("channel_id", ""), "duration": meta.get("duration"),
+               "heat": meta.get("heat") or [], "chapter_times": hints.get("chapter_times", []),
                "position": position, "hints": hints, "terms": terms,
                "header": hints_header(hints), "calls": CallCache(prior_calls), "final": [], "pending": None,
                "n_windows": 0, "n_sent": 0, "ttfs": None, "t_start": time.time(), "work_s": 0.0,
@@ -1726,6 +1762,12 @@ class Handler(BaseHTTPRequestHandler):
         if u.path == "/feedback":
             fb = load_feedback()
             return self.send_json(200, {"count": len(fb), "recent": fb[-20:]})
+        if u.path == "/ads.json":
+            try:
+                return self.send_json(200, intel.ads_json())
+            except Exception as e:  # noqa: BLE001
+                log(f"intel: ads_json failed: {e!r}")
+                return self.send_json(500, {"error": "intel error"})
         if u.path == "/stats.json":
             try:
                 return self.send_json(200, stats.compute())
@@ -1801,7 +1843,9 @@ class Handler(BaseHTTPRequestHandler):
         title = re.sub(r"\s+", " ", str(data.get("title") or "")).strip()[:300]
         meta = {"kind": str(data.get("kind") or "")[:10], "creator": str(data.get("creator") or "")[:100],
                 "tag": str(data.get("tag") or "")[:40],  # free-text note for results.md (e.g. BASELINE)
-                "channel_id": str(data.get("channelId") or "")[:40], "duration": finite(data.get("duration"))}
+                "channel_id": str(data.get("channelId") or "")[:40], "duration": finite(data.get("duration")),
+                "heat": [[finite(p[0], 0.0), finite(p[1], 0.0)] for p in (data.get("heat") or [])[:200]
+                         if isinstance(p, list) and len(p) == 2]}
         description = str(data.get("description") or "")[:5000]
         try:
             position = max(0.0, float(data.get("position") or 0.0))
@@ -1830,6 +1874,8 @@ def main():
     os.makedirs(CACHE_DIR, exist_ok=True)
     srv = ThreadingHTTPServer((HOST, PORT), Handler)
     stats.init()
+    intel.init()
+    intel.set_logger(log)
     DETECT_MODEL = DETECT_MODEL_PREF if model_present(DETECT_MODEL_PREF) else MODEL
     if DETECT_MODEL != MODEL:
         try:

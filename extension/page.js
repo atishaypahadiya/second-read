@@ -494,7 +494,32 @@
         dbg('analysis track: en translation unavailable; analyzing the original language');
       }
     }
-    reply({ lang, kind, path, lines, title, creator, channelId, description, analysisLines, analysisLang: analysisLines ? 'en' : lang });
+    const heat = readHeatmap();
+    if (heat.length) dbg(`heatmap: ${heat.length} samples from the player's most-replayed graph`);
+    reply({ lang, kind, path, lines, title, creator, channelId, description, heat, analysisLines, analysisLang: analysisLines ? 'en' : lang });
+  }
+
+  // "Most replayed" graph: the player draws it as an SVG path (x 0..1000, y 0..100, y grows downward).
+  // Sample it into [[percent, intensity 0..100], ...] with 100 columns.
+  function readHeatmap() {
+    try {
+      const path = document.querySelector('#movie_player .ytp-heat-map-path');
+      const d = path && path.getAttribute('d');
+      if (!d) return [];
+      const nums = d.match(/-?\d+(?:\.\d+)?/g);
+      if (!nums || nums.length < 6) return [];
+      const pts = [];
+      for (let i = 0; i + 1 < nums.length; i += 2) pts.push([parseFloat(nums[i]), parseFloat(nums[i + 1])]);
+      const cols = new Array(100).fill(null);
+      for (const [x, y] of pts) {
+        if (!isFinite(x) || !isFinite(y)) continue;
+        const c = Math.max(0, Math.min(99, Math.floor(x / 10)));
+        const v = Math.max(0, Math.min(100, 100 - y));
+        cols[c] = cols[c] === null ? v : Math.max(cols[c], v);
+      }
+      let last = 0;
+      return cols.map((v, i) => { if (v !== null) last = v; return [i, Math.round(last * 10) / 10]; });
+    } catch { return []; }
   }
 
   function withTranslation(url, tlang) {
