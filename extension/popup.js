@@ -1,4 +1,4 @@
-// Second Read (Sponsor Skipper) — popup. Settings live in chrome.storage.local and are applied by content.js
+// Second Read — popup. Settings live in chrome.storage.local and are applied by content.js
 // instantly. Markup and classes follow DESIGN.md ("Popup"); nothing here decides how things look.
 
 // [storage key, label, options, shown by default]. The four most-used categories are always visible; the rest sit
@@ -47,19 +47,19 @@ function buildCategoryRows() {
   $('mainRows').textContent = '';
   $('moreRows').textContent = '';
   for (const [key, label, opts, primary] of CATS) {
-    const row = el('div', 'ss-row');
-    row.append(el('span', 'ss-row__label', label));
+    const row = el('div', 'sr-row');
+    row.append(el('span', 'sr-row__label', label));
     if (!opts) {
-      const chip = el('span', 'ss-chip', 'always plays');
+      const chip = el('span', 'sr-chip', 'always plays');
       chip.title = 'The creator is using the product as part of the video. Integrations are never skipped.';
       row.append(chip);
     } else {
-      const seg = el('div', 'ss-seg');
+      const seg = el('div', 'sr-seg');
       seg.dataset.key = key;
       seg.setAttribute('role', 'group');
       seg.setAttribute('aria-label', label);
       for (const o of opts) {
-        const b = el('button', 'ss-seg__btn', o);
+        const b = el('button', 'sr-seg__btn', o);
         b.dataset.value = o;
         seg.appendChild(b);
       }
@@ -79,7 +79,7 @@ function render() {
   $('enabled').setAttribute('aria-pressed', String(!!settings.enabled));
   $('enabledLabel').textContent = settings.enabled ? 'Skipping on' : 'Paused';
   $('app').classList.toggle('is-paused', !settings.enabled);
-  for (const seg of document.querySelectorAll('.ss-seg')) {
+  for (const seg of document.querySelectorAll('.sr-seg')) {
     const key = seg.dataset.key;
     for (const b of seg.querySelectorAll('button')) b.setAttribute('aria-pressed', String(b.dataset.value === settings.actions[key]));
   }
@@ -135,9 +135,9 @@ function renderAllowlist() {
   const ids = Object.keys(settings.allowlist);
   for (const id of ids) {
     const li = el('li');
-    const name = el('span', 'ss-list__name', settings.allowlist[id] || id);
+    const name = el('span', 'sr-list__name', settings.allowlist[id] || id);
     name.title = id;
-    const rm = el('button', 'ss-button--text', 'Remove');
+    const rm = el('button', 'sr-button--text', 'Remove');
     rm.addEventListener('click', () => { delete settings.allowlist[id]; render(); save(); });
     li.append(name, rm);
     ul.appendChild(li);
@@ -167,20 +167,20 @@ async function loadStats() {
 // ---------------------------------------------------------------- server status (head chip)
 // dot: ink = ready, pulsing = warming up, ring = something is off (DESIGN.md "Dot")
 function setStatus(dot, text, hint) {
-  $('statusDot').className = `ss-dot ${dot}`;
+  $('statusDot').className = `sr-dot ${dot}`;
   $('statusText').textContent = text;
   $('status').title = hint || '';
-  serverHint = dot === 'ss-dot--ring' ? (hint || '') : '';
+  serverHint = dot === 'sr-dot--ring' ? (hint || '') : '';
   $('channelSub').title = serverHint;
   if (settings) renderChannel();
 }
 
 function checkServer() {
   chrome.runtime.sendMessage({ type: 'health' }, (res) => {
-    if (!res || !res.ok) return setStatus('ss-dot--ring', 'server offline', 'start it: python3 server/server.py');
-    if (!res.ollama) return setStatus('ss-dot--ring', 'model offline', `start Ollama, or pull ${res.model}`);
-    if (res.loaded === false) return setStatus('ss-dot--ink is-live', 'loading model', `${res.model} is not loaded yet; the first video will be slow`);
-    setStatus('ss-dot--ink', 'server ready', `${res.model} loaded`);
+    if (!res || !res.ok) return setStatus('sr-dot--ring', 'server offline', 'start it: python3 server/server.py');
+    if (!res.ollama) return setStatus('sr-dot--ring', 'model offline', `start Ollama, or pull ${res.model}`);
+    if (res.loaded === false) return setStatus('sr-dot--ink is-live', 'loading model', `${res.model} is not loaded yet; the first video will be slow`);
+    setStatus('sr-dot--ink', 'server ready', `${res.model} loaded`);
   });
 }
 
@@ -208,16 +208,16 @@ function loadCodes(q) {
     $('codeHint').textContent = rows.length ? `${rows.length} item${rows.length === 1 ? '' : 's'}` : 'Nothing in the vault yet.';
     for (const r of rows) {
       const li = el('li');
-      const main = el('div', 'ss-list__main');
-      const line = el('div', 'ss-list__line');
-      line.append(el('span', 'ss-chip', r.kind), el('span', 'ss-list__name ss-list__value', r.value));
-      const ctx = el('div', 'ss-hint');
+      const main = el('div', 'sr-list__main');
+      const line = el('div', 'sr-list__line');
+      line.append(el('span', 'sr-chip', r.kind), el('span', 'sr-list__name sr-list__value', r.value));
+      const ctx = el('div', 'sr-hint');
       const link = el('a', '', `${r.channel_name || r.video_id} @ ${fmtT(r.time_s)}`);
       link.href = `https://www.youtube.com/watch?v=${encodeURIComponent(r.video_id)}&t=${Math.floor(r.time_s || 0)}s`;
       link.target = '_blank'; link.rel = 'noopener';
       ctx.append(`${r.brand || '?'} · `, link, r.detail && r.kind === 'offer' ? ` · ${r.detail}` : '');
       main.append(line, ctx);
-      const copy = el('button', 'ss-button--text', 'Copy');
+      const copy = el('button', 'sr-button--text', 'Copy');
       copy.addEventListener('click', async () => {
         try { await navigator.clipboard.writeText(r.value); copy.textContent = 'Copied'; setTimeout(() => { copy.textContent = 'Copy'; }, 1200); }
         catch { copy.textContent = 'Failed'; }

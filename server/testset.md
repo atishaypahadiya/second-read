@@ -1,4 +1,4 @@
-# Sponsor Skipper — test set
+# Second Read — test set
 
 Hand-curated. Expectations come from watching the video; **verdict** is filled in by Atishay after each pipeline
 change (`ok` / `false skip` / `missed` / `boundary off` / `wrong marker`). Per-run timings and the full history of

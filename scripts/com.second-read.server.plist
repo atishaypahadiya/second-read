@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
   <!-- Template. scripts/install.sh fills in __PYTHON__, __REPO__ and __HOME__ and copies it to
-       ~/Library/LaunchAgents/com.sponsor-skipper.server.plist -->
+       ~/Library/LaunchAgents/com.second-read.server.plist -->
   <key>Label</key>
-  <string>com.sponsor-skipper.server</string>
+  <string>com.second-read.server</string>
 
   <key>ProgramArguments</key>
   <array>
@@ -27,9 +27,9 @@
   <integer>5</integer>
 
   <key>StandardOutPath</key>
-  <string>__HOME__/Library/Logs/sponsor-skipper.log</string>
+  <string>__HOME__/Library/Logs/second-read.log</string>
   <key>StandardErrorPath</key>
-  <string>__HOME__/Library/Logs/sponsor-skipper.log</string>
+  <string>__HOME__/Library/Logs/second-read.log</string>
 
   <key>EnvironmentVariables</key>
   <dict>

@@ -1,4 +1,4 @@
-// Sponsor Skipper — content.js (isolated world)
+// Second Read — content.js (isolated world)
 // Stage 1: detect the current video and react to YouTube's in-app navigation.
 // Stage 2: ask page.js (MAIN world) for the caption lines and log what came back.
 // Stage 3: send the lines to the local server via background.js and poll for segments.
@@ -6,8 +6,8 @@
 // (DESIGN.md); this file only builds the markup those classes expect.
 
 (() => {
-  const BUILD = 14; // keep equal to page.js, background.js and server.py CLIENT_BUILD
-  const TAG = '[SponsorSkipper]';
+  const BUILD = 15; // keep equal to page.js, background.js and server.py CLIENT_BUILD
+  const TAG = '[SecondRead]';
   // Dev mode gates ordinary logs; errors always print.
   const log = (...args) => { if (settings.devMode) console.log(TAG, ...args); };
   const logErr = (...args) => console.warn(TAG, ...args);
@@ -52,8 +52,8 @@
   // Run once per page. If Chrome injects this script a second time (e.g. after an
   // extension reload with the tab still open), the second copy must not add its own
   // listeners or it would announce every video twice.
-  if (window.__sponsorSkipperLoaded) return;
-  window.__sponsorSkipperLoaded = true;
+  if (window.__secondReadLoaded) return;
+  window.__secondReadLoaded = true;
 
   // Everything tied to the current video lives here so we can tear it down cleanly.
   let current = null; // { videoId, cleanups: Function[] }
@@ -88,7 +88,7 @@
     const onMessage = (ev) => {
       if (ev.source !== window) return;
       const d = ev.data;
-      if (!d || d.source !== 'ss-page' || d.type !== 'captions' || d.videoId !== videoId) return;
+      if (!d || d.source !== 'sr-page' || d.type !== 'captions' || d.videoId !== videoId) return;
       window.removeEventListener('message', onMessage);
       if (d.error) {
         log('captions:', String(d.error).slice(0, 80));
@@ -132,7 +132,7 @@
     };
     window.addEventListener('message', onMessage);
     current.cleanups.push(() => window.removeEventListener('message', onMessage));
-    window.postMessage({ source: 'ss-content', type: 'getCaptions', videoId }, '*');
+    window.postMessage({ source: 'sr-content', type: 'getCaptions', videoId }, '*');
   }
 
   // Stage 3: server relay. POST once, then poll every 2s until done/error.
@@ -220,7 +220,7 @@
   const adShowing = () => { const p = playerEl(); return !!p && p.classList.contains('ad-showing'); };
   const segKey = (s) => `${s.start}-${s.end}`;
 
-  // --- status badge (dev mode). Markup per DESIGN.md: .ss-badge.ss-glass[data-kind] > .ss-dot + text + .ss-badge__count
+  // --- status badge (dev mode). Markup per DESIGN.md: .sr-badge.sr-glass[data-kind] > .sr-dot + text + .sr-badge__count
   // kinds: reading | busy | ready | none | nocaptions | off | error
   const BADGE_COLLAPSE_MS = 3000;
   function setBadge(text, kind, count) {
@@ -239,19 +239,19 @@
     if (!state.badge || !state.badge.isConnected) {
       if (state.badge) state.badge.remove();
       const el = document.createElement('div');
-      el.className = 'ss-badge ss-glass ss-ui';
-      const dot = document.createElement('span'); dot.className = 'ss-dot';
+      el.className = 'sr-badge sr-glass sr-ui';
+      const dot = document.createElement('span'); dot.className = 'sr-dot';
       const label = document.createElement('span');
-      const cnt = document.createElement('span'); cnt.className = 'ss-badge__count';
+      const cnt = document.createElement('span'); cnt.className = 'sr-badge__count';
       el.append(dot, label, cnt);
-      el.ssLabel = label; el.ssCount = cnt;
+      el.srLabel = label; el.srCount = cnt;
       p.appendChild(el);
       state.badge = el;
       state.cleanups.push(() => { if (state.badge) state.badge.remove(); state.badge = null; });
     }
-    state.badge.ssLabel.textContent = state.badgeText;
-    state.badge.ssCount.textContent = state.badgeCount;
-    state.badge.ssCount.style.display = state.badgeCount ? '' : 'none';
+    state.badge.srLabel.textContent = state.badgeText;
+    state.badge.srCount.textContent = state.badgeCount;
+    state.badge.srCount.style.display = state.badgeCount ? '' : 'none';
     state.badge.dataset.kind = state.badgeKind;
     state.badge.classList.toggle('is-collapsed', !!state.badgeCollapsed);
   }
@@ -292,7 +292,7 @@
     return e;
   }
 
-  // --- marker lane: its own 4px strip above YouTube's bar (.ss-lane), one .ss-marker per segment.
+  // --- marker lane: its own 4px strip above YouTube's bar (.sr-lane), one .sr-marker per segment.
   // Meaning is shape + colour: skip = filled accent, keep (integration) = outline, show (label) = dim, low = hatched.
   function drawMarkers() {
     const state = current;
@@ -302,13 +302,13 @@
     if (!bar || !video || !isFinite(video.duration) || video.duration <= 0) return;
     const host = document.querySelector('#movie_player .ytp-progress-bar-container') || bar;
     if (state.markers) state.markers.remove();
-    host.querySelectorAll('.ss-lane').forEach((e) => e.remove());
-    const lane = el('div', 'ss-lane ss-ui');
+    host.querySelectorAll('.sr-lane').forEach((e) => e.remove());
+    const lane = el('div', 'sr-lane sr-ui');
     const dur = video.duration;
     for (const s of state.segments) {
       const eff = effectiveAction(s);
       if (eff === 'off') continue;
-      const m = el('div', `ss-marker${isLow(s) ? ' is-low' : ''}`);
+      const m = el('div', `sr-marker${isLow(s) ? ' is-low' : ''}`);
       m.dataset.action = eff;
       m.dataset.category = s.category === 'sponsor' ? (s.style === 'integration' ? 'integration' : 'sponsor') : s.category;
       const left = (Math.max(0, s.start) / dur) * 100;
@@ -330,32 +330,32 @@
     state.markers = lane;
   }
 
-  // --- marker tooltip: .ss-tooltip.ss-glass.ss-glass--solid, a child of the lane centred on the marker
+  // --- marker tooltip: .sr-tooltip.sr-glass.sr-glass--solid, a child of the lane centred on the marker
   function showTooltip(lane, s, eff, centerPct) {
     hideTooltip(lane);
     const low = isLow(s);
-    const tip = el('div', 'ss-tooltip ss-glass ss-glass--solid');
-    const head = el('div', 'ss-tooltip__head');
-    head.append(el('span', 'ss-tooltip__brand', displayName(s)));
+    const tip = el('div', 'sr-tooltip sr-glass sr-glass--solid');
+    const head = el('div', 'sr-tooltip__head');
+    head.append(el('span', 'sr-tooltip__brand', displayName(s)));
     const chip = [chipLabel(s), low ? 'low' : ''].filter(Boolean).join(' · ');
-    if (chip) head.append(el('span', 'ss-chip', chip));
+    if (chip) head.append(el('span', 'sr-chip', chip));
     const c = Number(s.confidence);
-    if (Number.isFinite(c)) head.append(el('span', 'ss-tooltip__conf', c.toFixed(2)));
+    if (Number.isFinite(c)) head.append(el('span', 'sr-tooltip__conf', c.toFixed(2)));
     const what = eff === 'skip' ? 'will skip' : 'plays';
     const why = eff !== 'skip' && s.category === 'sponsor' && s.style !== 'integration' && low ? ` · below ${SKIP_CONF}` : '';
-    tip.append(head, el('span', 'ss-tooltip__time', `${fmtTime(s.start)} – ${fmtTime(s.end)} · ${what}${why}`));
+    tip.append(head, el('span', 'sr-tooltip__time', `${fmtTime(s.start)} – ${fmtTime(s.end)} · ${what}${why}`));
     const quote = s.evidence ? `“${s.evidence}”` : (s.reason || '');
-    if (quote) tip.append(el('span', 'ss-tooltip__quote', quote.length > 220 ? `${quote.slice(0, 217)}…` : quote));
+    if (quote) tip.append(el('span', 'sr-tooltip__quote', quote.length > 220 ? `${quote.slice(0, 217)}…` : quote));
     // keep the 320px card inside the player: clamp its centre to the lane
     const w = lane.getBoundingClientRect().width || 0;
     const half = Math.min(160, Math.max(0, w / 2 - 8));
     const x = w ? Math.min(w - half, Math.max(half, (centerPct / 100) * w)) : 0;
     tip.style.left = w ? `${x}px` : `${centerPct}%`;
     lane.appendChild(tip);
-    lane.ssTip = tip;
+    lane.srTip = tip;
   }
   function hideTooltip(lane) {
-    if (lane.ssTip) { lane.ssTip.remove(); lane.ssTip = null; }
+    if (lane.srTip) { lane.srTip.remove(); lane.srTip = null; }
   }
 
   // --- stats events (skip / undo / seek_into / allowlisted) -> background -> POST /event. Fire and forget.
@@ -401,8 +401,8 @@
     });
   }
 
-  // --- toast after a skip: .ss-toast.ss-glass (DESIGN.md): head (dot, name, chip, "0:52 skipped"), hairline with the
-  // skipped span, the evidence quote (two lines), Undo + Wrong skip. Enters with ss-enter, leaves with .is-leaving.
+  // --- toast after a skip: .sr-toast.sr-glass (DESIGN.md): head (dot, name, chip, "0:52 skipped"), hairline with the
+  // skipped span, the evidence quote (two lines), Undo + Wrong skip. Enters with sr-enter, leaves with .is-leaving.
   const TOAST_EXIT_MS = 180;
   function showToast(info, onUndo, onWrong) {
     const state = current;
@@ -412,31 +412,31 @@
     const s = info.segment;
     const v = videoEl();
     const dur = v && isFinite(v.duration) && v.duration > 0 ? v.duration : 0;
-    const toast = el('div', 'ss-toast ss-glass ss-ui');
+    const toast = el('div', 'sr-toast sr-glass sr-ui');
     toast.setAttribute('role', 'status');
-    const head = el('div', 'ss-toast__head');
-    head.append(el('span', 'ss-dot ss-dot--lg'), el('span', 'ss-toast__brand', displayName(s)));
-    if (chipLabel(s)) head.append(el('span', 'ss-chip', chipLabel(s)));
-    head.append(el('span', 'ss-toast__meta', `${fmtTime(info.saved)} skipped`));
-    const hair = el('div', 'ss-hairline');
-    const track = el('div', 'ss-hairline__track');
-    const span = el('div', 'ss-hairline__span');
+    const head = el('div', 'sr-toast__head');
+    head.append(el('span', 'sr-dot sr-dot--lg'), el('span', 'sr-toast__brand', displayName(s)));
+    if (chipLabel(s)) head.append(el('span', 'sr-chip', chipLabel(s)));
+    head.append(el('span', 'sr-toast__meta', `${fmtTime(info.saved)} skipped`));
+    const hair = el('div', 'sr-hairline');
+    const track = el('div', 'sr-hairline__track');
+    const span = el('div', 'sr-hairline__span');
     if (dur) {
       span.style.left = `${Math.min(100, (Math.max(0, s.start) / dur) * 100)}%`;
       span.style.width = `${Math.max(0.8, ((Math.min(dur, s.end) - Math.max(0, s.start)) / dur) * 100)}%`;
     } else { span.style.left = '0'; span.style.width = '100%'; }
     track.append(span);
-    const ends = el('div', 'ss-hairline__ends');
+    const ends = el('div', 'sr-hairline__ends');
     ends.append(el('span', '', `${fmtTime(s.start)} → ${fmtTime(s.end)}`), el('span', '', dur ? fmtTime(dur) : ''));
     hair.append(track, ends);
     toast.append(head, hair);
-    if (s.evidence) toast.append(el('div', 'ss-stream ss-stream--2', s.evidence));
-    const actions = el('div', 'ss-toast__actions');
-    const undo = el('button', 'ss-button ss-button--sm', 'Undo');
+    if (s.evidence) toast.append(el('div', 'sr-stream sr-stream--2', s.evidence));
+    const actions = el('div', 'sr-toast__actions');
+    const undo = el('button', 'sr-button sr-button--sm', 'Undo');
     undo.addEventListener('click', (ev) => { ev.stopPropagation(); onUndo(); hideToast(); });
     actions.append(undo);
     if (onWrong) {
-      const wrong = el('button', 'ss-button--text', 'Wrong skip');
+      const wrong = el('button', 'sr-button--text', 'Wrong skip');
       wrong.title = 'Undo and report this as a wrong skip';
       wrong.addEventListener('click', (ev) => { ev.stopPropagation(); onUndo(); onWrong(); hideToast(); });
       actions.append(wrong);

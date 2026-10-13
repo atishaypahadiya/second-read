@@ -29,7 +29,7 @@ check(builds.page === builds.content && builds.content === builds.background, `B
 check(Number(serverBuild) === builds.content, `server CLIENT_BUILD ${serverBuild} != extension BUILD ${builds.content}`);
 
 const pageReply = {
-  source: 'ss-page', type: 'captions', videoId: VIDEO_ID, build: builds.page,
+  source: 'sr-page', type: 'captions', videoId: VIDEO_ID, build: builds.page,
   lang: 'en', kind: 'asr', path: 'B',
   lines: [{ start: 0, end: 4, text: 'hello there', words: [[0, 2, 'hello'], [2, 4, 'there']], timed: true }],
   title: 'Facebook’s Most Dangerous App', creator: 'fern', channelId: 'UCODHrzPMGbNv67e84WDZhQQ',
@@ -45,16 +45,33 @@ const SEG = { start: 100, end: 150, category: 'sponsor', style: 'read', brand: '
 let fetched = null;
 const posts = { '/feedback': [], '/event': [] };
 const bgListeners = [];
+// The service worker's own storage: a brand-new install (new extension ID after the folder was renamed), with one
+// setting already changed locally before the server was reachable. The server holds the previous install's snapshot.
+const bgStore = { settings: { enabled: true, devMode: true, actions: { sponsor_read: 'skip', selfpromo: 'label', outro: 'off' }, allowlist: { UCnew: 'new channel' } },
+                  stats: { today: { date: '2026-10-13', skips: 1, saved: 30 }, all: { skips: 1, saved: 30 } } };
+const PREV_SNAPSHOT = { from: 'aaaaaaaaaaaaaaaa', saved_at: '2026-10-12T20:00:00',
+  settings: { enabled: true, devMode: false, actions: { sponsor_read: 'skip', selfpromo: 'skip', outro: 'label', charity: 'off' }, allowlist: { UCold: 'old channel' } },
+  stats: { today: { date: '2026-10-12', skips: 4, saved: 200 }, all: { skips: 40, saved: 2000 } } };
+const bgStorageListeners = [];
+const bgStorage = {
+  get: async (keys) => Object.fromEntries((Array.isArray(keys) ? keys : [keys]).filter((k) => k in bgStore).map((k) => [k, JSON.parse(JSON.stringify(bgStore[k]))])),
+  set: async (obj) => { const changes = {}; for (const [k, v] of Object.entries(obj)) { changes[k] = { newValue: v }; bgStore[k] = JSON.parse(JSON.stringify(v)); }
+                        for (const fn of bgStorageListeners) fn(changes, 'local'); },
+};
+const clientStateGets = [];
+posts['/client-state'] = [];
 const bgSandbox = {
   console: { log() {}, warn() {}, error() {} },
-  chrome: { runtime: { onMessage: { addListener: (fn) => bgListeners.push(fn) } } },
+  chrome: { runtime: { onMessage: { addListener: (fn) => bgListeners.push(fn) } },
+            storage: { local: bgStorage, onChanged: { addListener: (fn) => bgStorageListeners.push(fn) } } },
   fetch: async (url, init) => {
-    const route = new URL(url).pathname;
+    const u = new URL(url); const route = u.pathname;
     if (route === '/analyze' && init && init.method === 'POST') fetched = { url, init };
     if (posts[route] && init && init.method === 'POST') posts[route].push(JSON.parse(init.body));
+    if (route === '/client-state' && !(init && init.method === 'POST')) { clientStateGets.push(u.searchParams.get('not')); return { ok: true, status: 200, json: async () => PREV_SNAPSHOT }; }
     return { ok: true, status: 200, json: async () => (route === '/analyze' ? { status: 'done', segments: [SEG] } : { ok: true }) };
   },
-  encodeURIComponent, JSON, URL,
+  encodeURIComponent, JSON, URL, crypto: require('crypto').webcrypto, setTimeout, clearTimeout,
 };
 vm.runInNewContext(src.background, bgSandbox, { filename: 'background.js' });
 
@@ -76,7 +93,7 @@ const win = {
   addEventListener: (type, fn) => { if (type === 'message') messageListeners.push(fn); },
   removeEventListener: (type, fn) => { const i = messageListeners.indexOf(fn); if (i >= 0) messageListeners.splice(i, 1); },
   postMessage: (data) => {
-    if (data && data.source === 'ss-content' && data.type === 'getCaptions') {
+    if (data && data.source === 'sr-content' && data.type === 'getCaptions') {
       setImmediate(() => { for (const fn of messageListeners.slice()) fn({ source: win, data: pageReply }); });
     }
   },
@@ -154,19 +171,19 @@ setTimeout(() => {
   check(typeof videoHandlers.timeupdate === 'function', 'content.js did not bind timeupdate on the video');
   if (videoHandlers.timeupdate) videoHandlers.timeupdate();
   check(fakeVideo.currentTime === SEG.end, `skip did not fire: currentTime ${fakeVideo.currentTime}, expected ${SEG.end}`);
-  const toast = player.children.find((c) => hasClass(c, 'ss-toast') && !c.removed);
+  const toast = player.children.find((c) => hasClass(c, 'sr-toast') && !c.removed);
   check(!!toast, 'no toast after the skip');
   // design-system markup (DESIGN.md "Toast"): glass surface, name + chip + "m:ss skipped", hairline, evidence, two actions
   if (toast) {
-    check(hasClass(toast, 'ss-glass') && hasClass(toast, 'ss-ui'), `toast classes: ${toast.className}`);
+    check(hasClass(toast, 'sr-glass') && hasClass(toast, 'sr-ui'), `toast classes: ${toast.className}`);
     const text = (c) => (findDeep(toast, (e) => hasClass(e, c)) || {}).textContent;
-    check(text('ss-toast__brand') === 'Coddy', `toast name = ${text('ss-toast__brand')}, expected the canonical brand`);
-    check(text('ss-chip') === 'sponsor · read', `toast chip = ${text('ss-chip')}`);
-    check(text('ss-toast__meta') === '0:29 skipped', `toast meta = ${text('ss-toast__meta')}`);
-    check(text('ss-stream') === SEG.evidence, 'toast does not show the evidence quote');
-    const span = findDeep(toast, (e) => hasClass(e, 'ss-hairline__span'));
+    check(text('sr-toast__brand') === 'Coddy', `toast name = ${text('sr-toast__brand')}, expected the canonical brand`);
+    check(text('sr-chip') === 'sponsor · read', `toast chip = ${text('sr-chip')}`);
+    check(text('sr-toast__meta') === '0:29 skipped', `toast meta = ${text('sr-toast__meta')}`);
+    check(text('sr-stream') === SEG.evidence, 'toast does not show the evidence quote');
+    const span = findDeep(toast, (e) => hasClass(e, 'sr-hairline__span'));
     check(!!span && /%$/.test(span.style.left || '') && /%$/.test(span.style.width || ''), 'toast hairline span has no position');
-    const undo = findDeep(toast, (e) => e.textContent === 'Undo' && hasClass(e, 'ss-button'));
+    const undo = findDeep(toast, (e) => e.textContent === 'Undo' && hasClass(e, 'sr-button'));
     check(!!undo && typeof undo.handlers.click === 'function', 'toast has no Undo button');
   }
   const wrong = toast && findDeep(toast, (e) => e.textContent === 'Wrong skip');
@@ -199,12 +216,33 @@ setTimeout(() => {
     const sk = posts['/event'].find((e) => e.kind === 'skip');
     check(sk && sk.playhead === PLAYHEAD && Math.abs(sk.saved - (SEG.end - PLAYHEAD)) < 1e-9, `skip event = ${JSON.stringify(sk)}`);
 
+    // ---- settings survive a new extension ID: the worker looked for a previous install's snapshot before uploading,
+    // merged it with what this install already had, and then stored its own snapshot under its own id
+    const id = bgStore.installId;
+    check(/^[a-f0-9]{16}$/.test(id || ''), `installId = ${JSON.stringify(id)}`);
+    check(clientStateGets.length === 1 && clientStateGets[0] === id, `GET /client-state?not= called with ${JSON.stringify(clientStateGets)}`);
+    check(bgStore.restoreChecked === true, 'restoreChecked was not set');
+    const ms = bgStore.settings || {}, mt = bgStore.stats || {};
+    check(ms.allowlist && ms.allowlist.UCold === 'old channel' && ms.allowlist.UCnew === 'new channel', `allowlist not united: ${JSON.stringify(ms.allowlist)}`);
+    check(ms.actions && ms.actions.selfpromo === 'skip', `previous non-default choice lost: selfpromo = ${ms.actions && ms.actions.selfpromo}`);
+    check(ms.actions && ms.actions.outro === 'off', `local non-default choice lost: outro = ${ms.actions && ms.actions.outro}`);
+    check(ms.actions && ms.actions.charity === 'off', `previous-only category lost: charity = ${ms.actions && ms.actions.charity}`);
+    check(ms.devMode === true, 'local devMode lost');
+    check(mt.all && mt.all.skips === 41 && mt.all.saved === 2030, `all-time stats not added up: ${JSON.stringify(mt.all)}`);
+    check(mt.today && mt.today.date === '2026-10-13' && mt.today.skips === 1, `today's stats: ${JSON.stringify(mt.today)}`);
+    const up = posts['/client-state'][posts['/client-state'].length - 1];
+    check(!!up && up.installId === id && up.settings && up.settings.allowlist.UCold === 'old channel' && up.stats.all.skips === 41,
+          `snapshot upload = ${JSON.stringify(up).slice(0, 160)}`);
+    check(posts['/client-state'].every((b) => b.installId !== PREV_SNAPSHOT.from), 'the previous install\'s snapshot id was reused');
+
     if (failures.length) {
       console.log(`wiring: FAIL (${failures.length})`);
       for (const f of failures) console.log(`  - ${f}`);
       process.exit(1);
     }
     console.log(`wiring: PASS  metadata reaches POST /analyze (${Object.keys(body).length} fields, builds ${builds.content}/${serverBuild}); ` +
-                `skip, Wrong skip and Missed-ad reports carry the segment and the real playhead`);
+                `skip, Wrong skip and Missed-ad reports carry the segment and the real playhead; ` +
+                `settings and stats are restored from a previous install and backed up`);
+    process.exit(0);
   }, 50);
 }, 50);

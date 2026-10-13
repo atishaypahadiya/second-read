@@ -1,4 +1,4 @@
-"""Sponsor Skipper — ad intelligence. Local only; never blocks skipping.
+"""Second Read — ad intelligence. Local only; never blocks skipping.
 
 Tier 1 (deterministic, computed at job end, stored in stats.local.db / ad_metrics):
   position, hook distance, chapter placement, heatmap relation, segue type, reading pace, CTA count,

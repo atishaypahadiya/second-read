@@ -1,10 +1,10 @@
-// Sponsor Skipper — page.js (MAIN world, document_start)
+// Second Read — page.js (MAIN world, document_start)
 // Stage 2: read the caption track for the current video from YouTube's own player
 // and hand parsed lines to content.js via postMessage.
 //
-// content.js → window.postMessage({ source: 'ss-content', type: 'getCaptions', videoId })
-// page.js    → window.postMessage({ source: 'ss-page', type: 'captions', videoId, lang, kind, path, lines })
-//           or window.postMessage({ source: 'ss-page', type: 'captions', videoId, error: 'no captions' })
+// content.js → window.postMessage({ source: 'sr-content', type: 'getCaptions', videoId })
+// page.js    → window.postMessage({ source: 'sr-page', type: 'captions', videoId, lang, kind, path, lines })
+//           or window.postMessage({ source: 'sr-page', type: 'captions', videoId, error: 'no captions' })
 //
 // Path A: fetch the track's baseUrl directly. Currently returns an empty body because
 //         YouTube requires a proof-of-origin token that only the player attaches.
@@ -14,13 +14,13 @@
 //         then toggle it back off before any caption renders.
 
 (() => {
-  if (window.__sponsorSkipperPageLoaded) return;
-  window.__sponsorSkipperPageLoaded = true;
+  if (window.__secondReadPageLoaded) return;
+  window.__secondReadPageLoaded = true;
 
   // Bumped together in page.js, content.js, background.js and server.py (CLIENT_BUILD). The server logs all three
   // and warns when they differ, which is how a half-reloaded extension shows up.
-  const BUILD = 14;
-  const TAG = '[SponsorSkipper:page]';
+  const BUILD = 15;
+  const TAG = '[SecondRead:page]';
   const dbg = (...a) => console.log(TAG, ...a);
   const MAX_LINE_SECONDS = 8;
   const PLAYER_WAIT_MS = 15000;
@@ -420,7 +420,7 @@
   async function getCaptions(videoId) {
     const reqId = ++activeRequest;
     const stale = () => reqId !== activeRequest;
-    const reply = (msg) => { if (!stale()) window.postMessage({ source: 'ss-page', type: 'captions', videoId, ...msg }, '*'); };
+    const reply = (msg) => { if (!stale()) window.postMessage({ source: 'sr-page', type: 'captions', videoId, ...msg }, '*'); };
 
     const pr = await waitForPlayerResponse(videoId);
     if (stale()) return;
@@ -541,10 +541,10 @@
   window.addEventListener('message', (ev) => {
     if (ev.source !== window) return;
     const d = ev.data;
-    if (!d || d.source !== 'ss-content' || d.type !== 'getCaptions' || typeof d.videoId !== 'string') return;
+    if (!d || d.source !== 'sr-content' || d.type !== 'getCaptions' || typeof d.videoId !== 'string') return;
     getCaptions(d.videoId).catch((e) => {
       console.warn(TAG, 'getCaptions failed', e);
-      window.postMessage({ source: 'ss-page', type: 'captions', videoId: d.videoId, error: 'caption fetch failed' }, '*');
+      window.postMessage({ source: 'sr-page', type: 'captions', videoId: d.videoId, error: 'caption fetch failed' }, '*');
     });
   });
 })();

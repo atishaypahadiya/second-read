@@ -9,43 +9,43 @@
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <div class="ss-popup ss-sheet ss-ui" id="app">
-    <div class="ss-popup__head">
-      <span class="ss-popup__name">second read</span>
-      <span class="ss-chip ss-chip--status" id="status"><span class="ss-dot ss-dot--faint" id="statusDot"></span><span id="statusText">checking</span></span>
+  <div class="sr-popup sr-sheet sr-ui" id="app">
+    <div class="sr-popup__head">
+      <span class="sr-popup__name">second read</span>
+      <span class="sr-chip sr-chip--status" id="status"><span class="sr-dot sr-dot--faint" id="statusDot"></span><span id="statusText">checking</span></span>
     </div>
 
-    <button class="ss-button ss-toggle" id="enabled" aria-pressed="true" title="Turn skipping on or off">
+    <button class="sr-button sr-toggle" id="enabled" aria-pressed="true" title="Turn skipping on or off">
       <span id="enabledLabel">Skipping on</span>
-      <span class="ss-toggle__track"><span class="ss-toggle__knob"></span></span>
+      <span class="sr-toggle__track"><span class="sr-toggle__knob"></span></span>
     </button>
 
     <!-- main -->
-    <div class="ss-pane" id="pane-main">
-      <div class="ss-card ss-hero" id="hero">
-        <span class="ss-hero__num" id="savedToday">0:00</span>
-        <span class="ss-hero__cap">saved today</span>
-        <div class="ss-chips">
-          <span class="ss-chip ss-chip--mono" id="skipsToday">0 skips</span>
-          <span class="ss-chip ss-chip--mono" id="savedAll">all-time 0:00</span>
-          <span class="ss-chip ss-chip--mono" id="skipsAll">0 skips</span>
+    <div class="sr-pane" id="pane-main">
+      <div class="sr-card sr-hero" id="hero">
+        <span class="sr-hero__num" id="savedToday">0:00</span>
+        <span class="sr-hero__cap">saved today</span>
+        <div class="sr-chips">
+          <span class="sr-chip sr-chip--mono" id="skipsToday">0 skips</span>
+          <span class="sr-chip sr-chip--mono" id="savedAll">all-time 0:00</span>
+          <span class="sr-chip sr-chip--mono" id="skipsAll">0 skips</span>
         </div>
       </div>
 
-      <div class="ss-channel" id="channel">
-        <span class="ss-channel__thumb" id="channelThumb"></span>
-        <div class="ss-channel__text">
-          <span class="ss-channel__name" id="channelName">no video</span>
-          <span class="ss-channel__sub" id="channelSub">open a youtube video</span>
+      <div class="sr-channel" id="channel">
+        <span class="sr-channel__thumb" id="channelThumb"></span>
+        <div class="sr-channel__text">
+          <span class="sr-channel__name" id="channelName">no video</span>
+          <span class="sr-channel__sub" id="channelSub">open a youtube video</span>
         </div>
-        <button class="ss-button--text" id="allowBtn" hidden></button>
+        <button class="sr-button--text" id="allowBtn" hidden></button>
       </div>
 
-      <div class="ss-rows" id="rows">
-        <div class="ss-rows__head">
-          <span class="ss-label">categories</span>
-          <button class="ss-button--text ss-more" id="moreBtn" aria-expanded="false" aria-controls="moreRows">
-            <span id="moreText">more categories</span><span class="ss-chip ss-chip--mono" id="moreCount" hidden></span>
+      <div class="sr-rows" id="rows">
+        <div class="sr-rows__head">
+          <span class="sr-label">categories</span>
+          <button class="sr-button--text sr-more" id="moreBtn" aria-expanded="false" aria-controls="moreRows">
+            <span id="moreText">more categories</span><span class="sr-chip sr-chip--mono" id="moreCount" hidden></span>
           </button>
         </div>
         <div id="mainRows"></div>
@@ -54,27 +54,27 @@
     </div>
 
     <!-- codes & more -->
-    <div class="ss-pane" id="pane-more" hidden>
-      <div class="ss-rows__head"><span class="ss-label">codes</span><button class="ss-button--text ss-more" id="backBtn">← back</button></div>
-      <input class="ss-input" type="search" id="codeSearch" placeholder="Search brand, code, creator" autocomplete="off">
-      <ul class="ss-list ss-scroll" id="codeList"></ul>
-      <div class="ss-hint" id="codeHint">Codes, links and offers from analyzed sponsor reads.</div>
+    <div class="sr-pane" id="pane-more" hidden>
+      <div class="sr-rows__head"><span class="sr-label">codes</span><button class="sr-button--text sr-more" id="backBtn">← back</button></div>
+      <input class="sr-input" type="search" id="codeSearch" placeholder="Search brand, code, creator" autocomplete="off">
+      <ul class="sr-list sr-scroll" id="codeList"></ul>
+      <div class="sr-hint" id="codeHint">Codes, links and offers from analyzed sponsor reads.</div>
 
-      <span class="ss-label">channels you don't skip</span>
-      <ul class="ss-list" id="allowlist"></ul>
-      <div class="ss-hint" id="allowHint">Markers still show on these channels; nothing is skipped.</div>
+      <span class="sr-label">channels you don't skip</span>
+      <ul class="sr-list" id="allowlist"></ul>
+      <div class="sr-hint" id="allowHint">Markers still show on these channels; nothing is skipped.</div>
 
-      <div class="ss-rows__head">
-        <label class="ss-check" title="Show the status badge on the player and write logs to the console"><input type="checkbox" id="devMode"> dev mode <span class="ss-hint">badge + logs</span></label>
-        <span class="ss-hint" id="version"></span>
+      <div class="sr-rows__head">
+        <label class="sr-check" title="Show the status badge on the player and write logs to the console"><input type="checkbox" id="devMode"> dev mode <span class="sr-hint">badge + logs</span></label>
+        <span class="sr-hint" id="version"></span>
       </div>
     </div>
 
-    <div class="ss-popup__spacer"></div>
-    <div class="ss-popup__foot">
-      <button class="ss-button--text" id="missedBtn" title="Report that an ad is playing right now and was not marked" disabled>Missed an ad here</button>
-      <button class="ss-button--text" id="moreNav">Codes &amp; more</button>
-      <a class="ss-button--text" href="http://127.0.0.1:8765/dashboard" target="_blank" rel="noopener">Dashboard ↗</a>
+    <div class="sr-popup__spacer"></div>
+    <div class="sr-popup__foot">
+      <button class="sr-button--text" id="missedBtn" title="Report that an ad is playing right now and was not marked" disabled>Missed an ad here</button>
+      <button class="sr-button--text" id="moreNav">Codes &amp; more</button>
+      <a class="sr-button--text" href="http://127.0.0.1:8765/dashboard" target="_blank" rel="noopener">Dashboard ↗</a>
     </div>
   </div>
   <script src="popup.js"></script>

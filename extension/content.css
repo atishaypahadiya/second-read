@@ -1,21 +1,21 @@
-/* Second Read (Sponsor Skipper) — placement inside YouTube's player.
+/* Second Read — placement inside YouTube's player.
    Every look (colour, type, radius, motion) comes from ui/tokens.css + ui/components.css; see DESIGN.md.
    This file only says where things sit in YouTube's DOM and how they follow its chrome. */
 
 /* status badge (dev mode): bottom right, above the control bar; follows the controls' autohide */
 /* z-index below YouTube's control bar (59) so a marker tooltip near the right edge is never covered by it */
-#movie_player .ss-badge { position: absolute; right: 24px; bottom: 72px; z-index: 40; }
-#movie_player.ytp-big-mode .ss-badge { bottom: 96px; }
-#movie_player.ytp-autohide .ss-badge { opacity: 0; }
+#movie_player .sr-badge { position: absolute; right: 24px; bottom: 72px; z-index: 40; }
+#movie_player.ytp-big-mode .sr-badge { bottom: 96px; }
+#movie_player.ytp-autohide .sr-badge { opacity: 0; }
 
 /* toast: bottom left, above the control bar; never wider than a small player */
-#movie_player .ss-toast { z-index: 100; max-width: calc(100% - 48px); }
-#movie_player.ytp-big-mode .ss-toast { bottom: 124px; }
+#movie_player .sr-toast { z-index: 100; max-width: calc(100% - 48px); }
+#movie_player.ytp-big-mode .sr-toast { bottom: 124px; }
 
 /* marker lane: its own strip above the progress bar (components.css positions it relative to the container) */
-#movie_player .ss-lane { z-index: 35; }
-#movie_player.ad-showing .ss-lane { display: none; }   /* the bar shows the ad's own timeline then */
+#movie_player .sr-lane { z-index: 35; }
+#movie_player.ad-showing .sr-lane { display: none; }   /* the bar shows the ad's own timeline then */
 /* a 4px marker is a small target: extend the hit area without changing how it looks */
-#movie_player .ss-marker::before { content: ""; position: absolute; left: 0; right: 0; top: -8px; bottom: -6px; }
+#movie_player .sr-marker::before { content: ""; position: absolute; left: 0; right: 0; top: -8px; bottom: -6px; }
 /* the tooltip is a child of the lane (not of the marker, which scales on hover) */
-#movie_player .ss-lane .ss-tooltip { max-width: calc(100% - 16px); }
+#movie_player .sr-lane .sr-tooltip { max-width: calc(100% - 16px); }

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Sponsor Skipper server — localhost:8765, stdlib only.
+"""Second Read server — localhost:8765, stdlib only.
 
 Stage 4: classification with a local Qwen model via Ollama (/api/chat, JSON schema output,
 temperature 0), in two passes:
@@ -16,6 +16,8 @@ API
   GET  /feedback                                                  -> {count, recent}
   POST /event          {videoId, kind: skip|undo|seek_into|allowlisted, segment, playhead, saved} -> {ok}
   GET  /stats.json, GET /dashboard                                local stats (server/stats.py)
+  POST /client-state   {installId, settings, stats}               snapshot of the extension's storage, per install
+  GET  /client-state?not=<installId>                              latest snapshot of another install (restore)
   GET  /ui/tokens.css | components.css | fonts.css | fonts/*.woff2  the design system, for the dashboard
   GET  /ads.json                                                  ad intelligence per segment + insights (server/intel.py)
   GET  /codes.json?q=                                             promo code / link / offer vault
@@ -47,18 +49,23 @@ import stats  # server/stats.py: SQLite store, brand normalization, metrics, das
 # transcript cannot overwrite the result for the real one, and (b) placed in the model prompt, where
 # the output is constrained by a JSON schema, line indices are validated against the window, and a
 # skip needs a verbatim quote from the transcript itself. Prompt text can at most mislabel its own video.
-HOST, PORT = "127.0.0.1", int(os.environ.get("SS_PORT", "8765"))  # SS_PORT: run a second instance for testing
-CLIENT_BUILD = 14  # extension build this server expects (page.js / content.js / background.js BUILD)
+def env(name, default=""):
+    """SR_<NAME>, falling back to the pre-rename SS_<NAME> so old launch commands keep working."""
+    return os.environ.get(f"SR_{name}") or os.environ.get(f"SS_{name}") or default
+
+
+HOST, PORT = "127.0.0.1", int(env("PORT", "8765"))  # SR_PORT: run a second instance for testing
+CLIENT_BUILD = 15  # extension build this server expects (page.js / content.js / background.js BUILD)
 ALLOWED_HOSTS = {f"127.0.0.1:{PORT}", f"localhost:{PORT}", "127.0.0.1", "localhost"}
 # Optional: restrict to one extension. Unpacked extension IDs differ per machine, so this is opt-in:
-#   SS_EXTENSION_ID=abcdefghijklmnopabcdefghijklmnop python3 server/server.py
-EXTENSION_ID = os.environ.get("SS_EXTENSION_ID", "").strip()
+#   SR_EXTENSION_ID=abcdefghijklmnopabcdefghijklmnop python3 server/server.py
+EXTENSION_ID = env("EXTENSION_ID").strip()
 OLLAMA = "http://localhost:11434"
 MODEL = "qwen3:14b"                                   # refine + word pass (and detect, by default)
-# Optional smaller model for pass-1 detection, e.g. SS_DETECT_MODEL=qwen3:8b. Both models then stay loaded
+# Optional smaller model for pass-1 detection, e.g. SR_DETECT_MODEL=qwen3:8b. Both models then stay loaded
 # (keep_alive -1): 14b + 8b = ~18 GB of GPU memory, which thrashed and timed out on a 24 GB Mac. Only use it
 # with >= 32 GB. Default: one model for everything.
-DETECT_MODEL_PREF = os.environ.get("SS_DETECT_MODEL", "").strip() or MODEL
+DETECT_MODEL_PREF = env("DETECT_MODEL").strip() or MODEL
 DETECT_MODEL = MODEL                                  # resolved at startup
 KEEP_ALIVE = -1                                       # keep the model loaded between calls
 # Staged cache versions. Each model call's raw output is cached per video and keyed by its inputs, so a
@@ -98,8 +105,8 @@ MAX_HINT_REGION_S = 240.0   # a hint region longer than this is split (keeps ref
 MAX_CHAPTER_AD_S = 240.0    # a "sponsor" chapter longer than this is not trusted as the ad's bounds
 CHAPTER_AD_RE = re.compile(r"\b(sponsor|sponsored|sponsorship|advert|advertisement|\(ad\)|\bad\b|ad break|paid promotion|"
                            r"promo|partner|partnership|brought to you|werbung|publicité|anuncio|patrocin|広告|スポンサー|विज्ञापन|प्रायोजक)", re.I)
-# SS_DATA_DIR redirects every local file (result cache, stats DB, results log, feedback) for an isolated test instance.
-CACHE_DIR = os.environ.get("SS_DATA_DIR") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "cache")
+# SR_DATA_DIR redirects every local file (result cache, stats DB, results log, feedback) for an isolated test instance.
+CACHE_DIR = env("DATA_DIR") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "cache")
 RESULTS_MD = os.path.join(CACHE_DIR, "results.local.md")  # gitignored: it records which videos were watched
 FEEDBACK_JSONL = os.path.join(CACHE_DIR, "feedback.local.jsonl")  # gitignored: wrong-skip / missed-ad reports
 VIDEO_ID_RE = re.compile(r"^[A-Za-z0-9_-]{11}$")
@@ -1363,7 +1370,7 @@ def append_result(job, segments, job_time, calls, ttfs):
         new_file = not os.path.exists(RESULTS_MD)
         with open(RESULTS_MD, "a", encoding="utf-8") as f:
             if new_file:
-                f.write("# Sponsor Skipper — local results log (gitignored; one row per finished job)\n\n"
+                f.write("# Second Read — local results log (gitignored; one row per finished job)\n\n"
                         "| video | creator | lang | kind | expected | actual | verdict | notes | job time | calls | first skip | when |\n"
                         "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n")
             f.write(row)
@@ -1505,6 +1512,64 @@ def feedback_report():
             brands[b] = brands.get(b, 0) + 1
     if brands:
         print("wrong skips by brand: " + ", ".join(f"{b}={n}" for b, n in sorted(brands.items(), key=lambda x: -x[1])))
+
+
+# ---------------------------------------------------------------------------
+# Extension settings backup: one snapshot per extension install, so a new install (the unpacked extension's ID
+# changes when its folder is renamed or moved) can adopt the previous one's settings, don't-skip list and stats.
+# ---------------------------------------------------------------------------
+CLIENT_STATE = os.path.join(CACHE_DIR, "client-state.local.json")
+INSTALL_ID_RE = re.compile(r"^[a-f0-9]{8,40}$")
+MAX_INSTALLS = 10
+MAX_CLIENT_STATE_BYTES = 200_000
+client_state_lock = threading.Lock()
+
+
+def load_client_state():
+    try:
+        with open(CLIENT_STATE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) and isinstance(data.get("installs"), dict) else {"installs": {}}
+    except (OSError, ValueError):
+        return {"installs": {}}
+
+
+def save_client_snapshot(install_id, settings, stats_):
+    """Store this install's snapshot. Never touches another install's snapshot. Returns an error string or None."""
+    if not INSTALL_ID_RE.match(install_id or ""):
+        return "bad install id"
+    if settings is not None and not isinstance(settings, dict) or stats_ is not None and not isinstance(stats_, dict):
+        return "bad state"
+    if settings is None and stats_ is None:
+        return "empty state"
+    snap = {"settings": settings, "stats": stats_, "saved_at": time.strftime("%Y-%m-%dT%H:%M:%S"), "ts": time.time()}
+    if len(json.dumps(snap)) > MAX_CLIENT_STATE_BYTES:
+        return "state too large"
+    with client_state_lock:
+        state = load_client_state()
+        new = install_id not in state["installs"]
+        state["installs"][install_id] = snap
+        for old_id in sorted(state["installs"], key=lambda k: state["installs"][k].get("ts", 0))[:-MAX_INSTALLS]:
+            del state["installs"][old_id]
+        os.makedirs(os.path.dirname(CLIENT_STATE), exist_ok=True)
+        tmp = CLIENT_STATE + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(state, f, ensure_ascii=False, indent=1)
+        os.replace(tmp, CLIENT_STATE)
+    if new:
+        log(f"client-state: first snapshot from extension install {install_id}")
+    return None
+
+
+def latest_other_snapshot(not_id):
+    """The most recent snapshot that belongs to a different install than not_id, or None."""
+    with client_state_lock:
+        installs = load_client_state()["installs"]
+    others = [(v.get("ts", 0), k, v) for k, v in installs.items() if k != not_id and isinstance(v, dict)]
+    if not others:
+        return None
+    _ts, key, snap = max(others)
+    return {"from": key, "settings": snap.get("settings"), "stats": snap.get("stats"), "saved_at": snap.get("saved_at")}
 
 
 def public_job(job):
@@ -2160,7 +2225,7 @@ def start_or_get_job(video_id, lang, lines, title="", meta=None, alines=None, al
 # HTTP
 # ---------------------------------------------------------------------------
 class Handler(BaseHTTPRequestHandler):
-    server_version = "SponsorSkipper/0.3"
+    server_version = "SecondRead/0.5"
 
     def log_message(self, fmt, *args):  # quiet default access log
         pass
@@ -2195,7 +2260,7 @@ class Handler(BaseHTTPRequestHandler):
         """Only the extension (host_permissions, no CORS needed) or non-browser clients like curl.
         - Host must be localhost/127.0.0.1: defeats DNS rebinding (evil.example -> 127.0.0.1).
         - Web pages send an http(s) Origin; refuse them so sites can't read or poison the cache.
-        - With SS_EXTENSION_ID set, only that extension's origin is accepted."""
+        - With SR_EXTENSION_ID set, only that extension's origin is accepted."""
         host = (self.headers.get("Host") or "").strip().lower()
         if host not in ALLOWED_HOSTS:
             self.send_json(403, {"error": "forbidden host"})
@@ -2214,6 +2279,14 @@ class Handler(BaseHTTPRequestHandler):
         if not self.allowed_origin():
             return
         u = urlparse(self.path)
+        if u.path == "/client-state":
+            not_id = (parse_qs(u.query).get("not") or [""])[0]
+            if not INSTALL_ID_RE.match(not_id):
+                return self.send_json(400, {"error": "bad install id"})
+            snap = latest_other_snapshot(not_id)
+            if snap:
+                log(f"client-state: install {not_id} is adopting the snapshot of {snap['from']} (saved {snap['saved_at']})")
+            return self.send_json(200, snap or {"none": True})
         if u.path == "/feedback":
             fb = load_feedback()
             return self.send_json(200, {"count": len(fb), "recent": fb[-20:]})
@@ -2270,7 +2343,7 @@ class Handler(BaseHTTPRequestHandler):
         if not self.allowed_origin():
             return
         u = urlparse(self.path)
-        if u.path not in ("/analyze", "/feedback", "/event"):
+        if u.path not in ("/analyze", "/feedback", "/event", "/client-state"):
             return self.send_json(404, {"error": "not found"})
         try:
             n = int(self.headers.get("Content-Length") or 0)
@@ -2279,6 +2352,11 @@ class Handler(BaseHTTPRequestHandler):
             data = scrub(json.loads(self.rfile.read(n) or b"{}"))
         except (ValueError, TypeError):
             return self.send_json(400, {"error": "bad json"})
+        if u.path == "/client-state":
+            if not isinstance(data, dict):
+                return self.send_json(400, {"error": "bad json"})
+            err = save_client_snapshot(str(data.get("installId") or ""), data.get("settings"), data.get("stats"))
+            return self.send_json(400 if err else 200, {"error": err} if err else {"ok": True})
         if u.path == "/event":
             if not isinstance(data, dict) or not VIDEO_ID_RE.match(str(data.get("videoId") or "")):
                 return self.send_json(400, {"error": "bad event"})
@@ -2379,7 +2457,7 @@ def main():
             gb = 0
         log(f"WARNING: two models ({DETECT_MODEL} + {MODEL}) will stay loaded; needs >= 32 GB"
             f"{f', this machine has {gb:.0f} GB' if gb else ''}")
-    log(f"Sponsor Skipper server on http://{HOST}:{PORT}  cache={CACHE_DIR}")
+    log(f"Second Read server on http://{HOST}:{PORT}  cache={CACHE_DIR}")
     log(f"models: detect={DETECT_MODEL} refine/words={MODEL} via Ollama "
         f"({'reachable' if ollama_available() else 'NOT available'}); versions {versions()}")
     threading.Thread(target=warm_models, daemon=True).start()
