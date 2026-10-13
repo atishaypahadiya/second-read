@@ -119,6 +119,36 @@ DOMAIN_ENDINGS = {"com", "net", "org", "io", "co", "uk", "us", "de", "deals", "g
 DOMAIN_AFFIXES = {"web", "app", "get", "try", "go", "join", "use", "shop", "store", "hq", "official", "online"}
 
 
+# Words that are never a brand on their own. They reach us as capitalized words on a sponsor line ("Coddy Pro Plan")
+# or as the model echoing such a hint; "Epidemic Sound" is fine, "Sound" alone is not.
+GENERIC_WORDS = {
+    "tech", "pro", "plan", "plans", "sound", "premium", "plus", "basic", "standard", "free", "trial", "app", "apps",
+    "web", "website", "site", "online", "shop", "store", "official", "video", "videos", "channel", "music", "news",
+    "game", "games", "deal", "deals", "offer", "offers", "sale", "code", "codes", "link", "links", "sponsor",
+    "sponsors", "sponsored", "course", "courses", "team", "company", "product", "products", "service", "services",
+    "software", "the", "and", "for", "with", "from", "this", "that", "your", "our", "get", "try", "use", "new",
+    "best", "now", "today", "here", "more"}
+ALIAS_MIN_CHARS = 4  # a shorter spelling ("Udo") is resolved from each video's own hints, never remembered
+
+
+def is_generic(name):
+    words = _norm(name).split()
+    return all(w in GENERIC_WORDS or w.isdigit() for w in words)
+
+
+def learn_alias(conn, key, brand, how, hints, evidence):
+    """Remember spelling -> brand for every later video. Only for a real name the video itself backs up: neither
+    side generic, at least ALIAS_MIN_CHARS characters, and the brand is written on a sponsor line of the description
+    or said in the ad's evidence quote. Every alias learned is logged."""
+    target = _norm(brand)
+    backed = target in {_norm(b) for b in hint_brands(hints)} or f" {target} " in f" {_norm(evidence)} "
+    if is_generic(key) or is_generic(brand) or len(key.replace(" ", "")) < ALIAS_MIN_CHARS or key == target or not backed:
+        return False
+    if conn.execute("INSERT OR IGNORE INTO brand_aliases(alias, brand, how) VALUES (?, ?, ?)", (key, brand, how)).rowcount:
+        _log(f"stats: alias learned: {key!r} -> {brand!r} ({how})")
+    return True
+
+
 def _uniq(names):
     seen, out = set(), []
     for x in names:
@@ -144,8 +174,8 @@ def domain_name(domain):
 
 
 def hint_brands(hints):
-    """Names the creator wrote on a sponsor line of the description."""
-    return _uniq((hints or {}).get("brands", []))
+    """Names the creator wrote on a sponsor line of the description (generic words are not names)."""
+    return _uniq(b for b in (hints or {}).get("brands", []) if not is_generic(b))
 
 
 def hint_link_names(hints):
@@ -174,10 +204,10 @@ def canonical_brand(conn, raw, hints=None, evidence="", category="sponsor", sour
     key = _norm(raw)
     if source == "rule" or category in RULE_CATEGORIES:
         return "", "rule segment"
-    if not key:
+    if is_generic(raw):  # no name, or a word that is not one ("Tech"): nothing was spoken that names the brand
         cands = (hint_brands(hints) or hint_link_names(hints)) if category == "sponsor" else []
         if len(cands) != 1:
-            return "", "none"
+            return _display(raw[:80]), ("raw (generic word)" if key else "none")
         row = conn.execute("SELECT brand FROM brand_aliases WHERE alias = ?", (_norm(cands[0]),)).fetchone()
         return (row["brand"] if row else cands[0]), "hint-only"
     row = conn.execute("SELECT brand FROM brand_aliases WHERE alias = ?", (key,)).fetchone()
@@ -195,8 +225,7 @@ def canonical_brand(conn, raw, hints=None, evidence="", category="sponsor", sour
         # Hints come from the page (the creator's description), so only confident matches become global aliases;
         # weaker ones resolve for this video only and are re-derived from its own hints next time.
         if best_r >= 0.8:
-            conn.execute("INSERT OR IGNORE INTO brand_aliases(alias, brand, how) VALUES (?, ?, ?)",
-                         (key, best, f"hint fuzzy {best_r:.2f}"))
+            learn_alias(conn, key, best, f"hint fuzzy {best_r:.2f}", hints, evidence)
         return best, f"hint fuzzy {best_r:.2f}"
     if len(cands) == 1 and category == "sponsor":
         return cands[0], "single hint (this video only)"
@@ -207,7 +236,7 @@ def canonical_brand(conn, raw, hints=None, evidence="", category="sponsor", sour
         if r > best_r:
             best, best_r = b, r
     if best and best_r >= 0.8:
-        conn.execute("INSERT OR IGNORE INTO brand_aliases(alias, brand, how) VALUES (?, ?, ?)", (key, best, f"db fuzzy {best_r:.2f}"))
+        learn_alias(conn, key, best, f"db fuzzy {best_r:.2f}", hints, evidence)
         return best, f"db fuzzy {best_r:.2f}"
     return _display(raw[:80]), "raw"
 

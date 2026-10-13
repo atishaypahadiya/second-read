@@ -196,6 +196,23 @@ def unit_checks():
     eq("brands: spoken name kept over the domain label", canon("Headspace", link_only), "Headspace")
     eq("brands: no spoken name -> the name from the link", canon("", link_only), "Headspace")
     eq("brands: a written hint brand still corrects a misheard one", canon("Udo", {"brands": ["Odoo"], "domains": ["odoo.com/r"]}), "Odoo")
+    # brands: generic words are never a brand or an alias; an alias is learned only for a name the video backs up
+    learned = []
+    stats.set_logger(learned.append)
+
+    def alias(key):
+        with stats.connect() as c:
+            row = c.execute("SELECT brand FROM brand_aliases WHERE alias = ?", (key,)).fetchone()
+            return row["brand"] if row else None
+    junk = {"brands": ["Coddy", "Tech", "Pro", "Plan", "Sound"], "domains": ["fern.deals/coddy", "fern.deals/ES"]}
+    eq("brands: a generic word is not a brand", (canon("Tech", junk, "code fern20 for 20% off"), alias("tech")), ("Coddy", None))
+    eq("aliases: learned when the written brand backs it up, and logged",
+       (canon("Cody", {"brands": ["Coddy"]}), alias("cody"), [m for m in learned if "'cody' -> 'Coddy'" in m] != []), ("Coddy", "Coddy", True))
+    eq("aliases: under 4 characters is resolved per video, never learned", (canon("Udo", {"brands": ["Odoo"]}), alias("udo")), ("Odoo", None))
+    eq("aliases: a look-alike in the DB is not learned unless the ad's evidence names the brand",
+       (canon("Thricebrnd", {}, "use my link"), alias("thricebrnd"),
+        canon("Thricebrnd", {}, "thanks to Thricebrand for sponsoring"), alias("thricebrnd")), ("Thricebrand", None, "Thricebrand", "Thricebrand"))
+    stats.set_logger(server.log)
     # existing rows written under the old rules are re-derived once (and the alias that came from a domain label goes)
     with stats.connect() as c:
         c.execute("INSERT INTO videos(video_id, hints) VALUES ('renormvideo', ?)", (json.dumps(link_only),))
