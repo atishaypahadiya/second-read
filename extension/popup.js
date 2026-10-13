@@ -63,7 +63,8 @@ function render() {
 function renderChannels() {
   const ch = tabState && tabState.channelId ? tabState : null;
   const listed = ch && settings.allowlist[ch.channelId];
-  $('channelName').textContent = ch ? (ch.channelName || ch.channelId) : 'open a YouTube video';
+  $('channelName').textContent = ch ? (ch.channelName || ch.channelId) : 'Open a YouTube video to manage its channel.';
+  $('channelName').classList.toggle('placeholder', !ch);
   $('allowBtn').disabled = !ch;
   $('allowBtn').textContent = listed ? 'Skip on this channel again' : "Don't skip on this channel";
   $('allowBtn').classList.toggle('danger', !!listed);
