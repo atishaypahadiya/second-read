@@ -1,6 +1,6 @@
 /* Second Read — the same faces for the content script. CSS injected into a page resolves relative URLs against
    the page (youtube.com), so these are absolute; Chrome substitutes __MSG_@@extension_id__. The files must be
-   listed under web_accessible_resources. If a face fails to load, the system stack in --ss-font-ui / --ss-font-mono
+   listed under web_accessible_resources. If a face fails to load, the system stack in --sr-font-ui / --sr-font-mono
    takes over. */
 @font-face {
   font-family: "Geist";

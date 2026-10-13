@@ -1,4 +1,4 @@
-"""Sponsor Skipper — local stats: SQLite store, brand normalization, metrics, dashboard page.
+"""Second Read — local stats: SQLite store, brand normalization, metrics, dashboard page.
 
 Stdlib only. Imported by server.py. Everything here is local and gitignored (server/cache/stats.local.db).
 The schema is user-agnostic (no user identity) so rows could later be aggregated across many users.
@@ -13,11 +13,13 @@ import sqlite3
 import threading
 import time
 
-DB_PATH = os.path.join(os.environ.get("SS_DATA_DIR") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "cache"),
+DB_PATH = os.path.join(os.environ.get("SR_DATA_DIR") or os.environ.get("SS_DATA_DIR")
+                       or os.path.join(os.path.dirname(os.path.abspath(__file__)), "cache"),
                        "stats.local.db")
 _lock = threading.Lock()
 
 EVENT_KINDS = ("skip", "undo", "seek_into", "false_skip", "missed_ad", "allowlisted")
+HALL_MIN_SPOTS = 3  # spots a brand needs before it can enter the Hall of Shame or the Hall of Fame
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS videos (
@@ -530,12 +532,15 @@ def compute():
                              "skips": c["skips"], "skipped_s": max(0.0, round(c["skipped_s"], 1)), "undos": c["undos"], "seek_into": c["seek_into"]}
                             for c in cats.values()], key=lambda r: -r["spots"])
 
-    shame = sorted([r for r in brand_rows if r["skips"] >= 1],
+    # A brand is ranked only once it has HALL_MIN_SPOTS spots: one skipped ad is an anecdote, not a pattern.
+    ranked = [r for r in brand_rows if r["spots"] >= HALL_MIN_SPOTS]
+    shame = sorted([r for r in ranked if r["skips"] >= 1],
                    key=lambda r: -(r["skip_rate"] * r["avg_len_s"]))[:5]
-    fame = sorted([r for r in brand_rows if r["integration_pct"] >= 50 or (r["spots"] >= 2 and r["skips"] == 0) or r["watch_through_pct"] >= 50],
+    fame = sorted([r for r in ranked if r["integration_pct"] >= 50 or r["skips"] == 0 or r["watch_through_pct"] >= 50],
                   key=lambda r: (-r["integration_pct"], -r["watch_through_pct"], r["skips"]))[:5]
     return {"generated_at": now(), "overall": overall, "brands": brand_rows, "creators": creator_rows,
-            "categories": category_rows, "hall_of_shame": shame, "hall_of_fame": fame, "aliases": aliases}
+            "categories": category_rows, "hall_of_shame": shame, "hall_of_fame": fame, "hall_min_spots": HALL_MIN_SPOTS,
+            "aliases": aliases}
 
 
 # ---------------------------------------------------------------------------
@@ -546,18 +551,18 @@ DASHBOARD_HTML = r"""<!doctype html>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="stylesheet" href="/ui/tokens.css"><link rel="stylesheet" href="/ui/fonts.css"><link rel="stylesheet" href="/ui/components.css">
 <style>html,body{margin:0}body{min-height:100vh;border-radius:0}</style>
-</head><body class="ss-ui ss-sheet">
-<div class="ss-dash">
-  <div class="ss-dash__head">
-    <div class="ss-dash__nav">
-      <h1 class="ss-dash__title" id="title">second read · stats</h1>
-      <div class="ss-seg" role="navigation" aria-label="Sections">
-        <a class="ss-seg__btn" href="#stats" data-tab="stats">stats</a><a class="ss-seg__btn" href="#ads" data-tab="ads">ad cards</a><a class="ss-seg__btn" href="#insights" data-tab="insights">insights</a>
+</head><body class="sr-ui sr-sheet">
+<div class="sr-dash">
+  <div class="sr-dash__head">
+    <div class="sr-dash__nav">
+      <h1 class="sr-dash__title" id="title">second read · stats</h1>
+      <div class="sr-seg" role="navigation" aria-label="Sections">
+        <a class="sr-seg__btn" href="#stats" data-tab="stats">stats</a><a class="sr-seg__btn" href="#ads" data-tab="ads">ad cards</a><a class="sr-seg__btn" href="#insights" data-tab="insights">insights</a>
       </div>
     </div>
-    <span class="ss-dash__sub" id="sub">loading</span>
+    <span class="sr-dash__sub" id="sub">loading</span>
   </div>
-  <div id="root" style="display:flex;flex-direction:column;gap:var(--ss-s7)"></div>
+  <div id="root" style="display:flex;flex-direction:column;gap:var(--sr-s7)"></div>
 </div>
 <script>
 // Markup follows DESIGN.md ("Dashboard"): deep tiles for numbers, the histogram as hairline-weight bars with the peak
@@ -568,51 +573,51 @@ const $=(s)=>document.querySelector(s);
 const esc=(s)=>String(s??'').replace(/[&<>"]/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const clock=(s)=>{s=Math.round(s||0);const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return h?`${h}:${String(m).padStart(2,'0')}:${String(x).padStart(2,'0')}`:`${m}:${String(x).padStart(2,'0')}`};
 const plural=(n,w)=>`${n} ${w}${n==1?'':'s'}`;
-const tile=(n,c)=>`<div class="ss-card ss-tile"><span class="ss-stat__num">${n}</span><span class="ss-stat__cap">${c}</span></div>`;
+const tile=(n,c)=>`<div class="sr-card sr-tile"><span class="sr-stat__num">${n}</span><span class="sr-stat__cap">${c}</span></div>`;
 const section=(title,body)=>`<div><h2>${title}</h2>${body}</div>`;
-const empty=(text)=>`<div class="ss-card ss-card--light ss-empty">${text}</div>`;
-const flag=(text,title)=>`<span class="ss-chip ss-chip--flag"${title?` title="${esc(title)}"`:''}><span class="ss-dot"></span>${text}</span>`;
-const chips=(list)=>list.length?`<div class="ss-chips">${list.map(x=>`<span class="ss-chip">${esc(x)}</span>`).join('')}</div>`:'';
-function tiles(o){return `<div class="ss-tiles">`+
+const empty=(text)=>`<div class="sr-card sr-card--light sr-empty">${text}</div>`;
+const flag=(text,title)=>`<span class="sr-chip sr-chip--flag"${title?` title="${esc(title)}"`:''}><span class="sr-dot"></span>${text}</span>`;
+const chips=(list)=>list.length?`<div class="sr-chips">${list.map(x=>`<span class="sr-chip">${esc(x)}</span>`).join('')}</div>`:'';
+function tiles(o){return `<div class="sr-tiles">`+
   tile(clock(o.saved_s),'time saved')+tile(o.skips,`skips · ${o.undos} undone`)+tile(o.videos,'videos analyzed')+
   tile(o.videos_with_sponsor_pct+'%','videos with a sponsor')+tile(o.ads_per_video,'ads per video')+tile(clock(o.avg_ad_s),'avg ad length')+
   tile(o.brands,`brands · ${plural(o.creators,'creator')}`)+tile(o.wrong_skips,`wrong-skip flags · ${o.missed_ads} missed-ad flags`)+`</div>`}
 function hist(h,unplaced){const total=h.reduce((a,b)=>a+b,0),m=Math.max(1,...h),peak=h.indexOf(Math.max(...h));
-  const note=unplaced?`<div class="ss-note">${plural(unplaced,'ad')} not placed: video length unknown. Open the video once more to fix.</div>`:'';
+  const note=unplaced?`<div class="sr-note">${plural(unplaced,'ad')} not placed: video length unknown. Open the video once more to fix.</div>`:'';
   if(!total)return empty('No ads with a known position yet. Watch a sponsored video with the extension on.')+note;
-  return `<div class="ss-card" style="padding:var(--ss-s7) var(--ss-s6) var(--ss-s5)"><div class="ss-bars">${h.map((n,i)=>`<div class="ss-bar${n&&i===peak?' is-peak':''}" style="height:${n?Math.max(4,Math.round(100*n/m)):0}%" title="${plural(n,'ad')} start in ${i*10}–${i*10+10}% of the video">${n?`<span>${n}</span>`:''}</div>`).join('')}</div><div class="ss-axis"><span>start of video</span><span>${plural(total,'ad')}</span><span>end of video</span></div></div>${note}`}
-function hall(title,rows,name,why){return `<div class="ss-card ss-hall"><div class="ss-title">${title}</div>${rows.length?`<ol>${rows.map((r,i)=>`<li><span class="ss-rank">${i+1}</span><span>${esc(name(r))}</span><span class="ss-why">${why(r)}</span></li>`).join('')}</ol>`:'<div class="ss-hall__empty">Nothing yet.</div>'}</div>`}
-function table(head,rows){return `<div class="ss-card ss-card--light" style="padding:var(--ss-s4) var(--ss-s2);overflow-x:auto"><table class="ss-table"><thead><tr>${head.map(([t,num])=>`<th${num?' class="ss-num"':''}>${t}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`}
-const num=(v)=>`<td class="ss-num">${v}</td>`;
+  return `<div class="sr-card" style="padding:var(--sr-s7) var(--sr-s6) var(--sr-s5)"><div class="sr-bars">${h.map((n,i)=>`<div class="sr-bar${n&&i===peak?' is-peak':''}" style="height:${n?Math.max(4,Math.round(100*n/m)):0}%" title="${plural(n,'ad')} start in ${i*10}–${i*10+10}% of the video">${n?`<span>${n}</span>`:''}</div>`).join('')}</div><div class="sr-axis"><span>start of video</span><span>${plural(total,'ad')}</span><span>end of video</span></div></div>${note}`}
+function hall(title,rows,name,why,min){return `<div class="sr-card sr-hall"><div class="sr-title">${title}</div>${rows.length?`<ol>${rows.map((r,i)=>`<li><span class="sr-rank">${i+1}</span><span>${esc(name(r))}</span><span class="sr-why">${why(r)}</span></li>`).join('')}</ol>`:`<div class="sr-hall__empty">Nothing yet.${min?` A brand is ranked after ${min} spots.`:''}</div>`}</div>`}
+function table(head,rows){return `<div class="sr-card sr-card--light" style="padding:var(--sr-s4) var(--sr-s2);overflow-x:auto"><table class="sr-table"><thead><tr>${head.map(([t,num])=>`<th${num?' class="sr-num"':''}>${t}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`}
+const num=(v)=>`<td class="sr-num">${v}</td>`;
 function categoriesTable(rows){if(!rows||!rows.length)return empty('No segments yet.');
   return table([['category'],['segments',1],['videos',1],['avg len',1],['total',1],['skips',1],['skipped',1],['undo / seek-in',1]],
     rows.map(r=>`<tr><td>${esc(r.category.replace('/',' · '))}</td>${num(r.spots)}${num(r.videos)}${num(clock(r.avg_len_s))}${num(clock(r.total_s))}${num(r.skips)}${num(clock(r.skipped_s))}${num(r.undos+' / '+r.seek_into)}</tr>`))}
 function brandsTable(rows){if(!rows.length)return empty('No sponsor segments yet. Watch a sponsored video with the extension on.');
   return table([['brand'],['spots',1],['creators',1],['read / integr.',1],['skips',1],['skipped',1],['avg len',1],['watch-through',1],['wrong',1],['undisclosed?',1],['top creators']],
-    rows.map(r=>`<tr><td><div>${esc(r.brand)}</div>${r.raw_spellings.length&&r.raw_spellings.join('')!==r.brand?`<div class="ss-raw">raw: ${esc(r.raw_spellings.join(', '))}</div>`:''}<div class="ss-verdict">${esc(r.verdict)}</div></td>${num(r.spots)}${num(r.creators)}${num(r.read_pct+'% / '+r.integration_pct+'%')}${num(r.skips)}${num(r.skips?clock(r.skipped_s):'–')}${num(clock(r.avg_len_s))}${num(r.skips?r.watch_through_pct+'%':'–')}${num(r.wrong_skips||'–')}${num(r.undisclosed||'–')}<td>${chips(r.top_creators)}</td></tr>`))}
+    rows.map(r=>`<tr><td><div>${esc(r.brand)}</div>${r.raw_spellings.length&&r.raw_spellings.join('')!==r.brand?`<div class="sr-raw">raw: ${esc(r.raw_spellings.join(', '))}</div>`:''}<div class="sr-verdict">${esc(r.verdict)}</div></td>${num(r.spots)}${num(r.creators)}${num(r.read_pct+'% / '+r.integration_pct+'%')}${num(r.skips)}${num(r.skips?clock(r.skipped_s):'–')}${num(clock(r.avg_len_s))}${num(r.skips?r.watch_through_pct+'%':'–')}${num(r.wrong_skips||'–')}${num(r.undisclosed||'–')}<td>${chips(r.top_creators)}</td></tr>`))}
 function creatorsTable(rows){if(!rows.length)return empty('No creators yet.');
   return table([['creator'],['videos',1],['with ads',1],['spots',1],['ad density',1],['ad time',1],['integrations',1],['brands']],
     rows.map(r=>`<tr><td>${esc(r.creator)}</td>${num(r.videos)}${num(r.videos_with_ads_pct+'%')}${num(r.spots)}${num(r.ad_density==null?'–':r.ad_density+' s/min')}${num(clock(r.ad_s))}${num(r.integration_pct+'%')}<td>${chips(r.brands)}</td></tr>`))}
 function renderStats(d){return tiles(d.overall)+section('where ads sit in a video',hist(d.overall.position_hist,d.overall.position_unplaced))+
-  `<div class="ss-halls">`+
-  hall('Hall of shame',d.hall_of_shame,r=>r.brand,r=>`skipped ${r.skips}× over ${plural(r.spots,'spot')} · ${clock(r.avg_len_s)} reads`)+
-  hall('Hall of fame',d.hall_of_fame,r=>r.brand,r=>r.integration_pct?`${r.integration_pct}% integrations`:(r.skips?`watched through ${r.watch_through_pct}%`:'never skipped'))+`</div>`+
+  `<div class="sr-halls">`+
+  hall('Hall of shame',d.hall_of_shame,r=>r.brand,r=>`skipped ${r.skips}× over ${plural(r.spots,'spot')} · ${clock(r.avg_len_s)} reads`,d.hall_min_spots)+
+  hall('Hall of fame',d.hall_of_fame,r=>r.brand,r=>r.integration_pct?`${r.integration_pct}% integrations`:(r.skips?`watched through ${r.watch_through_pct}%`:'never skipped'),d.hall_min_spots)+`</div>`+
   section('by category',categoriesTable(d.categories))+section('brands',brandsTable(d.brands))+section('creators',creatorsTable(d.creators))+
-  (d.aliases.length?`<div class="ss-note">brand aliases learned: ${d.aliases.map(a=>`${esc(a.alias)} → ${esc(a.brand)} (${esc(a.how)})`).join(' · ')}</div>`:'')}
+  (d.aliases.length?`<div class="sr-note">brand aliases learned: ${d.aliases.map(a=>`${esc(a.alias)} → ${esc(a.brand)} (${esc(a.how)})`).join(' · ')}</div>`:'')}
 
 // ---- ad cards
 const pctv=(v)=>v==null?'–':(v>=0?'+':'')+v+'%';
 function timeline(a){const D=a.duration_s||Math.max(a.end,1);const px=(t)=>Math.max(0,Math.min(100,100*t/D));
   const peaks=new Set(((a.metrics||{}).peaks_pct||[]).map(p=>Math.round(p)));
-  const heat=(a.heat||[]).length?`<div class="ss-timeline__heat" title="most replayed">${a.heat.map(p=>`<i${peaks.has(Math.round(p[0]))?' class="is-peak"':''} style="height:${Math.max(1,Math.round(p[1]*0.18))}px"></i>`).join('')}</div>`:'';
-  const ticks=(a.chapters||[]).map(c=>`<div class="ss-timeline__tick" style="left:${px(c[0])}%" title="${esc(c[1])} @ ${clock(c[0])}"></div>`).join('');
-  return `<div class="ss-timeline">${heat}<div class="ss-hairline"><div class="ss-hairline__track">${ticks}<div class="ss-hairline__span${a.action==='skip'?' ss-hairline__span--accent':''}" style="left:${px(a.start)}%;width:${Math.max(0.6,px(a.end)-px(a.start))}%"></div></div><div class="ss-hairline__ends"><span>${clock(a.start)} → ${clock(a.end)}</span><span>${a.duration_s?clock(a.duration_s):''}</span></div></div></div>`}
+  const heat=(a.heat||[]).length?`<div class="sr-timeline__heat" title="most replayed">${a.heat.map(p=>`<i${peaks.has(Math.round(p[0]))?' class="is-peak"':''} style="height:${Math.max(1,Math.round(p[1]*0.18))}px"></i>`).join('')}</div>`:'';
+  const ticks=(a.chapters||[]).map(c=>`<div class="sr-timeline__tick" style="left:${px(c[0])}%" title="${esc(c[1])} @ ${clock(c[0])}"></div>`).join('');
+  return `<div class="sr-timeline">${heat}<div class="sr-hairline"><div class="sr-hairline__track">${ticks}<div class="sr-hairline__span${a.action==='skip'?' sr-hairline__span--accent':''}" style="left:${px(a.start)}%;width:${Math.max(0.6,px(a.end)-px(a.start))}%"></div></div><div class="sr-hairline__ends"><span>${clock(a.start)} → ${clock(a.end)}</span><span>${a.duration_s?clock(a.duration_s):''}</span></div></div></div>`}
 function adCard(a){const m=a.metrics||{},an=a.analysis,ev=a.events||{},pace=m.pace||{};
-  const head=[`<span class="ss-chip">${a.style==='integration'?'integration':'sponsor · read'}</span>`,
-    `<span class="ss-chip">${a.action==='skip'?'skips':a.action==='keep'?'plays':'label only'}</span>`,
+  const head=[`<span class="sr-chip">${a.style==='integration'?'integration':'sponsor · read'}</span>`,
+    `<span class="sr-chip">${a.action==='skip'?'skips':a.action==='keep'?'plays':'label only'}</span>`,
     a.undisclosed?flag('undisclosed?','YouTube’s paid-promotion flag is off and the description has no (ad)/sponsor line'):'',
-    a.disclosure==='unknown'?`<span class="ss-chip" title="The paid-promotion flag and/or the description were not received for this video">disclosure unknown</span>`:'',
-    a.paid_promotion?`<span class="ss-chip">paid promotion</span>`:'',
+    a.disclosure==='unknown'?`<span class="sr-chip" title="The paid-promotion flag and/or the description were not received for this video">disclosure unknown</span>`:'',
+    a.paid_promotion?`<span class="sr-chip">paid promotion</span>`:'',
     m.template_script?flag('template script','At least 70% of the wording is shared with another creator’s ad for this brand'):'',
     ev.false_skip?flag(plural(ev.false_skip,'wrong-skip flag')):''].join('');
   const kv=[['position',m.position_pct!=null?m.position_pct+'% into the video':'–'],
@@ -626,38 +631,38 @@ function adCard(a){const m=a.metrics||{},an=a.analysis,ev=a.events||{},pace=m.pa
     ['template',m.template_similarity!=null?`${Math.round(m.template_similarity*100)}% shared with another creator’s ad`:'–'],
     ['topic fit',m.topic_fit!=null?m.topic_fit:'– (embeddings off)'],
     ['viewers',`${plural(ev.skip||0,'skip')} · ${ev.undo||0} undone · ${ev.seek_into||0} sought back`]];
-  const opens=m.first_sentence?`<div class="ss-quote ss-quote--dim">opens with “${esc(m.first_sentence)}”</div>`:'';
-  const beats=an&&an.beats.length?`<div class="ss-quote ss-quote--dim">${an.beats.map(b=>esc(b.beat)).join(' → ')}</div>`:'';
-  const tags=an&&an.persuasion.length?`<div class="ss-tags">${an.persuasion.map(p=>`<div class="ss-tag"><span class="ss-chip">${esc(p.tag)}</span><span class="ss-quote">“${esc(p.quote)}”</span></div>`).join('')}</div>`:'';
+  const opens=m.first_sentence?`<div class="sr-quote sr-quote--dim">opens with “${esc(m.first_sentence)}”</div>`:'';
+  const beats=an&&an.beats.length?`<div class="sr-quote sr-quote--dim">${an.beats.map(b=>esc(b.beat)).join(' → ')}</div>`:'';
+  const tags=an&&an.persuasion.length?`<div class="sr-tags">${an.persuasion.map(p=>`<div class="sr-tag"><span class="sr-chip">${esc(p.tag)}</span><span class="sr-quote">“${esc(p.quote)}”</span></div>`).join('')}</div>`:'';
   const bp=an&&an.better_placement;
-  const sugg=bp?(bp.same_as_now?`<div class="ss-inset"><span class="ss-inset__label">placement</span><span>Already the natural spot. ${esc(bp.reason)}</span></div>`
-      :`<div class="ss-inset"><span class="ss-inset__label">better placement · ${clock(bp.time_s)}</span><span>${esc(bp.reason)}</span>${bp.quote?`<span class="ss-quote ss-quote--dim">“${esc(bp.quote)}”${bp.quote_verified?'':' (quote not found verbatim)'}</span>`:''}</div>`)
-    :`<div class="ss-inset"><span class="ss-inset__label">deeper analysis</span><span>${a.analysis_error?'Failed: '+esc(a.analysis_error):'Pending. It runs while the server is idle.'}</span></div>`;
-  return `<div class="ss-card ss-adcard"><div class="ss-adcard__head"><span class="ss-adcard__title">${esc(a.brand||'Unknown brand')}</span>${head}</div>`+
-    `<div class="ss-adcard__meta">${esc(a.creator||'unknown creator')} · ${esc(a.title||a.video_id)} · ${clock(a.end-a.start)} long · confidence ${Number(a.confidence).toFixed(2)}${a.brand_raw&&a.brand_raw!==a.brand?` · heard as “${esc(a.brand_raw)}”`:''}</div>`+
-    timeline(a)+`<dl class="ss-kv">${kv.map(([k,v])=>`<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>${opens}${beats}${tags}${sugg}</div>`}
+  const sugg=bp?(bp.same_as_now?`<div class="sr-inset"><span class="sr-inset__label">placement</span><span>Already the natural spot. ${esc(bp.reason)}</span></div>`
+      :`<div class="sr-inset"><span class="sr-inset__label">better placement · ${clock(bp.time_s)}</span><span>${esc(bp.reason)}</span>${bp.quote?`<span class="sr-quote sr-quote--dim">“${esc(bp.quote)}”${bp.quote_verified?'':' (quote not found verbatim)'}</span>`:''}</div>`)
+    :`<div class="sr-inset"><span class="sr-inset__label">deeper analysis</span><span>${a.analysis_error?'Failed: '+esc(a.analysis_error):'Pending. It runs while the server is idle.'}</span></div>`;
+  return `<div class="sr-card sr-adcard"><div class="sr-adcard__head"><span class="sr-adcard__title">${esc(a.brand||'Unknown brand')}</span>${head}</div>`+
+    `<div class="sr-adcard__meta">${esc(a.creator||'unknown creator')} · ${esc(a.title||a.video_id)} · ${clock(a.end-a.start)} long · confidence ${Number(a.confidence).toFixed(2)}${a.brand_raw&&a.brand_raw!==a.brand?` · heard as “${esc(a.brand_raw)}”`:''}</div>`+
+    timeline(a)+`<dl class="sr-kv">${kv.map(([k,v])=>`<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>${opens}${beats}${tags}${sugg}</div>`}
 function dist(title,obj){const e=Object.entries(obj||{}).sort((a,b)=>b[1]-a[1]);
-  return `<div class="ss-card ss-hall"><div class="ss-title">${title}</div>${e.length?`<ol>${e.map(([k,v])=>`<li><span>${esc(k||'–')}</span><span class="ss-why">${v}</span></li>`).join('')}</ol>`:'<div class="ss-hall__empty">Nothing yet.</div>'}</div>`}
-function insights(i){return `<div class="ss-tiles">`+
+  return `<div class="sr-card sr-hall"><div class="sr-title">${title}</div>${e.length?`<ol>${e.map(([k,v])=>`<li><span>${esc(k||'–')}</span><span class="sr-why">${v}</span></li>`).join('')}</ol>`:'<div class="sr-hall__empty">Nothing yet.</div>'}</div>`}
+function insights(i){return `<div class="sr-tiles">`+
   tile(i.ads,`ads · ${i.analyzed} analyzed in depth · ${i.pending_analysis} pending`)+
   tile(i.avg_position_pct==null?'–':Math.round(i.avg_position_pct)+'%',`avg position in the video · ${i.in_hook_pct}% inside the hook`)+
   tile(i.before_top_peak_pct+'%','placed right before a most-replayed peak')+tile(pctv(i.avg_pace_delta_pct),'reading pace vs the creator')+
   tile(i.avg_cta==null?'–':i.avg_cta,'calls to action per ad')+tile(i.template_pct+'%','template scripts (≥ 70% shared with another creator)')+
   tile(i.avg_topic_fit==null?'–':i.avg_topic_fit,'avg topic fit (cosine)')+tile(i.better_placement_suggested,'ads with a better placement suggested')+
   tile(i.undisclosed,`reads with no disclosure · ${i.disclosure_unknown} unknown · ${i.paid_promotion_pct}% carry YouTube’s flag`)+`</div>`+
-  section('distributions',`<div class="ss-halls">${dist('Segue type',i.segues)}${dist('Chapter placement',i.placements)}${dist('Offers',i.offers)}${dist('Persuasion techniques',i.persuasion)}</div>`)}
+  section('distributions',`<div class="sr-halls">${dist('Segue type',i.segues)}${dist('Chapter placement',i.placements)}${dist('Offers',i.offers)}${dist('Persuasion techniques',i.persuasion)}</div>`)}
 
 let cache={};
 const NAMES={stats:'stats',ads:'ad cards',insights:'insights'};
 async function show(tab){
-  document.querySelectorAll('.ss-seg a').forEach(a=>{if(a.dataset.tab===tab)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
+  document.querySelectorAll('.sr-seg a').forEach(a=>{if(a.dataset.tab===tab)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
   $('#title').textContent=`second read · ${NAMES[tab]}`;
   if(tab==='stats'){const d=cache.stats||(cache.stats=await (await fetch('/stats.json')).json());
     const o=d.overall;$('#sub').textContent=`${plural(o.videos,'video')} · ${plural(o.creators,'creator')} · ${plural(o.brands,'brand')} · local only · ${d.generated_at.replace('T',' ')}`;
     $('#root').innerHTML=renderStats(d);return}
   const d=cache.ads||(cache.ads=await (await fetch('/ads.json')).json());
   $('#sub').textContent=`${plural(d.ads.length,'ad')} · local only · ${d.generated_at.replace('T',' ')}${d.embed_model?' · embeddings '+d.embed_model:''}`;
-  $('#root').innerHTML=tab==='ads'?(d.ads.length?`<div class="ss-ads">${d.ads.map(adCard).join('')}</div>`:empty('No sponsor segments yet. Watch a sponsored video with the extension on.')):insights(d.insights)}
+  $('#root').innerHTML=tab==='ads'?(d.ads.length?`<div class="sr-ads">${d.ads.map(adCard).join('')}</div>`:empty('No sponsor segments yet. Watch a sponsored video with the extension on.')):insights(d.insights)}
 function route(){const t=(location.hash||'#stats').slice(1);show(NAMES[t]?t:'stats').catch(e=>{$('#sub').textContent='Could not load the data. Is the server still running? ('+e+')'})}
 window.addEventListener('hashchange',route);route();
 </script></body></html>

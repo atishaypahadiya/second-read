@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Sponsor Skipper",
-  "version": "0.4.0",
-  "description": "Skips scripted sponsor reads by reading the video's captions with a local Qwen model.",
+  "name": "Second Read",
+  "version": "0.5.0",
+  "description": "Skips scripted sponsor reads on YouTube and lets integrated sponsors play, using the video's captions and a local model.",
   "host_permissions": [
     "http://localhost:8765/*",
     "http://127.0.0.1:8765/*"
@@ -48,7 +48,7 @@
   },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Sponsor Skipper",
+    "default_title": "Second Read",
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png",

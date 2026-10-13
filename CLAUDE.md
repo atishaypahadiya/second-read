@@ -1,4 +1,9 @@
-# Sponsor Skipper — CLAUDE.md
+# Second Read — CLAUDE.md
+
+> Formerly **Sponsor Skipper**. Display name "Second Read" (lowercase `second read` in the UI, see DESIGN.md).
+> Identifiers: `second-read`, `SecondRead`, CSS/variable prefix `sr-` / `--sr-`, env vars `SR_*` (the old `SS_*`
+> still work), log prefix `[SecondRead]`, LaunchAgent `com.second-read.server`. The word "sponsor" now only names
+> the ad category.
 
 Chrome extension that skips **scripted YouTube sponsor reads** and lets **integrated sponsors**
 (the creator actually using the product inside the content) play. Local-first prototype:
@@ -11,7 +16,7 @@ everything runs on Atishay's M4 Pro MacBook.
 - **No external datasets.** No SponsorBlock, no third-party APIs.
 - **Local LLM only.** Qwen 14B (`qwen3:14b`) via Ollama at `http://localhost:11434` for everything; optional
   `nomic-embed-text` for topic-fit embeddings. No API keys.
-  (`SS_DETECT_MODEL=qwen3:8b` can run pass-1 on a smaller model, but both models then stay loaded, ~18 GB, which
+  (`SR_DETECT_MODEL=qwen3:8b` can run pass-1 on a smaller model, but both models then stay loaded, ~18 GB, which
   thrashed and timed out on this 24 GB Mac. Only for ≥ 32 GB machines.)
 - **Server is stdlib Python.** No pip dependencies unless asked. `server/stats.py` (SQLite via `sqlite3`) holds
   the local stats store, brand normalization, metrics and the dashboard page.
@@ -35,7 +40,7 @@ everything runs on Atishay's M4 Pro MacBook.
 ## Repo layout
 
 ```
-sponsor-skipper/
+second-read/                 (the folder may still be called sponsor-skipper on disk)
 ├── CLAUDE.md
 ├── README.md
 ├── extension/
@@ -50,7 +55,7 @@ sponsor-skipper/
 ├── design/              gallery.html (every state, next to the mockup crops), reference boards, screenshots
 ├── DESIGN.md            the design language (source of truth for visuals); MERGE_NOTES.md how it was applied
 ├── scripts/
-│   ├── com.sponsor-skipper.server.plist   LaunchAgent template (install.sh fills in paths)
+│   ├── com.second-read.server.plist   LaunchAgent template (install.sh fills in paths)
 │   ├── install.sh / uninstall.sh          launchctl bootstrap / bootout
 │   ├── regress.py       regression harness over server/testset.json (run before every commit)
 │   ├── wiring_test.js   extension metadata path test (node, no deps; run by regress.py)
@@ -97,7 +102,7 @@ sponsor-skipper/
   click `.ytp-subtitles-button` on, wait (≤8s) for the captured response for this video ID, click it back off if it was off.
   If the captured body isn't json3, refetch the captured URL with `fmt=json3`.
 - No tracks → report `no captions`; the extension does nothing for that video.
-- Talks to content.js via `window.postMessage` (`source: 'ss-content'` → `source: 'ss-page'`).
+- Talks to content.js via `window.postMessage` (`source: 'sr-content'` → `source: 'sr-page'`).
 
 ### [3] Parse (page.js)
 - json3 `events[]`: `tStartMs`, `dDurationMs`, `segs[].utf8`. Skip events without `segs` or with whitespace-only text.
@@ -112,6 +117,13 @@ sponsor-skipper/
   lines, title, creator, channelId, kind, description, paidPromotion, heat, duration, position, analysisLines,
   analysisLang, client builds). background.js sends `msg.payload` as is and only stamps its own build. Never re-list
   fields in background.js: that is how `channelId` and `duration` were silently dropped.
+- **Settings survive a new extension ID.** `chrome.storage` belongs to the extension ID, and an unpacked
+  extension's ID is derived from its folder path, so renaming or moving the folder starts with empty storage. The
+  service worker therefore keeps a snapshot of `settings` (categories, don't-skip list, dev mode) and `stats` on the
+  local server, one per install (`installId` in storage). On its first contact with the server a new install asks for
+  the latest snapshot of another install and merges it once (`restoreChecked`): local non-default choices win, lists
+  are united, counters add up. It never uploads before having looked, and never overwrites another install's snapshot.
+  Storage keys are `settings`, `stats`, `installId`, `restoreChecked`; none carried the old product name.
 - **Build stamps.** `BUILD` in page.js, content.js, background.js and `CLIENT_BUILD` in server.py are the same number;
   bump all four together when the extension↔server contract changes. The server logs the three it received and warns
   when they differ (a half-reloaded extension).
@@ -132,12 +144,14 @@ API:
 | GET | `/health` | — | `{ok, model, ollama, loaded}` |
 | POST | `/feedback` | `{videoId, kind: false_skip\|missed_ad, playhead, segment?, channelId, channelName, title}` | `{ok}`; appended to `server/cache/feedback.local.jsonl` with the cached segment's evidence/reason and pipeline versions |
 | GET | `/feedback` | — | `{count, recent}` |
+| POST | `/client-state` | `{installId, settings, stats}` | `{ok}`; one snapshot per extension install in `server/cache/client-state.local.json` |
+| GET | `/client-state?not=<installId>` | — | the latest snapshot of a *different* install, or `{none: true}` |
 
 `python3 server/server.py --feedback-report` prints a summary table of the feedback file for tuning sessions.
 A `false_skip` without a valid segment, or any report without a playhead, is rejected with 400; the client sends
 the whole segment (times, brand, canonical brand, evidence, reason, source) plus the pre-skip playhead, and the
 server adds the cached pipeline context and versions. Rows that predate validation are ignored by the report.
-**Tests never write to `server/cache/`**: use `SS_DATA_DIR`, or redirect `FEEDBACK_JSONL` / `stats.DB_PATH` as
+**Tests never write to `server/cache/`**: use `SR_DATA_DIR`, or redirect `FEEDBACK_JSONL` / `stats.DB_PATH` as
 `scripts/regress.py` does.
 
 ### Stats (server/stats.py, `server/cache/stats.local.db`, gitignored)
@@ -158,8 +172,8 @@ server adds the cached pipeline context and versions. Rows that predate validati
 - `GET /stats.json` computes: per category (segments, videos, avg/total length, skips, undo/seek-in), per brand (spots, creators, read/integration %, skips, seconds skipped, avg length,
   watch-through = undo + seek-into ÷ skips, wrong-skip flags, top creators, templated one-line verdict), per creator
   (ad density s/min, integration %, brands), overall (time saved, ads per video, % videos with a sponsor, 10-bin
-  ad-position histogram), 💀 Hall of Shame (skip rate × avg read length), 🏆 Hall of Fame (integration % /
-  watch-through / never skipped).
+  ad-position histogram), Hall of shame (skip rate × avg read length) and Hall of fame (integration % /
+  watch-through / never skipped). A brand is ranked only from `HALL_MIN_SPOTS` = 3 spots.
 - `GET /dashboard` is one HTML page with tabs Stats (`/stats.json`), Ad cards and Insights (`/ads.json`), built
   from the design system: the server serves `extension/ui/` at `/ui/` (tokens, components, fonts; a fixed
   whitelist of names). Linked from the popup footer. `?theme=light|dark` forces a theme.
@@ -215,7 +229,7 @@ Every GET/POST for a video counts as a poll.
   model calls were reused vs computed. A POST with a new hash while a job is running supersedes it; the old
   thread's result is discarded.
 - Access: Host must be localhost/127.0.0.1 (DNS rebinding), http(s) Origins are refused, and
-  `SS_EXTENSION_ID=<id>` optionally restricts to one extension's origin.
+  `SR_EXTENSION_ID=<id>` optionally restricts to one extension's origin.
 - **Scheduler:** one worker thread, one Ollama call at a time, always for the most recently polled job. A job
   not polled for 10s is paused between calls (partial model outputs are on disk; it resumes when polled again).
   At most 4 unfinished jobs in memory; beyond that the least-recently-polled one is evicted, never the newest.
@@ -319,7 +333,7 @@ Every GET/POST for a video counts as a poll.
   gallery at `design/gallery.html` shows every state). `content.css` and `popup.css` only place things and hold
   what is specific to the real surfaces. Monochrome plus one accent: the accent means *live* or *skip*, nothing
   else is coloured; hierarchy is the opacity ladder; no shadows, borders or dividers.
-- Markers live in their own 4px lane (`.ss-lane`) above YouTube's bar, never on it. Meaning is shape and tone:
+- Markers live in their own 4px lane (`.sr-lane`) above YouTube's bar, never on it. Meaning is shape and tone:
   skip = filled accent, integration (keep) = outline, label-only (show) = dim, low confidence = hatched
   (sponsor read under 0.85, anything else under 0.8). Hover shows a glass tooltip with name, chip, confidence,
   time, what will happen, and the evidence quote.
@@ -344,7 +358,7 @@ Every GET/POST for a video counts as a poll.
 
 Each stage ends with a "done when" check on a real video.
 
-1. **Extension skeleton + video detection** — manifest, content.js logs `[SponsorSkipper] video <id>` on load and on
+1. **Extension skeleton + video detection** — manifest, content.js logs `[SecondRead] video <id>` on load and on
    every in-app navigation, tears down cleanly.
    *Done when:* clicking through 3 videos logs 3 correct IDs, no duplicates.
 2. **Caption fetch + parse** — page.js (paths A and B), content.js requests captions and logs line count, language,
@@ -402,15 +416,16 @@ Each stage ends with a "done when" check on a real video.
 ollama serve &                 # or the Ollama app
 ollama pull qwen3:14b
 python3 server/server.py       # http://localhost:8765
-# optional: SS_EXTENSION_ID=<your unpacked extension's ID from chrome://extensions> python3 server/server.py
+# optional: SR_EXTENSION_ID=<your unpacked extension's ID from chrome://extensions> python3 server/server.py
 # isolated second instance for testing (own port, own data dir; never touches server/cache):
-#   SS_PORT=8766 SS_DATA_DIR=/tmp/ss-test python3 server/server.py
-# as a login item (KeepAlive, logs to ~/Library/Logs/sponsor-skipper.log):
-scripts/install.sh             # scripts/uninstall.sh to remove; launchctl kickstart -k gui/$(id -u)/com.sponsor-skipper.server to restart
+#   SR_PORT=8766 SR_DATA_DIR=/tmp/sr-test python3 server/server.py
+# as a login item (KeepAlive, logs to ~/Library/Logs/second-read.log):
+scripts/install.sh             # also removes the pre-rename agent com.sponsor-skipper.server; run it again after moving the folder
+                               # scripts/uninstall.sh boots out both labels; launchctl kickstart -k gui/$(id -u)/com.second-read.server to restart
 ```
 Chrome → `chrome://extensions` → Developer mode → Load unpacked → `extension/`.
 After editing extension files: hit reload on the extension card, then refresh the YouTube tab.
-Debug: DevTools console filtered by `SponsorSkipper`; server terminal for segments; `curl localhost:8765/health`.
+Debug: DevTools console filtered by `SecondRead`; server terminal for segments; `curl localhost:8765/health`.
 
 ## Progress
 

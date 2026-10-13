@@ -1,4 +1,4 @@
-# Second Read (Sponsor Skipper) — design language
+# Second Read — design language
 
 One system for everything the extension draws: the badge, marker lane, toast and ad panel on the
 player, the popup, and the dashboard. The approved visual mockup is `design/reference/mockup.html`
@@ -8,8 +8,8 @@ keyframes), `extension/ui/fonts.css` / `fonts-content.css` (the bundled faces, f
 YouTube page respectively) and `extension/ui/components.css` (classes). Every board is rebuilt with the real classes
 next to its mockup crop on `design/gallery.html` (open via `file://`, no server needed).
 
-The product is being renamed to **Second Read**; the popup and dashboard headers use the lowercase
-name `second read`.
+The product is **Second Read** (formerly Sponsor Skipper). Display name "Second Read" in the manifest, README and
+docs; the popup and dashboard headers use the lowercase `second read`. Classes and variables are prefixed `sr-`.
 
 ## Principles
 
@@ -33,52 +33,52 @@ name `second read`.
 
 ## Tokens (`extension/ui/tokens.css`)
 
-All variables are prefixed `--ss-`.
+All variables are prefixed `--sr-`.
 
 | Group | Tokens |
 | --- | --- |
-| Light sheet | `--ss-sheet #F0F0F0`, `--ss-ink #000`, chips black @ .06, primary button black / white |
-| Deep card (default) | `--ss-card-top #444444 → --ss-card-bottom #5A5A5A`, white text on the ladder (o1 and o2 pass everywhere). Stats hero, tiles, ad panel, toast-like cards. |
-| Light card | `--ss-card-light-top #8E8E8E → #B4B4B4`, ink text. `.ss-card--light`, secondary blocks only (tables, lists). |
-| Dark sheet | `#111`, cards `#2A2A2A → #3A3A3A`, ink white. Applied by `prefers-color-scheme: dark`, `:root[data-theme=dark]`, or scoped with `.ss-theme-dark` / `.ss-theme-light`. |
-| Glass | `--ss-glass rgba(28,28,28,.62)` + `blur(20px) saturate(140%)` for badge, toast and floating panels; `--ss-glass-solid rgba(40,40,40,.82)` for the marker tooltip (no blur). |
-| Accent | `--ss-accent #FF4A1C`, `--ss-accent-rgb` |
-| Opacity | `--ss-o1 … --ss-o5` = 1 / .72 / .55 / .32 / .18 |
-| Radius | `--ss-r-panel 44`, `--ss-r-sheet 40`, `--ss-r-card 32`, `--ss-r-thumb-l 26`, `--ss-r-toast 20`, `--ss-r-tooltip 16`, `--ss-r-thumb-s 12`, `--ss-r-pill 999` |
-| Spacing | `--ss-s1 … --ss-s7` = 4 / 8 / 12 / 16 / 20 / 24 / 32 |
-| Type | `--ss-font-ui`, `--ss-font-mono`; sizes chip 11, body 13, title 15, panel 17, stat 28, hero 44; line-height 1.4 body, 1.45 stream, 1.2 titles |
+| Light sheet | `--sr-sheet #F0F0F0`, `--sr-ink #000`, chips black @ .06, primary button black / white |
+| Deep card (default) | `--sr-card-top #444444 → --sr-card-bottom #5A5A5A`, white text on the ladder (o1 and o2 pass everywhere). Stats hero, tiles, ad panel, toast-like cards. |
+| Light card | `--sr-card-light-top #8E8E8E → #B4B4B4`, ink text. `.sr-card--light`, secondary blocks only (tables, lists). |
+| Dark sheet | `#111`, cards `#2A2A2A → #3A3A3A`, ink white. Applied by `prefers-color-scheme: dark`, `:root[data-theme=dark]`, or scoped with `.sr-theme-dark` / `.sr-theme-light`. |
+| Glass | `--sr-glass rgba(28,28,28,.62)` + `blur(20px) saturate(140%)` for badge, toast and floating panels; `--sr-glass-solid rgba(40,40,40,.82)` for the marker tooltip (no blur). |
+| Accent | `--sr-accent #FF4A1C`, `--sr-accent-rgb` |
+| Opacity | `--sr-o1 … --sr-o5` = 1 / .72 / .55 / .32 / .18 |
+| Radius | `--sr-r-panel 44`, `--sr-r-sheet 40`, `--sr-r-card 32`, `--sr-r-thumb-l 26`, `--sr-r-toast 20`, `--sr-r-tooltip 16`, `--sr-r-thumb-s 12`, `--sr-r-pill 999` |
+| Spacing | `--sr-s1 … --sr-s7` = 4 / 8 / 12 / 16 / 20 / 24 / 32 |
+| Type | `--sr-font-ui`, `--sr-font-mono`; sizes chip 11, body 13, title 15, panel 17, stat 28, hero 44; line-height 1.4 body, 1.45 stream, 1.2 titles |
 | Sizes | chip 20 / 22 (mono counts) / 24 (status), badge 32, buttons 48 / 44 (toast, text) / 56 (master toggle) / 64 (Skip ad), segmented buttons 28, dot 8 / 10 / 14, hairline 2, marker 4, lane gap 4, grabber 44×28 / 112×56 |
-| Motion | `--ss-dur 180ms`, `--ss-ease cubic-bezier(.2,.8,.2,1)`, `--ss-rise 6px`, `--ss-pulse 1.6s` (scale .75, opacity .35); keyframes `ss-enter`, `ss-exit`, `ss-pulse`. Under `prefers-reduced-motion` duration and rise are 0 and the pulse stops. |
+| Motion | `--sr-dur 180ms`, `--sr-ease cubic-bezier(.2,.8,.2,1)`, `--sr-rise 6px`, `--sr-pulse 1.6s` (scale .75, opacity .35); keyframes `sr-enter`, `sr-exit`, `sr-pulse`. Under `prefers-reduced-motion` duration and rise are 0 and the pulse stops. |
 
-Per-surface derived variables (`--ss-fg-rgb`, `--ss-chip-bg`, `--ss-mark`) are set by `.ss-sheet`,
-`.ss-card`, `.ss-card--light` and `.ss-glass`, so a chip, dot, hairline or grabber looks right
+Per-surface derived variables (`--sr-fg-rgb`, `--sr-chip-bg`, `--sr-mark`) are set by `.sr-sheet`,
+`.sr-card`, `.sr-card--light` and `.sr-glass`, so a chip, dot, hairline or grabber looks right
 wherever it is dropped.
 
 ## Components (`extension/ui/components.css`)
 
-Everything is prefixed `ss-` so it can live inside YouTube's DOM. Put `.ss-ui` on the root of any
+Everything is prefixed `sr-` so it can live inside YouTube's DOM. Put `.sr-ui` on the root of any
 surface to get the font stack and box-sizing.
 
-- **Chip** `.ss-chip` — pill, 20 tall, padding 0 8, 11px lowercase; white @ .22 on cards and glass,
-  black @ .06 on the sheet. `.ss-chip--mono` (22 tall, mono counts), `.ss-chip--status` (24 tall,
-  with a 6px dot, @ o2). `.ss-chips` lays them out.
-- **Dot** `.ss-dot` — 8px accent; `--lg` 10, `--xl` 14; `--ink` (black on sheet / white on dark),
+- **Chip** `.sr-chip` — pill, 20 tall, padding 0 8, 11px lowercase; white @ .22 on cards and glass,
+  black @ .06 on the sheet. `.sr-chip--mono` (22 tall, mono counts), `.sr-chip--status` (24 tall,
+  with a 6px dot, @ o2). `.sr-chips` lays them out.
+- **Dot** `.sr-dot` — 8px accent; `--lg` 10, `--xl` 14; `--ink` (black on sheet / white on dark),
   `--neutral` (@ .6), `--faint` (@ o4), `--ring` (1.5px accent ring, "offline"); `.is-live` pulses;
-  `--corner` overlaps the bottom-right corner of a `.ss-has-dot` parent.
-- **Hairline** `.ss-hairline` > `__track` (2px @ o4) > `__fill` (@ o1, set `width`) or `__span`
+  `--corner` overlaps the bottom-right corner of a `.sr-has-dot` parent.
+- **Hairline** `.sr-hairline` > `__track` (2px @ o4) > `__fill` (@ o1, set `width`) or `__span`
   (set `left` + `width`; white by default, `--accent` variant); `__ends` holds mono 11 timestamps @ o2.
-- **Primary button** `.ss-button` — full-width pill, black on light / white on dark, glass and cards;
+- **Primary button** `.sr-button` — full-width pill, black on light / white on dark, glass and cards;
   `--black` forces black (the ad panel's "Skip ad"); heights `--sm` 44, default 48, `--lg` 56, `--xl` 64;
   `--auto` shrink-to-fit; `__icon` is a 14px rounded square. One primary per surface.
-- **Text button** `.ss-button--text` — 44 tall, @ .6 on the sheet, @ o2 on glass, no background.
-- **Grabber** `.ss-grabber` — 44×28 pill (`#8E8E8E` on the sheet, white @ o4 on glass) with a
+- **Text button** `.sr-button--text` — 44 tall, @ .6 on the sheet, @ o2 on glass, no background.
+- **Grabber** `.sr-grabber` — 44×28 pill (`#8E8E8E` on the sheet, white @ o4 on glass) with a
   16×2 white dash; `--lg` 112×56 with an 18px dash.
-- **Stream** `.ss-stream` — mono 300, `mask-image` dissolves the top 50% so older lines fade upward;
+- **Stream** `.sr-stream` — mono 300, `mask-image` dissolves the top 50% so older lines fade upward;
   `--2` clamps the toast quote to two lines @ o2; `--panel` is the 15px / 1.45 transcript.
-- **Section label** `.ss-label` — mono 11 @ o3, lowercase (`categories`).
+- **Section label** `.sr-label` — mono 11 @ o3, lowercase (`categories`).
 
 ### Badge (player, bottom right, dev mode)
-`.ss-badge.ss-glass[data-kind]`: 32 tall, 8px dot, 13px text, mono count @ o2. States:
+`.sr-badge.sr-glass[data-kind]`: 32 tall, 8px dot, 13px text, mono count @ o2. States:
 
 | `data-kind` | dot | text |
 | --- | --- | --- |
@@ -94,43 +94,43 @@ surface to get the font stack and box-sizing.
 control autohide.
 
 ### Marker lane (above the progress bar)
-`.ss-lane` is a 4px strip positioned `bottom: calc(100% + 4px)` relative to YouTube's bar, so the
-accent never sits on YouTube's red. Each `.ss-marker[data-action]` is a round-capped bar. Meaning is
+`.sr-lane` is a 4px strip positioned `bottom: calc(100% + 4px)` relative to YouTube's bar, so the
+accent never sits on YouTube's red. Each `.sr-marker[data-action]` is a round-capped bar. Meaning is
 **shape and color**: `skip` filled accent; `keep` (integration) hollow white outline; `show` (label
 only) white fill @ o4; `.is-low` hatches (white .7 / .12, 3px stripes; accent stripes on a skip
-candidate). Hover scales to 1.5× and shows `.ss-tooltip.ss-glass.ss-glass--solid` (320 wide, r16,
+candidate). Hover scales to 1.5× and shows `.sr-tooltip.sr-glass.sr-glass--solid` (320 wide, r16,
 padding 14 16): brand, chip, mono confidence, mono time line ("4:47 – 5:39 · will skip"), evidence
 quote mono 13 @ .85.
 
 ### Toast (after a skip)
-`.ss-toast.ss-glass` (380 wide, r20, padding 16, gap 12, bottom-left of the player): `__head` with a
+`.sr-toast.sr-glass` (380 wide, r20, padding 16, gap 12, bottom-left of the player): `__head` with a
 10px accent dot, brand (15px), chip "sponsor · read" and `__meta` mono "0:52 skipped" @ o2; hairline
-with the skipped span in white and mono ends "4:47 → 5:39" / "21:16"; `.ss-stream--2` evidence
+with the skipped span in white and mono ends "4:47 → 5:39" / "21:16"; `.sr-stream--2` evidence
 quote (max 2 lines); `__actions` with a 44px white pill **Undo** and a 44px text button **Wrong
-skip**. `ss-enter` on mount, `.is-leaving` to exit, 6 s auto-dismiss.
+skip**. `sr-enter` on mount, `.is-leaving` to exit, 6 s auto-dismiss.
 
 ### Popup (360)
-`.ss-popup.ss-sheet` (padding 20, gap 16): `__head` (32 tall) with the lowercase `__name` and a
-`.ss-chip--status` server chip; the master `.ss-button.ss-toggle` (56 tall, black, label
+`.sr-popup.sr-sheet` (padding 20, gap 16): `__head` (32 tall) with the lowercase `__name` and a
+`.sr-chip--status` server chip; the master `.sr-button.sr-toggle` (56 tall, black, label
 *Skipping on* / *Paused*, `__track` 52×32 white @ .22 with a 24px accent `__knob`; `aria-pressed`
-drives it); the deep `.ss-card.ss-hero` with `__num` mono 44, `__cap` "saved this week" @ o2 and
-mono count chips; `.ss-channel` (36px r12 thumbnail, name, mono sub, text button "Don't skip
-<channel>"); `.ss-rows` with `.ss-label` and `.ss-row`s (40 tall) holding `.ss-seg` > `.ss-seg__btn`
+drives it); the deep `.sr-card.sr-hero` with `__num` mono 44, `__cap` "saved this week" @ o2 and
+mono count chips; `.sr-channel` (36px r12 thumbnail, name, mono sub, text button "Don't skip
+<channel>"); `.sr-rows` with `.sr-label` and `.sr-row`s (40 tall) holding `.sr-seg` > `.sr-seg__btn`
 (28 tall, 11px lowercase, selected = black pill with white text, `aria-pressed`); `__spacer`;
 `__foot` with text buttons "Missed an ad here" and "Dashboard ↗".
 
 ### Ad panel
-`.ss-panel` (440 wide board; `--float` for the on-player version at 376 wide): a `.ss-grabber--lg`,
-then `.ss-card.ss-panel__card` (r44, padding 24, gap 20) with `__head` (104×84 r26 `__thumb` +
-14px accent `.ss-dot--corner`, `__title` 17px + chip, hairline with mono ends) and the
-`.ss-stream--panel` transcript (ad lines, newest at the bottom), then a 64px `.ss-button--black`
+`.sr-panel` (440 wide board; `--float` for the on-player version at 376 wide): a `.sr-grabber--lg`,
+then `.sr-card.sr-panel__card` (r44, padding 24, gap 20) with `__head` (104×84 r26 `__thumb` +
+14px accent `.sr-dot--corner`, `__title` 17px + chip, hairline with mono ends) and the
+`.sr-stream--panel` transcript (ad lines, newest at the bottom), then a 64px `.sr-button--black`
 **Skip ad** with the rounded-square icon. `.is-collapsed` leaves the grabber.
 
 ### Dashboard
-`.ss-dash` on a `.ss-sheet`: deep `.ss-tile`s for numbers (mono 40), the ad-position histogram
-`.ss-bars` (hairline-weight bars, peak in accent), `.ss-hall` lists, and `.ss-table` inside a
-`.ss-card--light`: no borders, 4px row spacing, mono lowercase headers @ o3, `.ss-num` cells
-right-aligned mono @ o2, `.ss-verdict` mono @ o2.
+`.sr-dash` on a `.sr-sheet`: deep `.sr-tile`s for numbers (mono 40), the ad-position histogram
+`.sr-bars` (hairline-weight bars, peak in accent), `.sr-hall` lists, and `.sr-table` inside a
+`.sr-card--light`: no borders, 4px row spacing, mono lowercase headers @ o3, `.sr-num` cells
+right-aligned mono @ o2, `.sr-verdict` mono @ o2.
 
 ## Contrast
 
@@ -180,7 +180,7 @@ specified here but not built; nothing in the product opens it yet.
 
 - **Fonts.** The faces live in `ui/fonts.css` (relative URLs: popup, dashboard, gallery) and
   `ui/fonts-content.css` (absolute `chrome-extension://` URLs for the YouTube page, where a relative URL would be
-  requested from youtube.com). `tokens.css` sets `color-scheme` on `.ss-sheet`, not on `:root`, because it is
+  requested from youtube.com). `tokens.css` sets `color-scheme` on `.sr-sheet`, not on `:root`, because it is
   injected into YouTube.
 - **Badge.** Two states beyond the table: `busy` with the text *paused* (the server paused the job), and `none`
   with the text *nothing to skip* (segments were found, but none will be skipped). The count slot carries the
@@ -196,9 +196,9 @@ specified here but not built; nothing in the product opens it yet.
   today's and all-time counts, because that is what the extension stores (no weekly, per-brand or wrong-skip
   numbers in the popup). Codes, the don't-skip list, dev mode and the version are a second pane (*Codes & more*).
   A server problem replaces the channel row's sub line with what to do (*start it: python3 server/server.py*).
-- **Dashboard.** Tabs are a `.ss-seg` in the header. Beyond the mockup: ad cards (`.ss-adcard` with a hairline
-  timeline, most-replayed curve, chapter ticks, `.ss-kv` facts, `.ss-inset` for the placement suggestion) and the
-  insights tab (tiles + `.ss-hall` distributions). A warning is `.ss-chip--flag`, a chip with a ring dot; nothing
+- **Dashboard.** Tabs are a `.sr-seg` in the header. Beyond the mockup: ad cards (`.sr-adcard` with a hairline
+  timeline, most-replayed curve, chapter ticks, `.sr-kv` facts, `.sr-inset` for the placement suggestion) and the
+  insights tab (tiles + `.sr-hall` distributions). A warning is `.sr-chip--flag`, a chip with a ring dot; nothing
   is amber or red. Category swatches are gone. `?theme=light|dark` forces a theme.
 
 ## Not matched exactly (deliberate)
@@ -208,14 +208,15 @@ specified here but not built; nothing in the product opens it yet.
   labels use the mockup's 0.6 literally.
 - Integration markers are a hollow outline (shape encoding), where the mockup draws a solid white
   bar; the mockup's low-confidence hatch values are used as-is.
-- The popup header says `second read` (rename in progress); the mockup still says `sponsor skipper`.
+- The popup header says `second read`; the mockup predates the rename and says `sponsor skipper`, and its classes
+  were `ss-` (now `sr-`).
 - The ad panel floating on the player is a derived state (376 wide, deep card over the video); the
   mockup only shows the 440 board on the light sheet.
 - The toast's evidence quote is clamped to two lines as specified; the mockup board lets the same
   quote run to three.
 - The badge uses the board 1 glass (`rgba(28,28,28,.62)` with blur). Board 4 draws its badges on a
   flat `rgba(40,40,40,.72)` because that board has no video behind it; that value is kept only for
-  the tooltip (`--ss-glass-solid`, at the mockup's .82).
+  the tooltip (`--sr-glass-solid`, at the mockup's .82).
 - "Dashboard ↗": the bundled Geist draws its own arrow; the mockup's subset font fell back to a
   system arrow, so the glyph is slightly smaller here.
 - `analysis failed` is an eighth badge state that the mockup does not show (accent dot with a dash).

@@ -161,6 +161,23 @@ def unit_checks():
     eq("ad lines: a denial is not a sponsorship marker",
        [server.is_ad_line(l) for l in ("Coddy (ad): https://fern.deals/coddy", "This video is sponsored by Odoo.",
                                        "This video is not sponsored.", "No sponsor today.")], [True, True, False, False])
+    # halls: a brand is ranked only from HALL_MIN_SPOTS spots
+    def spot(i, brand, style="read", action="skip"):
+        vid = f"hall{brand[:3]}{i:04d}"[:11].ljust(11, "0")
+        stats.record_video({"video_id": vid, "channel_id": "UCh", "creator": "hall test", "title": "", "lang": "en", "duration": 600.0,
+                            "hints": {"brands": [brand]}, "lines": []},
+                           [{"start": 100.0, "end": 160.0, "category": "sponsor", "style": style, "action": action, "brand": brand,
+                             "confidence": 0.95, "evidence": "", "reason": "", "source": "detect"}], {})
+        if action == "skip":
+            stats.record_event({"kind": "skip", "videoId": vid, "segment": {"start": 100.0, "end": 160.0}, "playhead": 100.0, "saved": 60.0})
+    for i in range(3):
+        spot(i, "Thricebrand")
+        spot(i, "Integrated", "integration", "keep")
+    for i in range(2):
+        spot(i, "Twicebrand")
+    d = stats.compute()
+    eq(f"halls: ranked only from {stats.HALL_MIN_SPOTS} spots",
+       ([b["brand"] for b in d["hall_of_shame"]], [b["brand"] for b in d["hall_of_fame"]]), (["Thricebrand"], ["Integrated"]))
     # disclosure is 'undisclosed' only when both signals are known and negative
     table = {(p, d): server.disclosure_state(p, d) for p in (True, False, None) for d in (True, False, None)}
     eq("disclosure: only (False, False) is undisclosed", sorted(k for k, v in table.items() if v == "undisclosed"), [(False, False)])
@@ -172,14 +189,15 @@ def unit_checks():
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     allow_model = "--allow-model" in sys.argv
-    tmp = tempfile.mkdtemp(prefix="ss-regress-")
+    tmp = tempfile.mkdtemp(prefix="sr-regress-")
     # Nothing the harness does may land in the user's local data: stats, results log and feedback go to a temp dir.
     stats.DB_PATH = os.path.join(tmp, "stats.db")
     server.RESULTS_MD = os.path.join(tmp, "results.md")
     server.FEEDBACK_JSONL = os.path.join(tmp, "feedback.jsonl")
+    server.CLIENT_STATE = os.path.join(tmp, "client-state.json")
     intel._embed_available = False  # no embedding calls during regression
-    server.log = lambda *a: None  # quiet; set SS_REGRESS_VERBOSE=1 to see the pipeline log
-    if os.environ.get("SS_REGRESS_VERBOSE"):
+    server.log = lambda *a: None  # quiet; set SR_REGRESS_VERBOSE=1 to see the pipeline log
+    if os.environ.get("SR_REGRESS_VERBOSE") or os.environ.get("SS_REGRESS_VERBOSE"):
         server.log = lambda *a: print("   ", *a)
     stats.init()
     intel.init()
@@ -205,7 +223,7 @@ def main():
         results = unit_checks()
         bad = [m for ok, m in results if not ok]
         failures += 1 if bad else 0
-        rows.append(("rules", "server", "FAIL" if bad else "PASS", bad or [f"{len(results)} rule checks ok (cleaning, hints, disclosure)"], time.time() - t0))
+        rows.append(("rules", "server", "FAIL" if bad else "PASS", bad or [f"{len(results)} rule checks ok (cleaning, hints, halls, disclosure)"], time.time() - t0))
     for e in entries:
         t0 = time.time()
         label = e.get("id", e["video"])
