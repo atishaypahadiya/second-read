@@ -90,6 +90,9 @@ HINT_REGION_PAD_S = 60.0    # detect windows overlapping a hint region (+- this)
 ANCHOR_CUE_WORDS = 25       # a start anchor is trusted only if a sponsor cue follows within this many words
 MAX_HINT_LINES = 8          # a hint term matching more lines than this is too common to be a sponsor marker
 MAX_HINT_REGION_S = 240.0   # a hint region longer than this is split (keeps refine windows inside the context)
+MAX_CHAPTER_AD_S = 240.0    # a "sponsor" chapter longer than this is not trusted as the ad's bounds
+CHAPTER_AD_RE = re.compile(r"\b(sponsor|sponsored|sponsorship|advert|advertisement|\(ad\)|\bad\b|ad break|paid promotion|"
+                           r"promo|partner|partnership|brought to you|werbung|publicité|anuncio|patrocin|広告|スポンサー|विज्ञापन|प्रायोजक)", re.I)
 CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cache")
 RESULTS_MD = os.path.join(CACHE_DIR, "results.local.md")  # gitignored: it records which videos were watched
 FEEDBACK_JSONL = os.path.join(CACHE_DIR, "feedback.local.jsonl")  # gitignored: wrong-skip / missed-ad reports
@@ -941,7 +944,7 @@ def evidence_found(seg, lines):
 
 def require_evidence(seg, lines):
     """A skip needs verbatim sponsor evidence from the transcript; otherwise downgrade to show."""
-    if seg["action"] != "skip":
+    if seg["action"] != "skip" or seg.get("source") == "chapter":
         return seg
     norm = " ".join(normalize_evidence(seg.get("evidence", "")))
     match = evidence_found(seg, lines)
@@ -1408,14 +1411,58 @@ def hint_candidates(job):
     return out
 
 
+def chapter_segments(job):
+    """7a: a chapter titled like an ad/sponsor becomes a skip segment from its bounds, immediately, no model call.
+    Bounds are snapped to pauses on the original track. Over MAX_CHAPTER_AD_S the chapter is ignored (the model
+    path still runs there)."""
+    lines, alines = job["lines"], job["alines"]
+    chapters = job.get("chapter_times") or []
+    duration = job.get("duration") or (lines[-1]["end"] if lines else 0)
+    out = []
+    for i, (cs, title) in enumerate(chapters):
+        if not CHAPTER_AD_RE.search(title):
+            continue
+        ce = chapters[i + 1][0] if i + 1 < len(chapters) else duration
+        if ce <= cs or ce - cs > MAX_CHAPTER_AD_S:
+            log(f"[{job['video_id']}] chapter {title!r} {fmt_time(cs)}-{fmt_time(ce)} ignored ({'empty' if ce <= cs else 'longer than %ds' % MAX_CHAPTER_AD_S})")
+            continue
+        o_idx = [k for k, l in enumerate(lines) if l["end"] > cs and l["start"] < ce]
+        a_idx = [k for k, l in enumerate(alines) if l["end"] > cs and l["start"] < ce]
+        if not o_idx or not a_idx:
+            continue
+        o_s, o_e = o_idx[0], o_idx[-1]
+        start, s_note = snap_start(lines, o_s, o_e, cs)
+        end, e_note = snap_end(lines, o_s, o_e, ce)
+        if end is None or end > ce:
+            end, e_note = ce, "chapter end (snap would extend past it)" if end is not None else "chapter end"
+        start = max(cs - 1.0, min(start, cs + 5.0))  # never earlier than 1s before, nor later than 5s after, the chapter start
+        if end - start < MIN_SKIP_S:
+            continue
+        brands = job["hints"].get("brands") or []
+        seg = {"start": round(start, 2), "end": round(end, 2), "start_line": a_idx[0], "end_line": a_idx[-1],
+               "category": "sponsor", "style": "read", "brand": brands[0] if len(brands) == 1 else "",
+               "confidence": 1.0, "evidence": f"chapter: {title}", "reason": f"creator-labeled chapter {title!r} {fmt_time(cs)}-{fmt_time(ce)}",
+               "line_start": cs, "line_end": ce, "source": "chapter"}
+        seg["action"] = action_for(seg)
+        out.append(seg)
+        log(f"[{job['video_id']}] chapter fast path: {title!r} {fmt_time(cs)}-{fmt_time(ce)} -> SKIP {fmt_time(start)}-{fmt_time(end)} "
+            f"(snap start: {s_note}; snap end: {e_note}); no model call")
+    return out
+
+
 def plan_job(job):
-    """Build the ordered list of units to run, done once per job: hint regions first (straight to refine),
-    then prefiltered detect windows in playhead order."""
+    """Build the ordered list of units to run, done once per job: chapter fast path (no model call), hint regions
+    (straight to refine), then prefiltered detect windows in playhead order."""
     alines, position = job["alines"], job.get("position", 0.0)
     wins = windows(alines)
+    chapter_segs = chapter_segments(job)
+    if chapter_segs:
+        job["final"].extend(chapter_segs)
+        publish(job)
     hint_cands = hint_candidates(job)  # may drop too-common terms from job["terms"]
     terms = job["terms"]
     regions = [(c["start"] - HINT_REGION_PAD_S, c["end"] + HINT_REGION_PAD_S) for c in hint_cands]
+    regions += [(c["start"] - HINT_REGION_PAD_S, c["end"] + HINT_REGION_PAD_S) for c in chapter_segs]
     sent, deferred = [], []
     brand_terms_only = [t for t in terms if t in job["hints"]["brands"]]
     for first, last in wins:

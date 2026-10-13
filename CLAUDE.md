@@ -174,6 +174,10 @@ Every GET/POST for a video counts as a poll.
 - **Description hints:** brands (capitalized words on "(ad)"/sponsor lines), promo codes, domains and chapter titles
   are extracted from the description, added to the cue list, used for ordering, and shown to the model in the prompt
   header (so a misheard "Udo" can be matched to Odoo).
+- **Chapter fast path:** a description chapter whose title reads like an ad (sponsor, ad, advert, promo, partner,
+  paid promotion, and common non-English equivalents) ≤ 4 min long becomes a `skip` segment from its bounds
+  immediately, snapped to pauses, `source: chapter`, no model call; the evidence is the chapter title. Detect
+  windows it covers are deferred like hint regions.
 - **Hint fast path:** transcript lines that mention a hint term (brand/code/domain, ≥ 4 chars) are clustered (gap
   ≤ 120s) into regions that go **straight to refine** as candidates (`source: hint`); detect windows overlapping a
   region ± 60s are skipped. Regions run before any detect window.
