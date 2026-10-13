@@ -1,26 +1,103 @@
 {
-  "_comment": "Machine-readable expectations for scripts/regress.py. Times in seconds; tol = +-seconds (default 1.5). 'forbid' ranges must not overlap any segment; must_not_skip = zero skip segments. Keep in sync with testset.md.",
+  "_comment": "Machine-readable expectations for scripts/regress.py. Times in seconds; tol = +-seconds (default 1.5). 'category' is checked when given. 'forbid' ranges must not overlap any segment; must_not_skip = zero skip segments. Keep in sync with testset.md. 'start_late_ok' allows a later-than-expected start by that many seconds.",
   "videos": [
     {
-      "video": "dU7gCt-7kKk", "creator": "fern", "note": "Odoo read; asr spells the brand Udo/Udu; starts at 'Psych. It's an ad.'",
-      "expect": [{"action": "skip", "start": 543.6, "end": 596.3}]
+      "video": "dU7gCt-7kKk",
+      "creator": "fern",
+      "note": "Odoo read; asr spells the brand Udo/Udu. Start lands on 'Psych. It's an ad.' (9:03) or on 'Udu,' (9:17) depending on the refine range; both are inside the ad, so a start up to 15s late is accepted, never earlier.",
+      "expect": [
+        {
+          "action": "skip",
+          "start": 543.6,
+          "end": 596.3,
+          "start_late_ok": 15
+        },
+        {
+          "action": "show",
+          "category": "outro",
+          "start": 2789,
+          "end": 2795,
+          "tol": 3
+        }
+      ]
     },
     {
-      "video": "O7LvhSQ5Te4", "creator": "Johnny Harris", "note": "Incogni read with promo code; newpress.com selfpromo stays label-only",
-      "expect": [{"action": "skip", "start": 627.2, "end": 711.9}, {"action": "show", "start": 1793.3, "end": 1838.7, "tol": 3}]
+      "video": "O7LvhSQ5Te4",
+      "creator": "Johnny Harris",
+      "note": "Incogni read with promo code; newpress.com selfpromo stays label-only",
+      "expect": [
+        {
+          "action": "skip",
+          "start": 627.2,
+          "end": 711.9
+        },
+        {
+          "action": "show",
+          "start": 1793.3,
+          "end": 1838.7,
+          "tol": 3,
+          "category": "selfpromo"
+        }
+      ]
     },
     {
-      "video": "SOQynHuWPeI", "creator": "fern", "note": "Coddy read (code FERN20); VPN disclaimer 1:11-1:27 and Onavo 11:57-12:14 must not be marked",
-      "expect": [{"action": "skip", "start": 287.4, "end": 339.5}],
-      "forbid": [{"start": 71, "end": 87}, {"start": 717, "end": 734}]
+      "video": "SOQynHuWPeI",
+      "creator": "fern",
+      "note": "Coddy read (code FERN20); VPN disclaimer 1:11-1:27 and Onavo 11:57-12:14 must not be marked",
+      "expect": [
+        {
+          "action": "skip",
+          "start": 287.4,
+          "end": 339.5
+        }
+      ],
+      "forbid": [
+        {
+          "start": 71,
+          "end": 87
+        },
+        {
+          "start": 717,
+          "end": 734
+        }
+      ]
     },
     {
-      "video": "vGoRpjE-svI", "creator": "Hindi vlog", "note": "no sponsorship at all",
-      "must_not_skip": true
+      "video": "vGoRpjE-svI",
+      "creator": "Hindi vlog",
+      "note": "no sponsorship at all",
+      "must_not_skip": true,
+      "expect": [
+        {
+          "action": "show",
+          "category": "intro",
+          "start": 0,
+          "end": 15,
+          "tol": 2
+        }
+      ]
     },
     {
-      "video": "QVZHQ8Cmr70", "creator": "Sidemen", "note": "unverified; only asserts no skip until someone watches it",
-      "must_not_skip": true
+      "video": "QVZHQ8Cmr70",
+      "creator": "Sidemen",
+      "note": "unverified; only asserts no skip until someone watches it",
+      "must_not_skip": true,
+      "expect": [
+        {
+          "action": "show",
+          "category": "outro",
+          "start": 1178,
+          "end": 1187,
+          "tol": 3
+        },
+        {
+          "action": "show",
+          "category": "selfpromo",
+          "start": 1187,
+          "end": 1225,
+          "tol": 3
+        }
+      ]
     }
   ]
 }

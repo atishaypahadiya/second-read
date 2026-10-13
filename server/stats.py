@@ -194,7 +194,9 @@ def record_video(job, segments, versions):
 
 
 CODE_IN_TEXT_RE = re.compile(r"\b(?:promo |discount |coupon )?code[:\s]+([A-Z0-9]{3,20})\b", re.I)
-DOMAIN_IN_TEXT_RE = re.compile(r"\b((?:[a-z0-9-]+\.)+(?:com|net|org|io|co|deals|gg|ai|app|tv|me|ly|fm|shop|store|xyz|dev|to)(?:/[\w.-]+)?)\b", re.I)
+# linear-time form (no nested quantifier): label(.label)*.tld(/path)?
+DOMAIN_IN_TEXT_RE = re.compile(r"\b([a-z0-9-]{1,63}(?:\.[a-z0-9-]{1,63}){0,4}\.(?:com|net|org|io|co|deals|gg|ai|app|tv|me|ly|fm|shop|store|xyz|dev|to)(?:/[\w.-]{1,80})?)\b", re.I)
+MAX_SCAN_CHARS = 6000
 SPOKEN_DOMAIN_RE = re.compile(r"\b([a-z0-9-]{3,})\s+dot\s+(com|net|org|io|co|deals|gg|ai|app|tv)(?:\s+slash\s+([a-z0-9-]+))?\b", re.I)
 OFFER_IN_TEXT = [(r"(\d{1,3})\s*(?:%|percent) off", "percent off"), (r"free (?:trial|month|week|year)", "free trial"),
                  (r"(\d+)[- ]day(?:s)? (?:free|trial)", "free trial"), (r"money[- ]back guarantee", "guarantee"),
@@ -223,7 +225,7 @@ def record_codes(job, segments):
         if not d.lower().startswith(SOCIAL):
             found.append((brand_at(first_t), first_t, "link", d, "description"))
     for s in sponsor:
-        text = " ".join(l["text"] for l in lines if l["end"] > s["start"] and l["start"] < s["end"])
+        text = " ".join(l["text"] for l in lines if l["end"] > s["start"] and l["start"] < s["end"])[:MAX_SCAN_CHARS]
         b = s.get("brand_canonical") or s.get("brand") or ""
         for m in CODE_IN_TEXT_RE.finditer(text):
             found.append((b, s["start"], "code", m.group(1).upper(), "spoken"))
@@ -427,12 +429,41 @@ def compute():
         "position_hist": hist, "avg_ad_s": round(sum(s["seg_end"] - s["seg_start"] for s in sponsor) / len(sponsor), 1) if sponsor else 0,
     }
 
+    # per category
+    cats = {}
+    for s in segs:
+        key = s["category"] + ("/" + s["style"] if s["category"] == "sponsor" else "")
+        c = cats.setdefault(key, {"category": key, "spots": 0, "videos": set(), "len_s": 0.0, "skips": 0, "skipped_s": 0.0, "undos": 0, "seek_into": 0})
+        c["spots"] += 1
+        c["videos"].add(s["video_id"])
+        c["len_s"] += s["seg_end"] - s["seg_start"]
+    for e in events:
+        sg = seg_of(e)
+        if not sg:
+            continue
+        key = sg["category"] + ("/" + sg["style"] if sg["category"] == "sponsor" else "")
+        c = cats.get(key)
+        if not c:
+            continue
+        if e["kind"] == "skip":
+            c["skips"] += 1
+            c["skipped_s"] += e["saved_s"] or 0
+        elif e["kind"] == "undo":
+            c["undos"] += 1
+            c["skipped_s"] -= e["saved_s"] or 0
+        elif e["kind"] == "seek_into":
+            c["seek_into"] += 1
+    category_rows = sorted([{"category": c["category"], "spots": c["spots"], "videos": len(c["videos"]),
+                             "avg_len_s": round(c["len_s"] / c["spots"], 1), "total_s": round(c["len_s"]),
+                             "skips": c["skips"], "skipped_s": max(0.0, round(c["skipped_s"], 1)), "undos": c["undos"], "seek_into": c["seek_into"]}
+                            for c in cats.values()], key=lambda r: -r["spots"])
+
     shame = sorted([r for r in brand_rows if r["skips"] >= 1],
                    key=lambda r: -(r["skip_rate"] * r["avg_len_s"]))[:5]
     fame = sorted([r for r in brand_rows if r["integration_pct"] >= 50 or (r["spots"] >= 2 and r["skips"] == 0) or r["watch_through_pct"] >= 50],
                   key=lambda r: (-r["integration_pct"], -r["watch_through_pct"], r["skips"]))[:5]
     return {"generated_at": now(), "overall": overall, "brands": brand_rows, "creators": creator_rows,
-            "hall_of_shame": shame, "hall_of_fame": fame, "aliases": aliases}
+            "categories": category_rows, "hall_of_shame": shame, "hall_of_fame": fame, "aliases": aliases}
 
 
 # ---------------------------------------------------------------------------
@@ -489,6 +520,8 @@ function tiles(o){return `<div class="tiles">
 function hist(h){const m=Math.max(1,...h);return `<div class="bars">${h.map((n,i)=>`<div class="bar" style="height:${Math.round(100*n/m)}%" title="${n} ad(s) start in ${i*10}–${i*10+10}% of the video"><span>${n||''}</span></div>`).join('')}</div><div class="axis"><span>start of video</span><span>end of video</span></div>`}
 function brandsTable(rows){if(!rows.length)return '<div class="empty">No sponsor segments yet.</div>';return `<table><thead><tr><th>brand</th><th class="num">spots</th><th class="num">creators</th><th class="num">read / integr.</th><th class="num">skips</th><th class="num">skipped</th><th class="num">avg len</th><th class="num">watch-through</th><th class="num">wrong</th><th class="num">undisclosed?</th><th>top creators</th></tr></thead><tbody>${rows.map(r=>`<tr><td><b>${esc(r.brand)}</b>${r.raw_spellings.length&&r.raw_spellings.join('')!==r.brand?`<div class="raw">raw: ${esc(r.raw_spellings.join(', '))}</div>`:''}<div class="verdict">${esc(r.verdict)}</div></td><td class="num">${r.spots}</td><td class="num">${r.creators}</td><td class="num">${r.read_pct}% / ${r.integration_pct}%</td><td class="num">${r.skips}</td><td class="num">${dur(r.skipped_s)}</td><td class="num">${dur(r.avg_len_s)}</td><td class="num">${r.skips?r.watch_through_pct+'%':'–'}</td><td class="num">${r.wrong_skips||''}</td><td class="num">${r.undisclosed?`<span class="flag">${r.undisclosed}</span>`:''}</td><td>${r.top_creators.map(esc).join(', ')}</td></tr>`).join('')}</tbody></table>`}
 function creatorsTable(rows){if(!rows.length)return '<div class="empty">No creators yet.</div>';return `<table><thead><tr><th>creator</th><th class="num">videos</th><th class="num">with ads</th><th class="num">spots</th><th class="num">ad density</th><th class="num">ad time</th><th class="num">integrations</th><th>brands</th></tr></thead><tbody>${rows.map(r=>`<tr><td><b>${esc(r.creator)}</b></td><td class="num">${r.videos}</td><td class="num">${r.videos_with_ads_pct}%</td><td class="num">${r.spots}</td><td class="num">${r.ad_density==null?'–':r.ad_density+' s/min'}</td><td class="num">${dur(r.ad_s)}</td><td class="num">${r.integration_pct}%</td><td>${r.brands.map(b=>`<span class="pill">${esc(b)}</span>`).join(' ')}</td></tr>`).join('')}</tbody></table>`}
+const CAT_COLORS={'sponsor/read':'#e53935','sponsor/integration':'#43a047',affiliate:'#fb8c00',selfpromo:'#fdd835',membership:'#8e24aa',crosspromo:'#1e88e5',charity:'#ec407a',giveaway:'#00897b',interaction:'#9e9e9e',intro:'#4fc3f7',outro:'#4fc3f7',recap:'#b39ddb'};
+function categoriesTable(rows){if(!rows||!rows.length)return '<div class="empty">No segments yet.</div>';return `<table><thead><tr><th>category</th><th class="num">segments</th><th class="num">videos</th><th class="num">avg len</th><th class="num">total</th><th class="num">skips</th><th class="num">skipped</th><th class="num">undo / seek-in</th></tr></thead><tbody>${rows.map(r=>`<tr><td><span class="sw" style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${CAT_COLORS[r.category]||'#999'};margin-right:6px"></span><b>${esc(r.category)}</b></td><td class="num">${r.spots}</td><td class="num">${r.videos}</td><td class="num">${dur(r.avg_len_s)}</td><td class="num">${dur(r.total_s)}</td><td class="num">${r.skips}</td><td class="num">${dur(r.skipped_s)}</td><td class="num">${r.undos} / ${r.seek_into}</td></tr>`).join('')}</tbody></table>`}
 function hall(title,rows,fmt){return `<div class="hall"><h3>${title}</h3>${rows.length?`<ol>${rows.map(r=>`<li>${fmt(r)}</li>`).join('')}</ol>`:'<div class="sub">nothing yet</div>'}</div>`}
 function pctv(v){return v==null?'–':(v>=0?'+':'')+v+'%'}
 function timeline(a){const D=a.duration_s||Math.max(a.end,1);const px=(t)=>Math.max(0,Math.min(100,100*t/D));
@@ -528,7 +561,7 @@ $('#root').innerHTML=tab==='ads'?(d.ads.length?d.ads.map(adCard).join(''):'<div 
 function renderStats(d){return tiles(d.overall)+`<h2>Where ads sit in a video</h2>`+hist(d.overall.position_hist)+`<h2>Halls</h2><div class="halls">`+
 hall('💀 Hall of Shame',d.hall_of_shame,r=>`<b>${esc(r.brand)}</b> — skip rate ${Math.round(r.skip_rate*100)}%, avg read ${dur(r.avg_len_s)}, ${dur(r.skipped_s)} skipped`)+
 hall('🏆 Hall of Fame',d.hall_of_fame,r=>`<b>${esc(r.brand)}</b> — ${r.integration_pct}% integrations, watch-through ${r.watch_through_pct}%, ${r.skips} skip${r.skips==1?'':'s'}`)+
-`</div><h2>Brands</h2>`+brandsTable(d.brands)+`<h2>Creators</h2>`+creatorsTable(d.creators)+(d.aliases.length?`<h2>Brand aliases learned</h2><div class="sub">${d.aliases.map(a=>`${esc(a.alias)} → ${esc(a.brand)} (${esc(a.how)})`).join(' · ')}</div>`:'');}
+`</div><h2>By category</h2>`+categoriesTable(d.categories)+`<h2>Brands</h2>`+brandsTable(d.brands)+`<h2>Creators</h2>`+creatorsTable(d.creators)+(d.aliases.length?`<h2>Brand aliases learned</h2><div class="sub">${d.aliases.map(a=>`${esc(a.alias)} → ${esc(a.brand)} (${esc(a.how)})`).join(' · ')}</div>`:'');}
 function route(){const t=(location.hash||'#stats').slice(1);show(['stats','ads','insights'].includes(t)?t:'stats').catch(e=>{$('#sub').textContent='failed to load: '+e})}
 window.addEventListener('hashchange',route);route();
 </script></body></html>

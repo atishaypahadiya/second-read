@@ -74,16 +74,19 @@ def check(entry, segments):
         tol = e.get("tol", DEFAULT_TOL)
         hit = None
         for i, s in enumerate(segments):
-            if s["action"] == e["action"] and abs(s["start"] - e["start"]) <= tol and abs(s["end"] - e["end"]) <= tol:
+            # start may be later than expected by start_late_ok (a later start is the safe direction), never earlier
+            start_ok = -tol <= s["start"] - e["start"] <= tol + e.get("start_late_ok", 0)
+            if s["action"] == e["action"] and start_ok and abs(s["end"] - e["end"]) <= tol \
+                    and (not e.get("category") or s.get("category") == e["category"]):
                 hit = i
                 break
         if hit is not None:
             matched.add(hit)
-            out.append((True, f"{e['action']} {server.fmt_time(e['start'])}-{server.fmt_time(e['end'])} ok"))
+            out.append((True, f"{e['action']}{' ' + e['category'] if e.get('category') else ''} {server.fmt_time(e['start'])}-{server.fmt_time(e['end'])} ok"))
         else:
             near = [s for s in segments if s["action"] == e["action"] and s["start"] <= e["end"] and s["end"] >= e["start"]]
             detail = f"got {server.fmt_time(near[0]['start'])}-{server.fmt_time(near[0]['end'])} (off by {near[0]['start'] - e['start']:+.1f}s / {near[0]['end'] - e['end']:+.1f}s)" if near else "nothing there"
-            out.append((False, f"{e['action']} {server.fmt_time(e['start'])}-{server.fmt_time(e['end'])} MISSING: {detail}"))
+            out.append((False, f"{e['action']}{' ' + e['category'] if e.get('category') else ''} {server.fmt_time(e['start'])}-{server.fmt_time(e['end'])} MISSING: {detail}"))
     for i, s in enumerate(skips):
         idx = segments.index(s)
         if idx not in matched and not entry.get("must_not_skip"):

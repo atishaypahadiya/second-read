@@ -14,9 +14,21 @@
   pointer-events: auto;   /* so the title tooltip and click-to-seek work */
   cursor: pointer;
 }
-.ss-marker[data-action="skip"] { background: #e53935; }
-.ss-marker[data-action="keep"] { background: #43a047; }
-.ss-marker[data-action="show"] { background: #fdd835; }
+/* one color per category; a segment that will actually be skipped gets a brighter, taller stripe */
+.ss-marker[data-category="sponsor"]     { background: #e53935; }
+.ss-marker[data-category="integration"] { background: #43a047; }
+.ss-marker[data-category="affiliate"]   { background: #fb8c00; }
+.ss-marker[data-category="selfpromo"]   { background: #fdd835; }
+.ss-marker[data-category="membership"]  { background: #8e24aa; }
+.ss-marker[data-category="crosspromo"]  { background: #1e88e5; }
+.ss-marker[data-category="charity"]     { background: #ec407a; }
+.ss-marker[data-category="giveaway"]    { background: #00897b; }
+.ss-marker[data-category="interaction"] { background: #9e9e9e; }
+.ss-marker[data-category="intro"],
+.ss-marker[data-category="outro"]       { background: #4fc3f7; }
+.ss-marker[data-category="recap"]       { background: #b39ddb; }
+.ss-marker[data-action="show"] { opacity: 0.6; }
+.ss-marker[data-action="skip"] { opacity: 1; box-shadow: 0 0 0 1px rgba(255,255,255,.5) inset; }
 #movie_player.ad-showing .ss-markers { display: none; }  /* the bar shows the ad's timeline then */
 
 .ss-toast {
