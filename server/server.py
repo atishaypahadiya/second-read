@@ -1342,6 +1342,8 @@ def segment_context(video_id, seg):
 
 
 def record_feedback(data):
+    """Validate and append one report. A false_skip must carry the skipped segment; a missed_ad must carry the
+    playhead. Anything less is rejected, so the file never holds rows that cannot be acted on."""
     kind = str(data.get("kind") or "")
     if kind not in FEEDBACK_KINDS:
         return None, "bad kind"
@@ -1349,26 +1351,41 @@ def record_feedback(data):
     if not VIDEO_ID_RE.match(vid):
         return None, "bad video id"
     seg = data.get("segment") if isinstance(data.get("segment"), dict) else None
+    client_ctx = {}
     if seg:
         st, en = finite(seg.get("start")), finite(seg.get("end"))
-        if st is None or en is None or en < st or st < 0:
+        if st is None or en is None or en <= st or st < 0:
             seg = None
         else:
+            client_ctx = {"evidence": str(seg.get("evidence") or "")[:1000], "reason": str(seg.get("reason") or "")[:1000],
+                          "source": str(seg.get("source") or "")[:20],
+                          "line_start": finite(seg.get("line_start")), "line_end": finite(seg.get("line_end"))}
             seg = {"start": st, "end": en,
                    "category": str(seg.get("category") or "")[:20], "style": str(seg.get("style") or "")[:20],
-                   "brand": str(seg.get("brand") or "")[:80], "action": str(seg.get("action") or "")[:10],
+                   "brand": str(seg.get("brand") or "")[:80], "brand_canonical": str(seg.get("brand_canonical") or "")[:80],
+                   "action": str(seg.get("action") or "")[:10],
                    "confidence": max(0.0, min(1.0, finite(seg.get("confidence"), 0.0)))}
-    playhead = round(max(0.0, finite(data.get("playhead"), 0.0)), 2)
+    playhead = finite(data.get("playhead"))
+    if kind == "false_skip" and not seg:
+        return None, "false_skip needs the skipped segment (start < end)"
+    if playhead is None or playhead < 0:
+        return None, "playhead missing"
+    playhead = round(playhead, 2)
+    # What the pipeline said about this segment: the cached result first, the client's copy as a fallback.
+    ctx = {k: v for k, v in segment_context(vid, seg).items() if v not in (None, "")}
+    for k, v in client_ctx.items():
+        if v not in (None, "") and k not in ctx:
+            ctx[k] = v
     entry = {
         "ts": time.strftime("%Y-%m-%dT%H:%M:%S"), "kind": kind, "videoId": vid,
         "channelId": str(data.get("channelId") or "")[:40], "channelName": str(data.get("channelName") or "")[:100],
         "title": str(data.get("title") or "")[:200], "playhead": playhead, "segment": seg,
-        "context": segment_context(vid, seg), "versions": versions(), "model": MODEL,
+        "context": ctx, "versions": versions(), "model": MODEL,
     }
-    os.makedirs(CACHE_DIR, exist_ok=True)
+    os.makedirs(os.path.dirname(FEEDBACK_JSONL), exist_ok=True)
     with open(FEEDBACK_JSONL, "a", encoding="utf-8") as f:
         f.write(json.dumps(entry, ensure_ascii=False) + "\n")
-    where = f"{fmt_time(seg['start'])}-{fmt_time(seg['end'])} {seg['brand']!r}" if seg else f"at {fmt_time(playhead)}"
+    where = f"{fmt_time(seg['start'])}-{fmt_time(seg['end'])} {seg['brand']!r} (playhead {fmt_time(playhead)})" if seg else f"at {fmt_time(playhead)}"
     log(f"[{vid}] FEEDBACK {kind}: {where}")
     try:
         stats.record_event({"kind": kind, "videoId": vid, "channelId": entry["channelId"], "segment": seg,
@@ -1376,6 +1393,14 @@ def record_feedback(data):
     except Exception as e:  # noqa: BLE001
         log(f"stats: event failed: {e!r}")
     return entry, None
+
+
+def feedback_complete(e):
+    """Rows written before validation existed may lack what makes them usable."""
+    seg = e.get("segment")
+    if e.get("kind") == "false_skip":
+        return bool(seg) and finite(seg.get("start")) is not None and finite(seg.get("end")) is not None
+    return finite(e.get("playhead")) is not None
 
 
 def load_feedback():
@@ -1396,7 +1421,11 @@ def load_feedback():
 
 def feedback_report():
     """Summary table for tuning sessions."""
-    fb = load_feedback()
+    everything = load_feedback()
+    fb = [e for e in everything if feedback_complete(e)]
+    incomplete = len(everything) - len(fb)
+    if incomplete:
+        print(f"{incomplete} incomplete row(s) ignored (no segment / no playhead; written before validation)")
     if not fb:
         print(f"no feedback yet ({FEEDBACK_JSONL})")
         return
@@ -1405,8 +1434,8 @@ def feedback_report():
         by_kind[e["kind"]] = by_kind.get(e["kind"], 0) + 1
     print(f"{len(fb)} report(s): " + ", ".join(f"{k}={v}" for k, v in sorted(by_kind.items())))
     print()
-    print(f"{'when':16} {'kind':10} {'video':11} {'where':13} {'brand':14} {'conf':5} {'src':6} {'ver':7} evidence / reason")
-    print("-" * 120)
+    print(f"{'when':16} {'kind':10} {'video':11} {'where':13} {'at':>6} {'brand':14} {'conf':5} {'src':6} {'ver':7} evidence / reason")
+    print("-" * 128)
     for e in fb:
         seg, ctx = e.get("segment") or {}, e.get("context") or {}
         if seg and (finite(seg.get("start")) is None or finite(seg.get("end")) is None):
@@ -1414,7 +1443,8 @@ def feedback_report():
         where = f"{fmt_time(seg['start'])}-{fmt_time(seg['end'])}" if seg else f"@{fmt_time(finite(e.get('playhead'), 0.0))}"
         ver = "/".join(str(e.get("versions", {}).get(k, "?")) for k in ("detect", "refine", "post"))
         text = (ctx.get("evidence") or "")[:50] + (" | " + (ctx.get("reason") or "")[:60] if ctx.get("reason") else "")
-        print(f"{e['ts'][:16]:16} {e['kind']:10} {e['videoId']:11} {where:13} {(seg.get('brand') or '')[:14]:14} "
+        print(f"{e['ts'][:16]:16} {e['kind']:10} {e['videoId']:11} {where:13} {fmt_time(finite(e.get('playhead'), 0.0)):>6} "
+              f"{(seg.get('brand_canonical') or seg.get('brand') or '')[:14]:14} "
               f"{(('%.2f' % seg['confidence']) if seg else ''):5} {(ctx.get('source') or '')[:6]:6} {ver:7} {text}")
     print()
     videos = {}
@@ -1423,8 +1453,9 @@ def feedback_report():
     print("per video: " + ", ".join(f"{v} ({', '.join(sorted(set(k)))})" for v, k in videos.items()))
     brands = {}
     for e in fb:
-        if e.get("segment") and e["segment"].get("brand"):
-            brands[e["segment"]["brand"]] = brands.get(e["segment"]["brand"], 0) + 1
+        b = (e.get("segment") or {}).get("brand_canonical") or (e.get("segment") or {}).get("brand")
+        if e.get("kind") == "false_skip" and b:
+            brands[b] = brands.get(b, 0) + 1
     if brands:
         print("wrong skips by brand: " + ", ".join(f"{b}={n}" for b, n in sorted(brands.items(), key=lambda x: -x[1])))
 

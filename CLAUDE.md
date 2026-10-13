@@ -131,6 +131,11 @@ API:
 | GET | `/feedback` | — | `{count, recent}` |
 
 `python3 server/server.py --feedback-report` prints a summary table of the feedback file for tuning sessions.
+A `false_skip` without a valid segment, or any report without a playhead, is rejected with 400; the client sends
+the whole segment (times, brand, canonical brand, evidence, reason, source) plus the pre-skip playhead, and the
+server adds the cached pipeline context and versions. Rows that predate validation are ignored by the report.
+**Tests never write to `server/cache/`**: use `SS_DATA_DIR`, or redirect `FEEDBACK_JSONL` / `stats.DB_PATH` as
+`scripts/regress.py` does.
 
 ### Stats (server/stats.py, `server/cache/stats.local.db`, gitignored)
 - Tables: `videos` (id, channel, title, lang, duration, versions, hints), `segments` (every final segment with
