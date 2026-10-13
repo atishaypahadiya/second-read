@@ -226,8 +226,11 @@ function syncStats() {
     const lt = local.today && local.today.date === todayKey() ? local.today : {};
     const st = o.today || { skips: lt.skips || 0, undos: lt.undos || 0, saved_s: lt.saved || 0 };   // an older server has no "today"
     const next = {
-      today: { date: todayKey(), skips: st.skips, undos: st.undos, saved: st.saved_s, kept: lt.kept || 0 },
-      all: { skips: o.skips, undos: o.undos, saved: o.saved_s, kept: (local.all && local.all.kept) || 0 },
+      // integrations left playing: the server's count too (an older server does not have it: keep the local one)
+      today: { date: todayKey(), skips: st.skips, undos: st.undos, saved: st.saved_s,
+               kept: st.integrations_played !== undefined ? st.integrations_played : (lt.kept || 0) },
+      all: { skips: o.skips, undos: o.undos, saved: o.saved_s,
+             kept: o.integrations_played !== undefined ? o.integrations_played : ((local.all && local.all.kept) || 0) },
     };
     if (JSON.stringify(next) !== JSON.stringify({ today: local.today, all: local.all })) chrome.storage.local.set({ stats: next });   // repaints through onChanged
   });

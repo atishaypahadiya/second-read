@@ -95,6 +95,11 @@ def run_video(entry, allow_model):
     server.cache_valid = lambda *a, **k: False  # always re-process (reusing cached calls)
     server.jobs.clear()  # entries may share a video (with and without metadata)
     m = entry.get("meta") or {}
+    if m == "cached":   # the request metadata as the extension sent it, kept in the (gitignored) cache file
+        c = cached.get("meta") or {}
+        m = {"title": cached.get("title", ""), "creator": c.get("creator", ""), "kind": c.get("kind", ""),
+             "channelId": c.get("channelId", ""), "duration": c.get("duration"), "paidPromotion": c.get("paidPromotion"),
+             "description": c.get("description", "")}
     meta = {"creator": m.get("creator", entry.get("creator", "")), "kind": m.get("kind", ""), "tag": "REGRESS",
             "channel_id": m.get("channelId", ""), "duration": m.get("duration"),
             "paid_promotion": m.get("paidPromotion") if isinstance(m.get("paidPromotion"), bool) else None,
@@ -105,14 +110,19 @@ def run_video(entry, allow_model):
     job = server.start_or_get_job(vid, cached.get("lang", "en"), lines, m.get("title", cached.get("title", "")),
                                   meta, alines, m.get("analysisLang", "en") if alines else None, 0.0, m.get("description", ""))
     t0 = time.time()
+    history = []   # the skip starts as they were published, step by step
     while job["status"] not in ("done", "error"):
         server.touch(job)
         try:
             server.worker_step()
         except server.JobError as je:
             server.fail_job(je.job, je.cause)
+        starts = [s["start"] for s in job.get("segments", []) if s.get("action") == "skip"]
+        if starts and (not history or history[-1] != starts):
+            history.append(starts)
         if time.time() - t0 > 900:
             return None, "timeout"
+    job["published"] = history
     if job["status"] == "error":
         if not allow_model:
             return None, "a model output is missing or outdated in the cache; run the video through the server once, or pass --allow-model"
@@ -180,6 +190,24 @@ def check(entry, segments):
         idx = segments.index(s)
         if idx not in matched and not entry.get("must_not_skip"):
             out.append((False, f"UNEXPECTED skip {server.fmt_time(s['start'])}-{server.fmt_time(s['end'])} {s['brand']!r}"))
+    return out
+
+
+def check_published(entry, job):
+    """first_published: the start a skip had when it was first published. The lead-in check may move it earlier
+    afterwards, but it must never hold the skip back."""
+    out = []
+    if "first_published" in entry:
+        hist = job.get("published") or []
+        first, last = (hist[0][0], hist[-1][0]) if hist else (None, None)
+        ok = first is not None and abs(first - entry["first_published"]) <= 0.6 and len(hist) > 1 and last < first
+        out.append((ok, f"published at {server.fmt_time(first)} first, then moved to {server.fmt_time(last)}" if ok
+                    else f"publish order: {hist}, expected the skip out at {entry['first_published']} before its lead-in was added"))
+    return out
+
+
+def check_forbid(entry, segments):
+    out = []
     for fr in entry.get("forbid", []):
         bad = [s for s in segments if s["start"] < fr["end"] and s["end"] > fr["start"]]
         out.append((not bad, f"nothing at {server.fmt_time(fr['start'])}-{server.fmt_time(fr['end'])}" if not bad
@@ -254,6 +282,56 @@ def unit_checks():
        [labeled(story, paid=True), labeled(story, paid=False), labeled(story, paid=None)], [["keep"], [], []])
     eq("filter: skips and other categories are not touched by it",
        (labeled(story, style="read", action="skip", confidence=0.95), labeled(story, category="selfpromo", action="show")), (["skip"], ["show"]))
+    # ---- lead-in: the segue before a read is cut with it, by whole sentences, at most 8 s, and only on a clear answer
+    def spoken(start, end, text):   # a caption line with its words spread evenly (enough for sentence boundaries)
+        ws = text.split()
+        step = (end - start) / len(ws)
+        return {"start": start, "end": end, "text": text, "timed": True,
+                "words": [[round(start + i * step, 2), round(start + (i + 1) * step, 2), w] for i, w in enumerate(ws)]}
+    talk = server.clean_lines([
+        spoken(100.0, 106.0, "flying is safe and it lets you visit places across the globe. Look at"),
+        spoken(106.0, 112.0, "Lens, for example, one of our animators. Hey, I'm currently in China."),
+        spoken(112.0, 118.0, "When abroad, I always use Saylite to get an eSIM. It's a no-brainer."),
+        spoken(118.0, 150.0, "Use code FERNTV at checkout for a discount and thanks to Saylite for sponsoring.")])
+    when = talk[2]["words"][0][0]
+    eq("lead-in: the whole sentences before the cut, oldest first, none starting more than 8 s back",
+       [t for _, t in server.sentences_before(talk, when)],
+       ["Look at Lens, for example, one of our animators.", "Hey, I'm currently in China."])
+    eq("lead-in: a cut in mid-sentence offers the head of that sentence last",
+       [t for _, t in server.sentences_before(talk, talk[2]["words"][3][0])][-1], "When abroad, I")
+    real_chat = server.ollama_chat
+
+    def lead(answer):
+        seg = {"start": when, "end": 150.0, "action": "skip", "category": "sponsor", "style": "read", "brand": "Saylite"}
+        job = {"lines": talk, "alines": talk, "title": "t", "calls": server.CallCache(None), "final": [seg]}
+
+        def chat(*a, **k):
+            if isinstance(answer, Exception):
+                raise answer
+            return answer, {}
+        server.ollama_chat = chat
+        moved = server.check_leadin(job, seg)
+        return moved, seg["start"], (seg.get("lead_in") or {}).get("sentences")
+    look, hey = talk[0]["words"][-2][0], talk[1]["words"][7][0]
+    eq("lead-in: the earliest lead-in sentence becomes the start, whole sentences only",
+       [lead({"A": "lead-in", "B": "lead-in", "reason": "r"}), lead({"A": "content", "B": "lead-in", "reason": "r"})],
+       [(True, look, ["Look at Lens, for example, one of our animators.", "Hey, I'm currently in China."]),
+        (True, hey, ["Hey, I'm currently in China."])])
+    eq("lead-in: all content, content right before the ad, a missing or made-up verdict, a non-object, a failed or timed-out call: the start stays",
+       [lead({"A": "content", "B": "content", "reason": ""})[:2], lead({"A": "lead-in", "B": "content", "reason": ""})[:2],
+        lead({"B": "lead-in", "reason": ""})[:2], lead({"A": "lead-in", "B": "maybe", "reason": ""})[:2], lead(["A"])[:2],
+        lead(OSError("timed out"))[:2], lead(ValueError("not json"))[:2]], [(False, when)] * 7)
+    server.ollama_chat = real_chat
+    # the start phrase the refine call found is kept over the word pass's later pick, if it is at most one line earlier
+    chat_lines = server.clean_lines([
+        spoken(280.0, 288.6, "her award-winning documentary. Nice work, Mona. Thanks, Don. Do you actually know about today's"),
+        spoken(288.6, 296.0, "sponsor already? No, but I'm sure you'll tell me about it now. Displate hooked me up"),
+        spoken(296.0, 304.0, "with these amazing metal posters. They are magnet mounted and easy to hang.")])
+    ctx = server.boundary_words(chat_lines, 1, len(chat_lines))
+    at = lambda word: next(i for i, w in enumerate(ctx) if w[2] == word)
+    eq("start: refine's segue start is kept when it is in the line before the word pass's start; not from two lines back",
+       (server.prefer_start_anchor(chat_lines, 1, 2, ctx, at("today's"), at("Do")) == at("Do"),
+        server.prefer_start_anchor(chat_lines, 1, 2, ctx, at("They"), at("Do")) == at("They")), (True, True))
     # description hints: only sponsor lines count; the creator's own links, socials and name do not
     h = server.extract_hints("Learn to code with Coddy (ad): https://fern.deals/coddy")
     eq("hints: (ad) line -> brand + link", (h["brands"], h["domains"]), (["Coddy"], ["fern.deals/coddy"]))
@@ -285,9 +363,14 @@ def unit_checks():
     for i in range(2):
         spot(i, "Twicebrand")
     d = stats.compute()
+    stats.record_event({"kind": "integration_played", "videoId": "hallInt0000", "segment": {"start": 100.0, "end": 160.0}, "playhead": 160.2})
+    d = stats.compute()
+    eq("totals: an integration the viewer played through is counted, today and all-time",
+       (d["overall"].get("integrations_played"), d["overall"]["today"].get("integrations_played")), (1, 1))
     o = d["overall"]
     eq("totals: today's skips and seconds are the same definition as the all-time ones (every test event is from today)",
-       (o["today"], o["skips"] > 0), ({"skips": o["skips"], "undos": o["undos"], "saved_s": o["saved_s"]}, True))
+       (o["today"], o["skips"] > 0), ({"skips": o["skips"], "undos": o["undos"], "saved_s": o["saved_s"],
+                                         "integrations_played": o["integrations_played"]}, True))
     eq(f"halls: ranked only from {stats.HALL_MIN_SPOTS} spots",
        ([b["brand"] for b in d["hall_of_shame"]], [b["brand"] for b in d["hall_of_fame"]]), (["Thricebrand"], ["Integrated"]))
     # brands: a rule segment (recap/outro/intro/interaction) never gets one, not even the video's only hint
@@ -441,7 +524,7 @@ def main():
         results = unit_checks()
         bad = [m for ok, m in results if not ok]
         failures += 1 if bad else 0
-        rows.append(("rules", "server", "FAIL" if bad else "PASS", bad or [f"{len(results)} rule checks ok (cleaning, end snap, ad markers, hints, halls, brands, codes, tier-2 quotes, disclosure)"], time.time() - t0))
+        rows.append(("rules", "server", "FAIL" if bad else "PASS", bad or [f"{len(results)} rule checks ok (cleaning, end snap, lead-in, ad markers, hints, halls, brands, codes, tier-2 quotes, disclosure)"], time.time() - t0))
     for e in entries:
         t0 = time.time()
         label = e.get("id", e["video"])
@@ -449,7 +532,7 @@ def main():
         if err:
             rows.append((label, e.get("creator", ""), "SKIP", [f"not run: {err}"], time.time() - t0))
             continue
-        results = check(e, job["segments"]) + check_meta(e, job)
+        results = check(e, job["segments"]) + check_forbid(e, job["segments"]) + check_published(e, job) + check_meta(e, job)
         ok = all(r[0] for r in results)
         failures += 0 if ok else 1
         rows.append((label, e.get("creator", ""), "PASS" if ok else "FAIL", [m for _, m in results], time.time() - t0))

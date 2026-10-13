@@ -70,6 +70,9 @@ const pageReply = {
 const SEG = { start: 100, end: 150, category: 'sponsor', style: 'read', brand: 'Cody', brand_canonical: 'Coddy', action: 'skip',
               confidence: 0.95, evidence: 'use code FERN20 for 20% off', reason: 'promo code and call to action', source: 'detect',
               line_start: 99.5, line_end: 151.2 };
+// two sponsor integrations (server action 'keep'): one is played through, the viewer seeks out of the other
+const KEEP = { start: 400, end: 420, category: 'sponsor', style: 'integration', brand: 'Notion', action: 'keep', confidence: 0.9, evidence: 'sponsored by Notion' };
+const KEEP2 = { ...KEEP, start: 500, end: 520 };
 
 // ---------------------------------------------------------------------------- sandbox
 let fetched = null;
@@ -88,7 +91,7 @@ const bgSandbox = {
     fetchedRoutes.add(route);
     if (route === '/analyze' && init && init.method === 'POST') fetched = { url, init };
     if (posts[route] && init && init.method === 'POST') posts[route].push(JSON.parse(init.body));
-    return { ok: true, status: 200, json: async () => (route === '/analyze' ? { status: 'done', segments: [SEG] } : { ok: true }) };
+    return { ok: true, status: 200, json: async () => (route === '/analyze' ? { status: 'done', segments: [SEG, KEEP, KEEP2] } : { ok: true }) };
   },
   encodeURIComponent, JSON, URL,
 };
@@ -253,6 +256,15 @@ setTimeout(() => {
   check(!!undone && hasClass(undone, 'is-done'), 'marker went back to accent after the undo (the segment will not skip again, so it must stay quiet)');
   check(/· plays$/.test(tooltipTime(SEG) || ''), `tooltip after the undo: ${tooltipTime(SEG)}`);
 
+  // ---- a sponsor integration: reported once playback runs through its end, not when the viewer seeks out of it
+  for (const t of [KEEP.start + 5, KEEP.end - 0.2, KEEP.end + 0.3]) { fakeVideo.currentTime = t; videoHandlers.timeupdate(); }
+  check((((stored.stats || {}).all || {}).kept) === 1, `integrations left playing after one was played through: ${JSON.stringify((stored.stats || {}).all)}`);
+  fakeVideo.currentTime = KEEP2.start + 5; videoHandlers.timeupdate();
+  fakeVideo.currentTime = KEEP2.end + 60; if (videoHandlers.seeking) videoHandlers.seeking();   // the viewer seeks out of it
+  videoHandlers.timeupdate();
+  fakeVideo.currentTime = KEEP2.end + 0.3; if (videoHandlers.seeking) videoHandlers.seeking(); videoHandlers.timeupdate();
+  check((((stored.stats || {}).all || {}).kept) === 1, `an integration the viewer seeked out of was counted: ${JSON.stringify((stored.stats || {}).all)}`);
+
   // ---- popup "Missed an ad here" -> content.js -> POST /feedback
   fakeVideo.currentTime = 333.5;
   let missedReply = null;
@@ -273,6 +285,9 @@ setTimeout(() => {
     }
     const ma = posts['/feedback'].find((b) => b.kind === 'missed_ad');
     check(!!ma && ma.playhead === 333.5 && ma.videoId === VIDEO_ID, `missed_ad body = ${JSON.stringify(ma)}`);
+    const played = posts['/event'].filter((e) => e.kind === 'integration_played');
+    check(played.length === 1 && played[0].segment && played[0].segment.start === KEEP.start && Math.abs(played[0].playhead - (KEEP.end + 0.3)) < 1e-9,
+          `integration_played events: ${JSON.stringify(played)}`);
     const kinds = posts['/event'].map((e) => e.kind);
     check(kinds.includes('skip') && kinds.includes('undo'), `stats events sent: ${JSON.stringify(kinds)}, expected skip and undo`);
     const sk = posts['/event'].find((e) => e.kind === 'skip');

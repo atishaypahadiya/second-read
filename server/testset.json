@@ -24,7 +24,7 @@
     {
       "video": "O7LvhSQ5Te4",
       "creator": "Johnny Harris",
-      "note": "Incogni read with promo code; newpress.com selfpromo stays label-only",
+      "note": "Incogni read with promo code; newpress.com selfpromo stays label-only The sentence before the read ('...doing it ourselves becomes incredibly cumbersome because there's just so many data brokers.') states the problem the video is about: content, not lead-in (an earlier wording of the lead-in check cut it).",
       "expect": [
         {
           "action": "skip",
@@ -37,6 +37,12 @@
           "end": 1838.7,
           "tol": 3,
           "category": "selfpromo"
+        }
+      ],
+      "forbid": [
+        {
+          "start": 619.0,
+          "end": 626.5
         }
       ]
     },
@@ -293,6 +299,96 @@
       "expect_meta": {
         "disclosure": "unknown"
       }
+    },
+    {
+      "video": "uI8oJYmCaz0",
+      "creator": "fern",
+      "note": "Saylite read. Lead-in: the cut used to start at 2:06 ('When abroad, I always use Saylite'); the staged testimonial setup before it ('Look at Lens, for example, one of our 3D animators.' / 'Hey, I'm currently in China.') is cut with it. Replays the request as the extension sent it (meta: cached).",
+      "meta": "cached",
+      "expect": [
+        {
+          "action": "skip",
+          "start": 121.7,
+          "end": 169.0,
+          "tol": 1.0
+        }
+      ],
+      "first_published": 126.2
+    },
+    {
+      "video": "tdIUMkXxtHg",
+      "creator": "Howtown",
+      "note": "Headspace read. Lead-in: the cut used to start at 7:31 in the middle of 'So, it's a happy coincidence that the sponsor...'; it now starts at the aside that sets it up ('I've been moving between two different continents. So, it's ...'). 'I'm like distracted by the news.' before it stays. The cached transcript still has word times from before build 17.",
+      "meta": "cached",
+      "expect": [
+        {
+          "action": "skip",
+          "start": 447.6,
+          "end": 517.5,
+          "tol": 1.5
+        }
+      ],
+      "first_published": 451.6
+    },
+    {
+      "video": "5ZqolNRkxvM",
+      "creator": "fern",
+      "note": "Displate read. The refine call named the segue question as the start ('Do you actually know about today's sponsor already?') and the word pass then moved it to 'No,' at 4:49; the refine start is kept (4:47). The banter before it ('Nice work, Mona.' 'Thanks, Don.') stays.",
+      "meta": "cached",
+      "expect": [
+        {
+          "action": "skip",
+          "start": 287.4,
+          "end": 356.4,
+          "tol": 1.0
+        }
+      ],
+      "forbid": [
+        {
+          "start": 279.0,
+          "end": 286.0
+        }
+      ]
+    },
+    {
+      "video": "HauQtcj7UTM",
+      "creator": "fern",
+      "note": "Brilliant read. The sentence before the cut ('By late 2023, BMW had dropped the idea due to low customer interest.') is content: the lead-in check must leave the start at 9:40.",
+      "meta": "cached",
+      "expect": [
+        {
+          "action": "skip",
+          "start": 580.0,
+          "end": 632.7,
+          "tol": 0.6
+        }
+      ],
+      "forbid": [
+        {
+          "start": 572.0,
+          "end": 579.3
+        }
+      ]
+    },
+    {
+      "video": "it5G_rIan6g",
+      "creator": "Daniel Steiner",
+      "note": "Ground News read. What comes before the cut ('...the Kennedy Center, the reflecting pool, the big arch, you name it, he's probably trying to renovate it.') is content: the start must stay at 8:01.",
+      "meta": "cached",
+      "expect": [
+        {
+          "action": "skip",
+          "start": 481.1,
+          "end": 569.4,
+          "tol": 0.6
+        }
+      ],
+      "forbid": [
+        {
+          "start": 473.0,
+          "end": 480.4
+        }
+      ]
     }
   ]
 }
