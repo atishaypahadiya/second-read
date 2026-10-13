@@ -10,7 +10,10 @@ automatic rows live in `server/cache/results.local.md` (gitignored: it records w
 | O7LvhSQ5Te4 | Johnny Harris | en | asr | SKIP Incogni read ~10:27–11:52 with promo code; newpress.com selfpromo = SHOW | SKIP 10:27–11:51 Incogni (0.95); SHOW 29:53–30:38 newpress.com | ok | |
 | SOQynHuWPeI | fern | en | asr | SKIP Coddy read ~4:47–5:39 (code FERN20); NO marker for the VPN disclaimer 1:11 or Onavo 11:57 | SKIP 4:47–5:39 Cody (0.95); disclaimer + Onavo dropped by filter | ok | start snaps back to "You" |
 | vGoRpjE-svI | (Hindi vlog) | hi | asr | NOTHING to skip | none (prefilter: 0 windows sent) | ok | was a false skip (Adoni, 0.75) before the evidence gate + 0.85 threshold |
-| QVZHQ8Cmr70 | Sidemen | en | asr | (unverified) | SHOW 19:46–20:24 | | |
+| QVZHQ8Cmr70 | Sidemen | en | asr | (unverified) | outro 19:38–19:47 (rule), selfpromo 19:47–20:25 | | |
+
+Rule-based categories currently expected by `testset.json` (label-only, guard against regressions):
+fern dU7gCt-7kKk outro 46:29–46:35 ("byebye"); Hindi vlog intro 0:00–0:15 (no speech); Sidemen outro + selfpromo above.
 
 ## Speed (replayed transcripts, qwen3:14b, 24 GB M4 Pro)
 

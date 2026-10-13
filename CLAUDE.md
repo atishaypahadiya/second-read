@@ -126,7 +126,7 @@ API:
 - Brand normalization order: alias table → fuzzy match against the video's description hints (brands, domain
   labels/paths; ≥ 0.55, e.g. "Udo" → Odoo via fern.deals/odoo) → the single hint if there is only one → fuzzy
   against brands already in the DB (≥ 0.8) → raw spelling. Learned aliases are stored with how they were made.
-- `GET /stats.json` computes: per brand (spots, creators, read/integration %, skips, seconds skipped, avg length,
+- `GET /stats.json` computes: per category (segments, videos, avg/total length, skips, undo/seek-in), per brand (spots, creators, read/integration %, skips, seconds skipped, avg length,
   watch-through = undo + seek-into ÷ skips, wrong-skip flags, top creators, templated one-line verdict), per creator
   (ad density s/min, integration %, brands), overall (time saved, ads per video, % videos with a sponsor, 10-bin
   ad-position histogram), 💀 Hall of Shame (skip rate × avg read length), 🏆 Hall of Fame (integration % /
@@ -180,7 +180,8 @@ Every GET/POST for a video counts as a poll.
   sponsor cue (sponsor, brought to you, thanks to, special thanks to, use code, promo code, discount, % off, link in
   the description, .com/, check out, sign up, free trial, partnered with, in partnership with, supported by, made
   possible by, today's sponsor, head to, go to, visit, …) or a description hint. A skipped window that still names a
-  description-hint brand is logged as `POSSIBLE MISS`. Skipped windows could never yield a skip (the
+  description-hint brand is logged as `POSSIBLE MISS`. A second cue list (patreon, membership, merch, my course,
+  giveaway, donate, charity, affiliate, my other video, …) also sends windows for the non-sponsor categories. Skipped windows could never yield a skip (the
   evidence gate needs a verbatim cue). Log: `prefilter: X of Y windows sent`.
 - **Order:** the window containing the playhead first, then later windows, then earlier ones; within each group,
   windows matching description hints first. Segments are published after every window.
@@ -210,8 +211,12 @@ Every GET/POST for a video counts as a poll.
 - **Ollama call:** `/api/chat`, `stream: false`, `format: <JSON schema>`, `temperature: 0`, `num_ctx: 8192`,
   `think: false` for qwen3.
 - **Output schema:** `{"segments": [{start_line, end_line, category, style, brand, confidence, evidence, reason}]}`
-  - category: `sponsor | selfpromo | interaction`
-  - style: `read | integration`
+  - category (model): `sponsor | affiliate | selfpromo | membership | crosspromo | charity | giveaway`;
+    rule-based (no model call, `source: rule`): `interaction` (like/subscribe/bell/comment phrases), `intro` (no
+    speech for ≥ 4s at the start), `outro` (closing phrases in the final 60s), `recap` ("previously", "coming up",
+    "in this video we'll", …). Charity rule: a charity paying for the spot = sponsor; the creator's own fundraiser =
+    charity.
+  - style: `read | integration` (meaningful for sponsor)
 - **Rubric (system prompt):**
   - sponsor = any third-party brand; a creator-specific code or link is the standard sponsor pattern, not selfpromo.
     selfpromo = only things the creator owns. Disclaimers about sponsors and the video's own subject product are
@@ -238,11 +243,14 @@ Every GET/POST for a video counts as a poll.
     (still ad); else forward to the nearest sentence start, else the largest gap ≥ 0.25s, within 5s and inside
     the ad lines. End: if the sentence containing the last word ends inside the ad lines, extend to it; then end
     at the start of the largest gap ≥ 0.25s beginning within 1s. Original and snapped times are logged.
-  - Action: sponsor+read with confidence ≥ `SKIP_THRESHOLD` (0.85) → `skip`; sponsor+integration → `keep`;
-    low-confidence reads, selfpromo, interaction → `show`.
-  - **Evidence gate:** a `skip` must carry an `evidence` field that quotes a sponsor cue verbatim from the
-    segment's lines (±1 line) **and** the quote must itself contain a cue (same cue list as the prefilter, plus
-    description hints). Line labels/timestamps, quotes and ellipses are stripped from the evidence
+  - Action (server default): sponsor+read with confidence ≥ `SKIP_THRESHOLD` (0.85) → `skip`; sponsor+integration
+    → `keep`; every other category → `show` (label-only). The user re-maps each category to skip / label / off in
+    the popup; content.js applies it instantly. Charity never auto-skips unless the user sets it.
+  - **Evidence gate (every category):** each model-labeled segment must carry an `evidence` quote found verbatim
+    in its lines (±1 line); otherwise a sponsor skip is downgraded to `show` and any other segment is dropped. A
+    sponsor skip's quote must additionally contain a *sponsor* cue (prefilter sponsor cues + description hints; the
+    other-category cues such as patreon/merch/giveaway do not count). Chapter and rule segments are exempt (their
+    evidence is the chapter title / the matched phrase). Line labels/timestamps, quotes and ellipses are stripped from the evidence
     first; a full match (≥3 words) or any verbatim run of ≥6 words passes. Otherwise → downgraded to `show`.
   - Word pass fallback is inward only: invalid pick → retry once → start = end of first ad line, end = start of
     last ad line; if < 3s remains, downgrade to `show`. Never fall back outward to a line end.
@@ -260,7 +268,10 @@ Every GET/POST for a video counts as a poll.
 ### [8]–[9] Playback (content.js + content.css)
 - After POST, poll GET every 2s until `done`/`error`. Redraw markers on each update.
 - Video element: `video.html5-main-video`. Progress bar: `.ytp-progress-bar`.
-- Markers: absolutely positioned divs, left/width as % of duration; red = skip, green = keep, yellow = show.
+- Markers: absolutely positioned divs, left/width as % of duration; one color per category (legend in the popup):
+  sponsor read red, integration green, affiliate orange, selfpromo yellow, membership purple, crosspromo blue,
+  charity pink, giveaway teal, interaction grey, intro/outro light blue, recap lavender. Label-only markers are
+  dimmer; a marker that will skip is full strength.
   Tooltip shows category/style/brand/confidence/reason. Redraw on `loadedmetadata`.
 - On `timeupdate`: if inside a `skip` segment (before `end - 0.5`) not already handled → mark handled,
   set `video.currentTime = end`, show toast "Skipped <brand> read (m:ss) · Undo" for 6s.

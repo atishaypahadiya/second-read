@@ -66,3 +66,8 @@ body.disabled .card, body.disabled .status, body.disabled .video { opacity: .45;
 .codes .val { font-weight: 600; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
 .codes .ctx { grid-column: 1 / -1; font-size: 11px; color: var(--muted); }
 .codes .kind { font-size: 10px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin-right: 6px; }
+
+.cat { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+.cat .sw { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.cat .label { flex: 1; font-size: 12px; }
+.cat .seg button { padding: 2px 7px; font-size: 11px; }

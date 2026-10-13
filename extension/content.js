@@ -13,9 +13,13 @@
   // ---------------------------------------------------------------------------
   // Settings (chrome.storage.local, edited by the popup; applied here instantly)
   // ---------------------------------------------------------------------------
+  // Categories the server emits. Only sponsor reads skip by default; everything else is label-only. The user
+  // sets each to skip / label / off in the popup. Charity never auto-skips unless set explicitly.
+  const CATEGORIES = ['affiliate', 'selfpromo', 'membership', 'crosspromo', 'charity', 'giveaway', 'interaction', 'intro', 'outro', 'recap'];
   const DEFAULT_SETTINGS = {
     enabled: true,
-    actions: { sponsor_read: 'skip', selfpromo: 'show', interaction: 'show' },
+    actions: { sponsor_read: 'skip', affiliate: 'label', selfpromo: 'label', membership: 'label', crosspromo: 'label',
+               charity: 'label', giveaway: 'label', interaction: 'label', intro: 'label', outro: 'label', recap: 'label' },
     devMode: false,
     allowlist: {}, // channelId -> channel name; markers show, nothing skips
   };
@@ -24,6 +28,7 @@
   function mergeSettings(stored) {
     const s = { ...DEFAULT_SETTINGS, ...(stored || {}) };
     s.actions = { ...DEFAULT_SETTINGS.actions, ...((stored && stored.actions) || {}) };
+    for (const k of Object.keys(s.actions)) if (s.actions[k] === 'show') s.actions[k] = 'label'; // old value name
     s.allowlist = (stored && stored.allowlist) || {};
     return s;
   }
@@ -35,8 +40,9 @@
     if (seg.category === 'sponsor') {
       a = seg.style === 'integration' ? 'keep' : (seg.action === 'skip' ? settings.actions.sponsor_read : seg.action);
     } else {
-      a = settings.actions[seg.category] || 'show';
+      a = settings.actions[seg.category] || 'label';
     }
+    if (a === 'label') a = 'show';
     if (a === 'skip' && current && current.channelId && settings.allowlist[current.channelId]) a = 'show';
     return a;
   }
@@ -233,11 +239,12 @@
       const el = document.createElement('div');
       el.className = 'ss-marker';
       el.dataset.action = eff;
+      el.dataset.category = s.category === 'sponsor' ? (s.style === 'integration' ? 'integration' : 'sponsor') : s.category;
       el.style.left = `${(Math.max(0, s.start) / dur) * 100}%`;
       el.style.width = `${(Math.max(0, Math.min(dur, s.end) - Math.max(0, s.start)) / dur) * 100}%`;
       el.title = [
         `${eff.toUpperCase()}${eff !== s.action ? ` (server: ${s.action})` : ''} ${fmtTime(s.start)}–${fmtTime(s.end)}`,
-        `${s.category}/${s.style}${s.brand ? ` · ${s.brand}` : ''} · conf ${Number(s.confidence).toFixed(2)}`,
+        `${s.category}${s.category === 'sponsor' ? `/${s.style}` : ''}${s.brand ? ` · ${s.brand}` : ''} · conf ${Number(s.confidence).toFixed(2)}${s.source && s.source !== 'detect' ? ` · ${s.source}` : ''}`,
         s.evidence ? `evidence: ${s.evidence}` : '',
         s.reason || '',
       ].filter(Boolean).join('\n');
@@ -356,7 +363,9 @@
           log(`skipped ${s.brand || 'sponsor'} ${s.category === 'sponsor' ? 'read' : s.category} ${fmtTime(s.start)}-${fmtTime(s.end)} (from ${fmtTime(from)})`);
           recordSkip(saved);
           sendEvent('skip', s, { playhead: from, saved });
-          const what = s.category === 'sponsor' ? `${s.brand ? `${s.brand} ` : ''}read` : (s.category === 'selfpromo' ? 'self-promo' : 'like & subscribe');
+          const names = { affiliate: 'affiliate plug', selfpromo: 'self-promo', membership: 'membership ask', crosspromo: 'cross-promo',
+                          charity: 'donation appeal', giveaway: 'giveaway', interaction: 'like & subscribe', intro: 'intro', outro: 'outro', recap: 'recap' };
+          const what = s.category === 'sponsor' ? `${s.brand ? `${s.brand} ` : ''}read` : (names[s.category] || s.category);
           const undo = () => {
             const v = videoEl();
             if (!v) return;

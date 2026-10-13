@@ -64,9 +64,9 @@ KEEP_ALIVE = -1                                       # keep the model loaded be
 #   POST_VERSION    everything after the model: evidence gate, thresholds, snapping, merge, filters
 # A POST-only change re-processes a cached video from stored model outputs with zero Ollama calls.
 # Rubric changes in SYSTEM_PROMPT affect both passes: bump DETECT and REFINE.
-DETECT_VERSION = 2
-REFINE_VERSION = 2
-POST_VERSION = 1
+DETECT_VERSION = 3
+REFINE_VERSION = 3
+POST_VERSION = 2
 NUM_CTX = 8192
 LLM_TIMEOUT_S = 600
 MAX_BODY_BYTES = 8 * 1024 * 1024
@@ -195,6 +195,69 @@ def fmt_time(s):
     return f"{s // 60}:{s % 60:02d}"
 
 
+MODEL_CATEGORIES = ("sponsor", "affiliate", "selfpromo", "membership", "crosspromo", "charity", "giveaway")
+RULE_CATEGORIES = ("interaction", "intro", "outro", "recap")
+ALL_CATEGORIES = MODEL_CATEGORIES + RULE_CATEGORIES
+
+# Rule-based categories (no model call). Phrases are matched per line; the matched phrase is the evidence.
+INTERACTION_RE = re.compile(
+    r"\b(like (?:this video|the video|and subscribe)|(?:hit|smash|press|click) (?:that |the )?(?:like|subscribe|bell|thumbs)|"
+    r"subscribe (?:to|for|if|so)|leave a (?:like|comment|thumbs)|ring the bell|notification bell|turn on notifications|"
+    r"comment (?:below|down below)|let me know in the comments|drop a (?:like|comment)|give (?:this|it) a (?:like|thumbs))\b", re.I)
+OUTRO_RE = re.compile(
+    r"\b(thanks? (?:so much |you )?for watching|see you (?:guys |all )?(?:in the )?next (?:time|video|one)|until next time|"
+    r"that'?s (?:it|all) for (?:today|this video|now|this one)|i'?ll see you (?:guys |all )?(?:next|in the|soon)|catch you (?:next|later|in the)|"
+    r"peace out|take care|bye[- ]?bye|goodbye|stay safe)\b", re.I)
+RECAP_RE = re.compile(
+    r"\b(previously on|last time (?:we|i|you)|coming up|in this video (?:we'?ll|i'?ll|we'?re going to|i'?m going to|we will|i will)|"
+    r"today (?:we'?ll|i'?ll|we'?re going to|i'?m going to|we will|i will)|here'?s what'?s coming|in today'?s video|"
+    r"by the end of this video|quick recap|to recap)\b", re.I)
+OUTRO_WINDOW_S = 60.0     # outro phrases only count in the final minute
+INTRO_MIN_GAP_S = 4.0     # no speech at the start for at least this long -> intro segment
+RULE_MERGE_GAP_S = 10.0   # matched lines closer than this form one segment
+
+
+def rule_segments(job):
+    """interaction / intro / outro / recap from rules; label-only (action 'show'), source 'rule'."""
+    lines, alines = job["lines"], job["alines"]
+    duration = job.get("duration") or (lines[-1]["end"] if lines else 0)
+    out = []
+    if lines and lines[0]["start"] >= INTRO_MIN_GAP_S:
+        out.append({"start": 0.0, "end": round(lines[0]["start"], 2), "start_line": 0, "end_line": 0,
+                    "category": "intro", "style": "read", "brand": "", "confidence": 1.0,
+                    "evidence": f"no speech 0:00-{fmt_time(lines[0]['start'])}", "reason": "no spoken line before this point",
+                    "line_start": 0.0, "line_end": lines[0]["start"], "source": "rule", "action": "show"})
+    hits = {"interaction": [], "outro": [], "recap": []}
+    for i, l in enumerate(alines):
+        m = INTERACTION_RE.search(l["text"])
+        if m:
+            hits["interaction"].append((i, m.group(0)))
+        m = RECAP_RE.search(l["text"])
+        if m:
+            hits["recap"].append((i, m.group(0)))
+        if duration and l["end"] >= duration - OUTRO_WINDOW_S:
+            m = OUTRO_RE.search(l["text"])
+            if m:
+                hits["outro"].append((i, m.group(0)))
+    for cat, items in hits.items():
+        group = []
+        for i, phrase in items + [(None, None)]:
+            if i is not None and group and alines[i]["start"] - alines[group[-1][0]]["end"] <= RULE_MERGE_GAP_S:
+                group.append((i, phrase))
+                continue
+            if group:
+                a, b = group[0][0], group[-1][0]
+                out.append({"start": alines[a]["start"], "end": alines[b]["end"], "start_line": a, "end_line": b,
+                            "category": cat, "style": "read", "brand": "", "confidence": 1.0,
+                            "evidence": group[0][1], "reason": f"rule: {cat} phrase{'s' if len(group) > 1 else ''} "
+                            + ", ".join(sorted({g[1].lower() for g in group}))[:120],
+                            "line_start": alines[a]["start"], "line_end": alines[b]["end"], "source": "rule", "action": "show"})
+            group = [(i, phrase)] if i is not None else []
+    if cat_counts := {c: sum(1 for x in out if x["category"] == c) for c in RULE_CATEGORIES if any(x["category"] == c for x in out)}:
+        log(f"[{job['video_id']}] rules: {cat_counts}")
+    return out
+
+
 # Sponsor cues. A window with none of these (nor any description hint) is never sent to the model:
 # the evidence gate requires a verbatim cue, so such a window could never produce a skip anyway.
 CUE_PATTERNS = [
@@ -203,20 +266,34 @@ CUE_PATTERNS = [
     r"\.com/", r"\.com\b", r"check (?:them |it )?out", r"sign ?up", r"free trial", r"partner(?:ed|ing)? with",
     r"in partnership with", r"supported by", r"made possible by", r"today'?s sponsor", r"go to \w+", r"head (?:over )?to",
     r"\bvisit\b", r"today'?s video", r"this video is", r"first \d+ (?:people|months)",
+    r"it'?s an ad\b", r"this is an ad\b", r"an ad for\b", r"\bad break\b", r"try (?:it|them) (?:out )?(?:for )?free",
+    r"start your free", r"get started (?:for free|today)", r"free for life",
 ]
 CUE_RE = re.compile("|".join(CUE_PATTERNS), re.I)
+# Cues for the other model categories (affiliate, selfpromo, membership, crosspromo, charity, giveaway): they get
+# a window to the model, but they never count as evidence for a sponsor skip.
+OTHER_CUE_PATTERNS = [
+    r"patreon", r"membership", r"\bmembers?\b", r"join (?:the|my|our) channel", r"\bmerch\b", r"my (?:new )?(?:course|book|app|newsletter|podcast|game|album)",
+    r"giveaway", r"\bgive away\b", r"donat", r"fundrais", r"charity", r"affiliate", r"amazon (?:link|store|storefront)",
+    r"links? (?:below|in the description) (?:for|to)", r"my other (?:video|channel)", r"check out (?:my|their|his|her) (?:channel|video)",
+    r"friend'?s channel", r"\bcollab", r"go watch", r"our (?:store|shop)", r"\bshop\b", r"super ?thanks", r"ko-?fi", r"buy me a coffee",
+]
+OTHER_CUE_RE = re.compile("|".join(OTHER_CUE_PATTERNS), re.I)
 
 
-def window_cues(text, hint_terms):
-    """Matched cue strings in a window's text (built-in cues + description hints)."""
+def window_cues(text, hint_terms, sponsor_only=False):
+    """Matched cue strings in a window's text (built-in cues + description hints). With sponsor_only, only sponsor
+    cues and hints count (used for the sponsor-skip evidence gate)."""
     found = [m.group(0) for m in CUE_RE.finditer(text)]
+    if not sponsor_only:
+        found += [m.group(0) for m in OTHER_CUE_RE.finditer(text)]
     low = text.lower()
     found += [h for h in hint_terms if h.lower() in low]
     return found
 
 
 CODE_RE = re.compile(r"\bcode[:\s]+([A-Z0-9]{3,20})\b")
-DOMAIN_RE = re.compile(r"\b((?:[a-z0-9-]+\.)+(?:com|net|org|io|co|deals|gg|ai|app|tv|me|ly|fm|shop|store|xyz|dev|to)(?:/[\w.-]+)?)\b", re.I)
+DOMAIN_RE = re.compile(r"\b([a-z0-9-]{1,63}(?:\.[a-z0-9-]{1,63}){0,4}\.(?:com|net|org|io|co|deals|gg|ai|app|tv|me|ly|fm|shop|store|xyz|dev|to)(?:/[\w.-]{1,80})?)\b", re.I)
 AD_LINE_RE = re.compile(r"\(ad\)|\bsponsor|\bpartner|#ad\b|\bpaid promotion", re.I)
 CHAPTER_RE = re.compile(r"^\s*(?:\d+:)?\d{1,2}:\d{2}\s*[-–—:]?\s*(.+)$")
 STOPWORDS = {"the", "this", "video", "sponsored", "sponsor", "by", "thanks", "to", "for", "and", "with", "check", "out",
@@ -329,9 +406,17 @@ Categories:
   A creator-specific discount code ("code FERN20"), a creator-branded link ("fern.deals/x", "link in the
   description") or the creator saying they use the product does NOT make it selfpromo: that is the standard
   sponsor pattern. If the brand is not something the creator owns, it is sponsor.
-- selfpromo: ONLY things the creator owns: their own merch, Patreon/membership, their own course, app,
-  newsletter, podcast, other videos or channel.
-- interaction: asking to like, subscribe, comment, hit the bell.
+- affiliate: the creator pointing to affiliate/referral links for third-party products they are NOT being paid
+  to feature in the video ("links below are affiliate links", "my Amazon storefront", "if you buy through my link").
+- selfpromo: the creator's OWN products: merch, their own course, book, app, newsletter, podcast, game, their
+  shop.
+- membership: Patreon, channel membership, "join", Ko-fi, Super Thanks, Buy Me a Coffee: recurring support asks.
+- crosspromo: promoting other videos, playlists, the creator's other channels or a friend's/collaborator's channel.
+- charity: the creator's own fundraiser or donation appeal for a cause. RULE: if a charity or NGO is PAYING for the
+  spot (sponsored by a charity), that is sponsor, not charity.
+- giveaway: contests, giveaways, "enter to win".
+(interaction, intro, outro and recaps are handled by rules, do not label them.)
+Every segment of every category needs an evidence quote copied verbatim from the lines.
 
 Never label (return no segment for):
 - disclosures or disclaimers about sponsors ("VPN providers sometimes sponsor the channel but aren't
@@ -383,7 +468,7 @@ OUTPUT_SCHEMA = {
                 "properties": {
                     "start_line": {"type": "integer"},
                     "end_line": {"type": "integer"},
-                    "category": {"type": "string", "enum": ["sponsor", "selfpromo", "interaction"]},
+                    "category": {"type": "string", "enum": ["sponsor", "affiliate", "selfpromo", "membership", "crosspromo", "charity", "giveaway"]},
                     "style": {"type": "string", "enum": ["read", "integration"]},
                     "brand": {"type": "string"},
                     "confidence": {"type": "number"},
@@ -857,6 +942,8 @@ def ollama_available():
 # Post-processing
 # ---------------------------------------------------------------------------
 def action_for(seg):
+    """Server default: only sponsor reads skip; integrations keep; every other category is label-only ('show').
+    The user re-maps categories client-side (skip / label / off) without re-analysis."""
     if seg["category"] == "sponsor" and seg["style"] == "read" and seg["confidence"] >= SKIP_THRESHOLD:
         return "skip"
     if seg["category"] == "sponsor" and seg["style"] == "integration":
@@ -877,7 +964,7 @@ def to_segment(raw, lines, first, last):
     out = {
         "start": lines[s]["start"], "end": lines[e]["end"],
         "start_line": s, "end_line": e,
-        "category": raw.get("category") if raw.get("category") in ("sponsor", "selfpromo", "interaction") else "sponsor",
+        "category": raw.get("category") if raw.get("category") in MODEL_CATEGORIES else "sponsor",
         "style": raw.get("style") if raw.get("style") in ("read", "integration") else "read",
         "brand": scrub(str(raw.get("brand") or "")).strip()[:80],
         "confidence": conf,
@@ -944,21 +1031,40 @@ def evidence_found(seg, lines):
 
 
 def require_evidence(seg, lines):
-    """A skip needs verbatim sponsor evidence from the transcript; otherwise downgrade to show."""
-    if seg["action"] != "skip" or seg.get("source") == "chapter":
+    """Every model-labeled segment needs verbatim evidence from the transcript. A sponsor skip additionally needs
+    a sponsor cue in the quote; without it the skip is downgraded to show. Any other segment whose evidence is
+    missing or not verbatim is dropped (seg['action'] = 'drop'). Rule and chapter segments are exempt."""
+    if seg.get("source") in ("chapter", "rule"):
         return seg
     norm = " ".join(normalize_evidence(seg.get("evidence", "")))
     match = evidence_found(seg, lines)
     log(f"  evidence: raw={seg.get('evidence', '')!r}")
     log(f"            normalized={norm!r}")
-    cues = window_cues(seg.get("evidence", ""), seg.get("hint_terms", []))
-    if match and cues:
-        log(f"            {match}; cue(s): {cues[:4]}")
-        return seg
-    if match and not cues:
-        why = "evidence contains no sponsor cue"
-    else:
+    if not match:
         why = "no evidence given" if not seg.get("evidence") else "evidence not found verbatim in segment lines"
+        if seg["action"] == "skip":
+            log(f"  refine: downgraded skip -> show ({why})")
+            seg["action"] = "show"
+            seg["reason"] = f"[downgraded: {why}] " + seg["reason"]
+            return seg
+        log(f"  evidence: dropped {seg['category']} {fmt_time(seg['start'])}-{fmt_time(seg['end'])} ({why})")
+        seg["action"] = "drop"
+        return seg
+    if seg["action"] != "skip":
+        log(f"            {match}")
+        return seg
+    cues = window_cues(seg.get("evidence", ""), seg.get("hint_terms", []), sponsor_only=True)
+    if cues:
+        log(f"            {match}; cue(s) in quote: {cues[:4]}")
+        return seg
+    # The quote is verbatim but not itself a cue (the model quoted the pitch, not "it's an ad"): accept a sponsor
+    # cue anywhere in the segment's own lines instead.
+    seg_text = " ".join(lines[i]["text"] for i in range(seg["start_line"], seg["end_line"] + 1))
+    cues = window_cues(seg_text, seg.get("hint_terms", []), sponsor_only=True)
+    if cues:
+        log(f"            {match}; cue(s) in segment lines: {cues[:4]}")
+        return seg
+    why = "no sponsor cue in the quote or the segment"
     log(f"  refine: downgraded skip -> show ({why})")
     seg["action"] = "show"
     seg["reason"] = f"[downgraded: {why}] " + seg["reason"]
@@ -970,7 +1076,7 @@ def overlaps(a, b, gap=0.0):
 
 
 def same_brand(a, b):
-    return a["brand"].strip().lower() == b["brand"].strip().lower()
+    return a["brand"].strip().lower() == b["brand"].strip().lower() and a.get("category") == b.get("category")
 
 
 def merge_candidates(cands):
@@ -1045,6 +1151,8 @@ def refine_candidate(alines, lines, cand, lang, title, calls, header="", terms=(
         seg["hint_terms"] = list(terms)
         seg["line_start"], seg["line_end"] = seg["start"], seg["end"]
         require_evidence(seg, alines)
+        if seg["action"] == "drop":
+            continue
         o_s, o_e = map_to_original(seg, alines, lines)
         if alines is not lines:
             log(f"  map: analysis L{seg['start_line']}-L{seg['end_line']} -> original L{o_s}-L{o_e} "
@@ -1120,8 +1228,12 @@ def post_filter(segments, title, lines, verbose=True):
     say = log if verbose else (lambda *a: None)
     for s in segments:
         rng = f"{fmt_time(s['start'])}-{fmt_time(s['end'])}"
+        if s.get("source") == "rule":
+            out.append(s)
+            continue
         if s["action"] in ("keep", "show"):
-            text = f"{s.get('evidence', '')} {s.get('reason', '')}"
+            reason = re.sub(r"^\[downgraded:[^\]]*\]\s*", "", s.get("reason", ""))  # ignore our own annotations
+            text = f"{s.get('evidence', '')} {reason}"
             m = DISCLAIMER_RE.search(text)
             if m:
                 say(f"  filter: dropped {s['action']} {rng} {s['brand']!r}: reads like a disclaimer ({m.group(0)!r})")
@@ -1459,6 +1571,7 @@ def plan_job(job):
     chapter_segs = chapter_segments(job)
     if chapter_segs:
         job["final"].extend(chapter_segs)  # published below, once the plan exists (still before any model call)
+    job["final"].extend(rule_segments(job))
     hint_cands = hint_candidates(job)  # may drop too-common terms from job["terms"]
     terms = job["terms"]
     regions = [(c["start"] - HINT_REGION_PAD_S, c["end"] + HINT_REGION_PAD_S) for c in hint_cands]
@@ -1493,7 +1606,7 @@ def plan_job(job):
         f"order: {[('hint ' if u[0] == 'hint' else '') + fmt_time(alines[u[1]['start_line'] if u[0] == 'hint' else u[1]]['start']) for u in units]}")
     for c in hint_cands:
         log(f"[{job['video_id']}] hint region {fmt_time(c['start'])}-{fmt_time(c['end'])} ({c['reason']}) -> refine directly")
-    if chapter_segs:
+    if job["final"]:
         publish(job)
 
 
@@ -1531,7 +1644,12 @@ def run_window(job, first, last):
         if any(overlaps(cand, f) for f in final):
             continue  # already covered by another window
         if cand["category"] != "sponsor":
-            final.append(cand)  # selfpromo/interaction are 'show'; boundaries don't matter
+            cand["hint_terms"] = list(terms)
+            require_evidence(cand, alines)  # label-only categories still need a verbatim quote
+            cand.pop("hint_terms", None)
+            if cand["action"] != "drop":
+                cand["source"] = "detect"
+                final.append(cand)
             continue
         final.extend(refine_candidate(alines, lines, cand, lang, title, calls, header, terms))
 

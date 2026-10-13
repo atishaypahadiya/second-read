@@ -1,7 +1,20 @@
 // Sponsor Skipper — popup. Settings live in chrome.storage.local and are applied by content.js instantly.
+const CATS = [
+  ['sponsor_read', 'Sponsor reads', '#e53935', ['skip', 'label']],
+  ['affiliate', 'Affiliate links', '#fb8c00', ['skip', 'label', 'off']],
+  ['selfpromo', 'Self-promo', '#fdd835', ['skip', 'label', 'off']],
+  ['membership', 'Membership / Patreon', '#8e24aa', ['skip', 'label', 'off']],
+  ['crosspromo', 'Cross-promo', '#1e88e5', ['skip', 'label', 'off']],
+  ['charity', 'Charity appeals', '#ec407a', ['skip', 'label', 'off']],
+  ['giveaway', 'Giveaways', '#00897b', ['skip', 'label', 'off']],
+  ['interaction', 'Like & subscribe', '#9e9e9e', ['skip', 'label', 'off']],
+  ['intro', 'Intro', '#4fc3f7', ['skip', 'label', 'off']],
+  ['outro', 'Outro', '#4fc3f7', ['skip', 'label', 'off']],
+  ['recap', 'Recap / preview', '#b39ddb', ['skip', 'label', 'off']],
+];
 const DEFAULT_SETTINGS = {
   enabled: true,
-  actions: { sponsor_read: 'skip', selfpromo: 'show', interaction: 'show' },
+  actions: Object.fromEntries(CATS.map(([k]) => [k, k === 'sponsor_read' ? 'skip' : 'label'])),
   devMode: false,
   allowlist: {},
 };
@@ -14,6 +27,26 @@ function fmtDur(s) {
   s = Math.max(0, Math.round(s));
   const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
   return h ? `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}` : `${m}:${String(sec).padStart(2, '0')}`;
+}
+
+function buildCategoryRows() {
+  const box = $('catRows');
+  box.textContent = '';
+  for (const [key, label, color, opts] of CATS) {
+    const row = document.createElement('div'); row.className = 'cat';
+    const sw = document.createElement('span'); sw.className = 'sw'; sw.style.background = color;
+    const lb = document.createElement('span'); lb.className = 'label'; lb.textContent = label;
+    const seg = document.createElement('div'); seg.className = 'seg'; seg.dataset.key = key;
+    for (const o of opts) { const b = document.createElement('button'); b.dataset.value = o; b.textContent = o[0].toUpperCase() + o.slice(1); seg.appendChild(b); }
+    seg.addEventListener('click', (e) => {
+      const b = e.target.closest('button');
+      if (!b) return;
+      settings.actions[key] = b.dataset.value;
+      render(); save();
+    });
+    row.append(sw, lb, seg);
+    box.appendChild(row);
+  }
 }
 
 function render() {
@@ -145,6 +178,8 @@ async function init() {
   const stored = await chrome.storage.local.get('settings');
   settings = { ...DEFAULT_SETTINGS, ...(stored.settings || {}) };
   settings.actions = { ...DEFAULT_SETTINGS.actions, ...(settings.actions || {}) };
+  for (const k of Object.keys(settings.actions)) if (settings.actions[k] === 'show') settings.actions[k] = 'label';
+  buildCategoryRows();
   render();
   loadStats();
   checkServer();
@@ -153,14 +188,6 @@ async function init() {
 
   $('enabled').addEventListener('change', (e) => { settings.enabled = e.target.checked; render(); save(); });
   $('devMode').addEventListener('change', (e) => { settings.devMode = e.target.checked; save(); });
-  for (const seg of document.querySelectorAll('.seg')) {
-    seg.addEventListener('click', (e) => {
-      const b = e.target.closest('button');
-      if (!b) return;
-      settings.actions[seg.dataset.key] = b.dataset.value;
-      render(); save();
-    });
-  }
   $('missedBtn').addEventListener('click', () => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const tab = tabs && tabs[0];
