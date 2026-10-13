@@ -63,7 +63,8 @@
       for (const l of d.lines.slice(0, 5)) log(`  [${fmtTime(l.start)}-${fmtTime(l.end)}] ${l.text}`);
       current.lines = d.lines;
       current.lang = d.lang;
-      analyze(videoId, d.lang, d.lines);
+      current.title = typeof d.title === 'string' ? d.title.slice(0, 300) : '';
+      analyze(videoId, d.lang, d.lines, current.title);
     };
     window.addEventListener('message', onMessage);
     current.cleanups.push(() => window.removeEventListener('message', onMessage));
@@ -84,11 +85,11 @@
     });
   }
 
-  async function analyze(videoId, lang, lines) {
+  async function analyze(videoId, lang, lines, title) {
     const state = current;
     const alive = () => current === state && state.videoId === videoId;
     setBadge('analyzing', 'busy');
-    const res = await send({ type: 'analyze', videoId, lang, lines });
+    const res = await send({ type: 'analyze', videoId, lang, lines, title });
     if (!alive()) return;
     if (!res.ok) { log('server:', res.error); setBadge(res.error === 'server offline' ? 'server offline' : `server: ${res.error}`, 'error'); return; }
     handleJob(videoId, res);
