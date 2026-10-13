@@ -26,6 +26,10 @@ everything runs on Atishay's M4 Pro MacBook.
 - Keep each stage's change small and reviewable. Explain what you changed and how to test it.
 - After a stage passes: tick it in the checklist at the bottom and commit
   (`stage N: <summary>`).
+- **Before every commit run `python3 scripts/regress.py`.** It replays `server/testset.json` from cached transcripts
+  and cached model outputs (zero Ollama calls when versions match), checks expected segments within ±1.5s, asserts
+  must-not-skip videos have no skips and forbidden ranges stay empty, and prints a pass/fail table. After a prompt
+  change the cached outputs are outdated: run the videos through the real server once (or `--allow-model`).
 - If a decision in "Open decisions" comes up, ask; don't pick silently.
 
 ## Repo layout
@@ -45,11 +49,14 @@ sponsor-skipper/
 ├── scripts/
 │   ├── com.sponsor-skipper.server.plist   LaunchAgent template (install.sh fills in paths)
 │   ├── install.sh / uninstall.sh          launchctl bootstrap / bootout
+│   ├── regress.py       regression harness over server/testset.json (run before every commit)
+│   └── make_icons.py    generates extension/icons
 └── server/
     ├── server.py        localhost:8765, runs Qwen on the transcript, returns segments
     ├── stats.py         SQLite stats (segments + client events), brand normalization, /stats.json, /dashboard
     ├── intel.py         ad intelligence: tier-1 metrics at job end, idle-only tier-2 Qwen analysis, /ads.json
-    ├── testset.md       curated test videos, expectations, verdicts
+    ├── testset.md       curated test videos, expectations, verdicts (human-readable)
+    ├── testset.json     the same expectations for scripts/regress.py
     └── cache/           <videoId>.json results, results.local.md, feedback.local.jsonl, stats.local.db (all gitignored)
 ```
 
