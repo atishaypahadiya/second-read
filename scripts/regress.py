@@ -28,6 +28,7 @@ import time
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REAL_CACHE = os.path.join(ROOT, "server", "cache")  # read-only for the harness
 CALLS_STORE = os.path.join(ROOT, "server", "testset.calls.local.json")
+INPUTS_STORE = os.path.join(ROOT, "server", "testset.inputs.local.json")   # the transcripts the expectations were written for
 DATA_DIR = tempfile.mkdtemp(prefix="sr-regress-")
 os.environ["SR_DATA_DIR"] = DATA_DIR  # before the imports below: the server resolves every local path from it
 os.environ.pop("SS_DATA_DIR", None)
@@ -57,15 +58,32 @@ def seed_data_dir(video_ids):
     """Copy the videos' cache files into the temp data dir, with the harness's own stored model outputs merged in
     (a stored output replaces the copy's only when it was made under a newer or equal version)."""
     store = read_json(CALLS_STORE) or {}
+    # The test videos' transcripts are frozen the first time they are seen. YouTube does not always return the same
+    # captions for a video (vGoRpjE-svI came back with other line breaks hours later), and watching a test video
+    # again rewrites its cache file: the expectations must not move with that.
+    frozen = read_json(INPUTS_STORE) or {}
+    grew = False
     for vid in video_ids:
-        data = read_json(os.path.join(REAL_CACHE, f"{vid}.json"))
-        if not data:
+        live = read_json(os.path.join(REAL_CACHE, f"{vid}.json")) or {}
+        if vid not in frozen and live.get("transcript"):
+            frozen[vid] = {k: live.get(k) for k in ("transcript", "lang", "title", "meta")}
+            grew = True
+        if vid not in frozen:
             continue
-        calls = data.setdefault("calls", {})
+        data = {"videoId": vid, **frozen[vid], "model": server.MODEL, "versions": None, "segments": []}
+        data["hash"] = server.transcript_hash(server.clean_lines(data["transcript"]))
+        # the live file's model outputs belong to its own transcript; they are only of use if that is still this one
+        calls = dict(live.get("calls") or {}) if live.get("hash") == data["hash"] else {}
         for key, out in (store.get(vid) or {}).items():
             if key not in calls or (out.get("v") or 0) >= (calls[key].get("v") or 0):
                 calls[key] = out
+        data["calls"] = calls
         server.save_cache(vid, data)  # CACHE_DIR is the temp dir (checked in main)
+    if grew:
+        tmp = INPUTS_STORE + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(frozen, f, ensure_ascii=False)
+        os.replace(tmp, INPUTS_STORE)
     return store
 
 

@@ -39,6 +39,10 @@ everything runs on Atishay's M4 Pro MacBook.
   cache files are copied in, and nothing is written back to `server/cache/` (it used to overwrite those files,
   including their stored description). Model outputs it computes with `--allow-model` are kept in
   `server/testset.calls.local.json` (gitignored) and merged into the copies on the next run.
+  **The test transcripts are frozen** in `server/testset.inputs.local.json` (gitignored) the first time a test
+  video is seen: YouTube does not always return the same captions for a video, and re-watching a test video
+  rewrites its cache file, which moved an expectation once (`vGoRpjE-svI`, first line at 0:11 instead of 0:15).
+  Delete a video's entry from that file to re-freeze it from the cache.
 - If a decision in "Open decisions" comes up, ask; don't pick silently.
 
 ## Repo layout
