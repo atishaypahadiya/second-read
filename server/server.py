@@ -54,7 +54,7 @@ KEEP_ALIVE = -1                                       # keep the model loaded be
 # A POST-only change re-processes a cached video from stored model outputs with zero Ollama calls.
 # Rubric changes in SYSTEM_PROMPT affect both passes: bump DETECT and REFINE.
 DETECT_VERSION = 2
-REFINE_VERSION = 1
+REFINE_VERSION = 2
 POST_VERSION = 1
 NUM_CTX = 8192
 LLM_TIMEOUT_S = 600
@@ -75,6 +75,9 @@ SNAP_GAP_S = 0.25           # an inter-word gap this long counts as a pause
 SNAP_FORWARD_MAX_S = 5.0    # never move a start later than this to find a clean cut
 SNAP_END_WINDOW_S = 1.0     # look this far after the last ad word for a pause to end on
 TOPIC_MENTIONS = 3          # brand mentioned in this many lines outside the segment -> it's the subject
+HINT_CLUSTER_GAP_S = 120.0  # transcript mentions of a description hint closer than this form one region
+HINT_REGION_PAD_S = 60.0    # detect windows overlapping a hint region (+- this) are skipped: refine runs directly
+ANCHOR_CUE_WORDS = 25       # a start anchor is trusted only if a sponsor cue follows within this many words
 CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cache")
 RESULTS_MD = os.path.join(CACHE_DIR, "results.local.md")  # gitignored: it records which videos were watched
 VIDEO_ID_RE = re.compile(r"^[A-Za-z0-9_-]{11}$")
@@ -201,8 +204,10 @@ def extract_hints(description):
             for w in caps:
                 if w.lower() in STOPWORDS or w in hints["codes"]:
                     continue
-                if w == first_tok and len(line.split()) > 3:
-                    continue  # sentence-initial capital ("Learn to code with...") is usually not a brand
+                if w == first_tok and len(line.split()) > 3 and not re.match(rf"{re.escape(w)}\s*(\(ad\)|[:—–-])", line) \
+                        and w.lower() not in line.lower()[len(w):]:
+                    continue  # sentence-initial capital ("Learn to code with...") is usually not a brand;
+                    # but "Coddy (ad): ..." or "Odoo: odoo.com/x" keeps it
                 hints["brands"].append(w)
     for k in hints:
         seen = []
@@ -308,6 +313,10 @@ Rules:
   they use, or that they'll "go back tomorrow". Example of ordinary content that must NOT be labeled:
   "paid 2000 rupees to Sahil bhai at his shop, great guy, will come back tomorrow for the rest".
   A sponsor read is scripted and promotional: the brand pays the creator and the creator pitches it.
+- first_words: the first 3-5 words of the promotion, copied EXACTLY from the transcript (the words right where the
+  ad begins, e.g. "but first this video is"). last_words: the last 3-5 words of the promotion, copied exactly (e.g.
+  "for 20 percent off"). Words after last_words are normal content. Use "" if not applicable.
+- Keep evidence under 25 words and reason under 30 words.
 - evidence: quote VERBATIM (any language, copied exactly from the lines) the single strongest sponsor cue:
   "sponsored by" / "thanks to X for sponsoring", a promo or discount code, "link in the description" / a URL
   call-to-action, or a scripted product pitch with an offer. Quote the transcript words only: no line
@@ -330,8 +339,11 @@ OUTPUT_SCHEMA = {
                     "confidence": {"type": "number"},
                     "evidence": {"type": "string"},
                     "reason": {"type": "string"},
+                    "first_words": {"type": "string"},
+                    "last_words": {"type": "string"},
                 },
-                "required": ["start_line", "end_line", "category", "style", "brand", "confidence", "evidence", "reason"],
+                "required": ["start_line", "end_line", "category", "style", "brand", "confidence", "evidence", "reason",
+                             "first_words", "last_words"],
             },
         }
     },
@@ -632,6 +644,76 @@ def snap_end(lines, s_line, e_line, picked_end_t):
     return None, "no pause found; keeping pick"
 
 
+def find_phrase(words, phrase):
+    """Index range (i, j) of a verbatim phrase in a word list, if it occurs exactly once; else None."""
+    ph = normalize(phrase)
+    if len(ph) < 2:
+        return None
+    toks = [normalize(w[2]) for w in words]
+    flat, owner = [], []
+    for i, t in enumerate(toks):
+        flat.extend(t)
+        owner.extend([i] * len(t))
+    n = len(ph)
+    hits = [k for k in range(len(flat) - n + 1) if flat[k:k + n] == ph]
+    if len(hits) != 1:
+        return None
+    return owner[hits[0]], owner[hits[0] + n - 1]
+
+
+def apply_picks(lines, s_line, e_line, s_words, fw, e_words, lw, how):
+    """Turn word picks (indices into the boundary contexts, or None) into snapped times. Returns (start, end, sure)."""
+    ok_s, ok_e = fw is not None, lw is not None
+    inward_start, inward_end = lines[s_line]["end"], lines[e_line]["start"]
+    start = s_words[fw][0] if ok_s else inward_start
+    end = (e_words[lw][1] - END_INSET_S) if ok_e else inward_end
+    log(f"    start: {describe_boundary('S', s_words, fw, ok_s, lines, s_line)} -> {start:.2f}"
+        f"{'' if ok_s else ' (INWARD FALLBACK: end of first ad line)'} [{how}]")
+    log(f"    end:   {describe_boundary('E', e_words, lw, ok_e, lines, e_line)} -> {end:.2f}"
+        f"{' (inset %.1fs)' % END_INSET_S if ok_e else ' (INWARD FALLBACK: start of last ad line)'} [{how}]")
+    if ok_s:
+        snapped, note = snap_start(lines, s_line, e_line, start)
+        log(f"    snap start: {start:.2f} -> {snapped:.2f} ({note})")
+        start = snapped
+    if ok_e:
+        snapped, note = snap_end(lines, s_line, e_line, e_words[lw][1])
+        if snapped is not None:
+            log(f"    snap end:   {end:.2f} -> {snapped:.2f} ({note})")
+            end = snapped
+        else:
+            log(f"    snap end:   kept {end:.2f} ({note})")
+    sure = ok_s and ok_e
+    if end <= start:
+        log("    end <= start after word picks; using inward line fallback")
+        start, end, sure = inward_start, inward_end, False
+    return round(start, 2), round(max(start, end), 2), sure
+
+
+def anchor_words(lines, s_line, e_line, seg):
+    """Merged path: locate the refine call's first_words / last_words in the boundary contexts.
+    Returns (start, end, sure) or None if either anchor is missing or ambiguous (caller runs the word pass)."""
+    n = len(lines)
+    s_words, e_words = boundary_words(lines, s_line, n), boundary_words(lines, e_line, n)
+    a = find_phrase(s_words, seg.get("first_words", ""))
+    b = find_phrase(e_words, seg.get("last_words", ""))
+    log(f"  anchors L{s_line}/L{e_line}: first_words={seg.get('first_words', '')!r} -> "
+        f"{'S%d' % a[0] if a else 'no unique match'}; last_words={seg.get('last_words', '')!r} -> "
+        f"{'E%d' % b[1] if b else 'no unique match'}")
+    if a:
+        # A start that is too early skips real content, so the anchor must be followed quickly by a sponsor cue
+        # (or a description hint). The refine call once anchored on a content sentence two lines before the ad.
+        opener = " ".join(w[2] for w in s_words[a[0]:a[0] + ANCHOR_CUE_WORDS])
+        cues = window_cues(opener, seg.get("hint_terms", []))
+        if not cues:
+            log(f"  anchors: start rejected, no sponsor cue within {ANCHOR_CUE_WORDS} words of {s_words[a[0]][2]!r}")
+            a = None
+        else:
+            log(f"  anchors: start accepted, cue(s) {cues[:3]} follow {s_words[a[0]][2]!r}")
+    if not a or not b:
+        return None
+    return apply_picks(lines, s_line, e_line, s_words, a[0], e_words, b[1], "anchors from refine call")
+
+
 def refine_words(lines, s_line, e_line, seg, calls):
     """Pass 2b: word-level boundaries. Returns (start, end, sure).
     Invalid picks are retried once, then fall back INWARD only: start -> end of the first ad line,
@@ -674,36 +756,13 @@ def refine_words(lines, s_line, e_line, seg, calls):
     if result:
         fw, rule_s = resolve_pick(result.get("first"), result.get("first_word"), s_words, "S")
         lw, rule_e = resolve_pick(result.get("last"), result.get("last_word"), e_words, "E")
-        ok_s, ok_e = fw is not None, lw is not None
         log(f"  words   L{s_line}/L{e_line}: answer first={result.get('first')!r}/{result.get('first_word')!r} "
             f"last={result.get('last')!r}/{result.get('last_word')!r} -> start rule: {rule_s}; end rule: {rule_e}"
             f"{' (REUSED from cache)' if reused else ''}")
-
-    start = s_words[fw][0] if ok_s else inward_start
-    end = (e_words[lw][1] - END_INSET_S) if ok_e else inward_end
     log(f"  words   L{s_line}/L{e_line} in {time.time() - t0:.1f}s")
-    log(f"    start: {describe_boundary('S', s_words, fw, ok_s, lines, s_line)} -> {start:.2f}"
-        f"{'' if ok_s else ' (INWARD FALLBACK: end of first ad line)'}")
-    log(f"    end:   {describe_boundary('E', e_words, lw, ok_e, lines, e_line)} -> {end:.2f}"
-        f"{' (inset %.1fs)' % END_INSET_S if ok_e else ' (INWARD FALLBACK: start of last ad line)'}")
-    if ok_s:
-        snapped, note = snap_start(lines, s_line, e_line, start)
-        log(f"    snap start: {start:.2f} -> {snapped:.2f} ({note})")
-        start = snapped
-    if ok_e:
-        snapped, note = snap_end(lines, s_line, e_line, e_words[lw][1])
-        if snapped is not None:
-            log(f"    snap end:   {end:.2f} -> {snapped:.2f} ({note})")
-            end = snapped
-        else:
-            log(f"    snap end:   kept {end:.2f} ({note})")
     log(f"    S ctx: {start_ctx}")
     log(f"    E ctx: {end_ctx}")
-    sure = ok_s and ok_e
-    if end <= start:
-        log("    end <= start after word picks; using inward line fallback")
-        start, end, sure = inward_start, inward_end, False
-    return round(start, 2), round(max(start, end), 2), sure
+    return apply_picks(lines, s_line, e_line, s_words, fw, e_words, lw, "labeled word pass")
 
 
 def ollama_available():
@@ -745,6 +804,8 @@ def to_segment(raw, lines, first, last):
         "confidence": conf,
         "evidence": str(raw.get("evidence") or "").strip(),
         "reason": str(raw.get("reason") or "").strip(),
+        "first_words": str(raw.get("first_words") or "").strip(),
+        "last_words": str(raw.get("last_words") or "").strip(),
     }
     out["action"] = action_for(out)
     return out
@@ -868,7 +929,8 @@ def merge_segments(segs):
 
 
 def public_segment(seg):
-    keys = ("start", "end", "category", "style", "brand", "confidence", "evidence", "reason", "action", "line_start", "line_end")
+    keys = ("start", "end", "category", "style", "brand", "confidence", "evidence", "reason", "action", "line_start", "line_end",
+            "source")
     return {k: seg[k] for k in keys if k in seg}
 
 
@@ -909,7 +971,11 @@ def refine_candidate(alines, lines, cand, lang, title, calls, header="", terms=(
             log(f"  map: analysis L{seg['start_line']}-L{seg['end_line']} -> original L{o_s}-L{o_e} "
                 f"({fmt_time(lines[o_s]['start'])}-{fmt_time(lines[o_e]['end'])})")
         if seg["action"] == "skip":
-            start, end, sure = refine_words(lines, o_s, o_e, seg, calls)
+            picked = anchor_words(lines, o_s, o_e, seg) if alines is lines else None
+            if picked is None:
+                log("  anchors unresolved; running the labeled word pass")
+                picked = refine_words(lines, o_s, o_e, seg, calls)
+            start, end, sure = picked
             if not sure and end - start < MIN_SKIP_S:
                 log(f"  refine: boundaries uncertain and only {end - start:.1f}s left after inward fallback -> show")
                 seg["action"] = "show"
@@ -917,6 +983,7 @@ def refine_candidate(alines, lines, cand, lang, title, calls, header="", terms=(
             else:
                 seg["start"], seg["end"] = start, end
         seg.pop("hint_terms", None)
+        seg["source"] = cand.get("source", "detect")
         refined.append(seg)
     if not refined:
         log(f"  refine: candidate {fmt_time(cand['start'])}-{fmt_time(cand['end'])} {cand['brand']!r} withdrawn by model")
@@ -1113,13 +1180,54 @@ def order_windows(wins, alines, position, terms):
     return sorted(wins, key=key)
 
 
+def hint_candidates(job):
+    """Fast path: description hints (brand/code/domain) that the transcript mentions. Mentions closer than
+    HINT_CLUSTER_GAP_S form one region, which goes straight to refine (no pass-1 detect)."""
+    alines, terms, hints = job["alines"], job["terms"], job["hints"]
+    if not terms:
+        return []
+    hits = []  # (line index, term)
+    for i, l in enumerate(alines):
+        low = " " + " ".join(normalize(l["text"])) + " "
+        for t in terms:
+            tn = " ".join(normalize(t))
+            if len(tn) >= 4 and f" {tn} " in low:
+                hits.append((i, t))
+                break
+    cands = []
+    for i, t in hits:
+        if cands and alines[i]["start"] - alines[cands[-1]["end_line"]]["end"] <= HINT_CLUSTER_GAP_S:
+            c = cands[-1]
+            c["end_line"] = i
+            c["end"] = alines[i]["end"]
+            c["terms"].append(t)
+        else:
+            cands.append({"start_line": i, "end_line": i, "start": alines[i]["start"], "end": alines[i]["end"], "terms": [t]})
+    out = []
+    for c in cands:
+        brand = next((t for t in c["terms"] if t in hints["brands"]), None) or \
+                next((t for t in c["terms"] if t not in hints["codes"]), c["terms"][0])
+        out.append({"start_line": c["start_line"], "end_line": c["end_line"], "start": c["start"], "end": c["end"],
+                    "category": "sponsor", "style": "read", "brand": brand, "confidence": 0.0,
+                    "evidence": "", "reason": f"description hint(s) {sorted(set(c['terms']))} mentioned in transcript",
+                    "action": "show", "source": "hint"})
+    return out
+
+
 def plan_job(job):
-    """Build the ordered list of windows to run (prefiltered), done once per job."""
+    """Build the ordered list of units to run, done once per job: hint regions first (straight to refine),
+    then prefiltered detect windows in playhead order."""
     alines, position, terms = job["alines"], job.get("position", 0.0), job["terms"]
     wins = windows(alines)
-    sent = []
+    hint_cands = hint_candidates(job)
+    regions = [(c["start"] - HINT_REGION_PAD_S, c["end"] + HINT_REGION_PAD_S) for c in hint_cands]
+    sent, covered = [], 0
     brand_terms_only = [t for t in terms if t in job["hints"]["brands"]]
     for first, last in wins:
+        w_start, w_end = alines[first]["start"], alines[last]["end"]
+        if any(w_start < hi and w_end > lo for lo, hi in regions):
+            covered += 1
+            continue  # a hint region covers it: refine runs there directly
         text = " ".join(alines[i]["text"] for i in range(first, last + 1))
         if window_cues(text, terms):
             sent.append((first, last))
@@ -1129,13 +1237,28 @@ def plan_job(job):
             if named:  # can't happen while brands are cue terms, but guards future cue-list changes
                 log(f"[{job['video_id']}] prefilter: POSSIBLE MISS, skipped window "
                     f"{fmt_time(alines[first]['start'])}-{fmt_time(alines[last]['end'])} mentions hint brand {named}")
+    units = [("hint", c) for c in hint_cands] + [("win", f, l) for f, l in order_windows(sent, alines, position, terms)]
     with jobs_lock:
         job["n_windows"] = len(wins)
-        job["n_sent"] = len(sent)
-        job["pending"] = order_windows(sent, alines, position, terms)
+        job["n_sent"] = len(units)
+        job["pending"] = units
     log(f"[{job['video_id']}] prefilter: {len(sent)} of {len(wins)} windows sent"
+        f"{f', {covered} covered by {len(hint_cands)} hint region(s)' if hint_cands else ''}"
         f"{'; hints: ' + ', '.join(terms[:8]) if terms else ''}; playhead {fmt_time(position)}; "
-        f"order: {[fmt_time(alines[f]['start']) for f, _ in job['pending']]}")
+        f"order: {[('hint ' if u[0] == 'hint' else '') + fmt_time(alines[u[1]['start_line'] if u[0] == 'hint' else u[1]]['start']) for u in units]}")
+    for c in hint_cands:
+        log(f"[{job['video_id']}] hint region {fmt_time(c['start'])}-{fmt_time(c['end'])} ({c['reason']}) -> refine directly")
+
+
+def run_unit(job, unit):
+    if unit[0] == "hint":
+        cand = unit[1]
+        if any(overlaps(cand, f) for f in job["final"]):
+            return
+        job["final"].extend(refine_candidate(job["alines"], job["lines"], cand, job["alang"], job["title"],
+                                             job["calls"], job["header"], job["terms"]))
+        return
+    run_window(job, unit[1], unit[2])
 
 
 def run_window(job, first, last):
@@ -1233,7 +1356,7 @@ def pick_job():
         if not watched:
             if not job.get("paused"):
                 job["paused"] = True
-                left = f"{len(job['pending'])} window(s) left" if job["pending"] is not None else "not started"
+                left = f"{len(job['pending'])} unit(s) left" if job["pending"] is not None else "not started"
                 log(f"[{job['video_id']}] paused (not polled for {PAUSE_AFTER_S:.0f}s); {left}, partial results cached")
             continue
         if best is None or job["last_poll"] > best["last_poll"]:
@@ -1263,7 +1386,7 @@ def worker_step():
             finish_job(job)
         else:
             t0 = time.time()
-            run_window(job, *unit)
+            run_unit(job, unit)
             job["work_s"] += time.time() - t0
             publish(job)
             save_partial(job)
