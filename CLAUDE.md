@@ -179,7 +179,8 @@ Every GET/POST for a video counts as a poll.
 - Log every final segment to the terminal: action, refined time range, line-level range, category/style, brand,
   confidence, reason. Also log each detect/refine/words call with its timing, the prefilter summary, pause/resume/
   evict events, and per job: wall time, working time, Ollama calls, time-to-first-skip. Each finished job appends
-  a row to `results.md` (verdict column left blank for a human).
+  a row to `server/cache/results.local.md` (gitignored: viewing history). The curated test set with expectations
+  and verdicts is `server/testset.md`.
 
 ### [8]–[9] Playback (content.js + content.css)
 - After POST, poll GET every 2s until `done`/`error`. Redraw markers on each update.
