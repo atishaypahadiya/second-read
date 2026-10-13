@@ -51,7 +51,8 @@
         log('captions: ignored malformed reply');
         return;
       }
-      log(`captions: ${d.lines.length} lines, lang=${d.lang}, kind=${d.kind}, path=${d.path}`);
+      const timed = d.lines.filter((l) => l.timed).length;
+      log(`captions: ${d.lines.length} lines (${timed} with word timing), lang=${d.lang}, kind=${d.kind}, path=${d.path}`);
       for (const l of d.lines.slice(0, 5)) log(`  [${fmtTime(l.start)}-${fmtTime(l.end)}] ${l.text}`);
       current.lines = d.lines;
       current.lang = d.lang;
@@ -115,7 +116,13 @@
     if (!Array.isArray(lines) || lines.length === 0 || lines.length > MAX_LINES) return false;
     return lines.every((l) => l && typeof l === 'object' &&
       Number.isFinite(l.start) && Number.isFinite(l.end) && l.start >= 0 && l.end >= l.start &&
-      typeof l.text === 'string' && l.text.length > 0 && l.text.length <= 2000);
+      typeof l.text === 'string' && l.text.length > 0 && l.text.length <= 2000 &&
+      (l.words === undefined || validWords(l.words)) && (l.timed === undefined || typeof l.timed === 'boolean'));
+  }
+  function validWords(words) {
+    return Array.isArray(words) && words.length <= 400 && words.every((w) =>
+      Array.isArray(w) && w.length === 3 && Number.isFinite(w[0]) && Number.isFinite(w[1]) &&
+      w[1] >= w[0] && typeof w[2] === 'string' && w[2].length <= 200);
   }
 
   function fmtTime(s) {
