@@ -74,7 +74,7 @@
   }
 
   function setup(videoId) {
-    current = { videoId, cleanups: [], segments: [], handled: new Set() };
+    current = { videoId, cleanups: [], segments: [], handled: new Set(), outcome: new Map(), markerEls: new Map() };
     log('video', videoId);
     if (!settings.enabled) { log('disabled in popup; not analyzing'); return; }
     setBadge('reading captions', 'reading');
@@ -294,6 +294,15 @@
 
   // --- marker lane: its own 4px strip above YouTube's bar (.sr-lane), one .sr-marker per segment.
   // Meaning is shape + colour: skip = filled accent, keep (integration) = outline, show (label) = dim, low = hatched.
+  // A skip segment that has been dealt with (skipped, undone, or seeked into by hand) will not skip again in this
+  // page view. Its marker goes quiet, so the accent only ever means "this will skip" (DESIGN.md, Marker lane).
+  // how: 'skipped' | 'plays'
+  function settleMarker(state, s, how) {
+    state.outcome.set(segKey(s), how);
+    const m = state.markerEls.get(segKey(s));
+    if (m) { m.classList.add('is-done'); m.dataset.done = how; }
+  }
+
   function drawMarkers() {
     const state = current;
     if (!state) return;
@@ -305,12 +314,16 @@
     host.querySelectorAll('.sr-lane').forEach((e) => e.remove());
     const lane = el('div', 'sr-lane sr-ui');
     const dur = video.duration;
+    state.markerEls = new Map();
     for (const s of state.segments) {
       const eff = effectiveAction(s);
       if (eff === 'off') continue;
       const m = el('div', `sr-marker${isLow(s) ? ' is-low' : ''}`);
       m.dataset.action = eff;
       m.dataset.category = s.category === 'sponsor' ? (s.style === 'integration' ? 'integration' : 'sponsor') : s.category;
+      const done = eff === 'skip' ? state.outcome.get(segKey(s)) : '';
+      if (done) { m.classList.add('is-done'); m.dataset.done = done; }
+      state.markerEls.set(segKey(s), m);
       const left = (Math.max(0, s.start) / dur) * 100;
       const width = (Math.max(0, Math.min(dur, s.end) - Math.max(0, s.start)) / dur) * 100;
       m.style.left = `${left}%`;
@@ -341,7 +354,8 @@
     if (chip) head.append(el('span', 'sr-chip', chip));
     const c = Number(s.confidence);
     if (Number.isFinite(c)) head.append(el('span', 'sr-tooltip__conf', c.toFixed(2)));
-    const what = eff === 'skip' ? 'will skip' : 'plays';
+    const done = eff === 'skip' && current ? current.outcome.get(segKey(s)) : '';
+    const what = eff !== 'skip' ? 'plays' : done === 'skipped' ? 'skipped' : done ? 'plays' : 'will skip';
     const why = eff !== 'skip' && s.category === 'sponsor' && s.style !== 'integration' && low ? ` · below ${SKIP_CONF}` : '';
     tip.append(head, el('span', 'sr-tooltip__time', `${fmtTime(s.start)} – ${fmtTime(s.end)} · ${what}${why}`));
     const quote = s.evidence ? `“${s.evidence}”` : (s.reason || '');
@@ -487,6 +501,7 @@
           log(`skipped ${s.brand || 'sponsor'} ${s.category === 'sponsor' ? 'read' : s.category} ${fmtTime(s.start)}-${fmtTime(s.end)} (from ${fmtTime(from)})`);
           recordSkip(saved);
           sendEvent('skip', s, { playhead: from, saved });
+          settleMarker(state, s, 'skipped');
           const undo = () => {
             const v = videoEl();
             if (!v) return;
@@ -494,6 +509,7 @@
             v.currentTime = from;
             recordSkip(-saved);
             sendEvent('undo', s, { playhead: from, saved });
+            settleMarker(state, s, 'plays');
             log(`undo: back to ${fmtTime(from)}; segment stays handled`);
           };
           showToast({ segment: s, saved }, undo, () => {
@@ -513,6 +529,7 @@
         if (effectiveAction(s) === 'skip' && t >= s.start && t < s.end && !state.handled.has(segKey(s))) {
           state.handled.add(segKey(s));
           sendEvent('seek_into', s, { playhead: t });
+          settleMarker(state, s, 'plays');
           log(`manual seek into ${fmtTime(s.start)}-${fmtTime(s.end)}; letting it play`);
         }
       }

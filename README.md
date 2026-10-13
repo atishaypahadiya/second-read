@@ -185,7 +185,10 @@ else is coloured.
 The marker lane is a 4 px strip above YouTube's progress bar, never on it.
 Meaning is carried by shape and tone, not colour alone: a skip is a filled
 accent bar, an integration is an outline, a label-only segment is dim, and a
-low-confidence segment is hatched. Hovering a marker shows a tooltip with the
+low-confidence segment is hatched. Once a segment has been skipped (or you
+undid the skip, or seeked into it) its marker drains from accent to dim: it
+will not skip again in that page view, and the accent only ever means "this
+will skip". Hovering a marker shows a tooltip with the
 brand, category, confidence, time range, what will happen, and the evidence
 quote.
 
