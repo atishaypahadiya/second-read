@@ -1,0 +1,26 @@
+{
+  "_comment": "Machine-readable expectations for scripts/regress.py. Times in seconds; tol = +-seconds (default 1.5). 'forbid' ranges must not overlap any segment; must_not_skip = zero skip segments. Keep in sync with testset.md.",
+  "videos": [
+    {
+      "video": "dU7gCt-7kKk", "creator": "fern", "note": "Odoo read; asr spells the brand Udo/Udu; starts at 'Psych. It's an ad.'",
+      "expect": [{"action": "skip", "start": 543.6, "end": 596.3}]
+    },
+    {
+      "video": "O7LvhSQ5Te4", "creator": "Johnny Harris", "note": "Incogni read with promo code; newpress.com selfpromo stays label-only",
+      "expect": [{"action": "skip", "start": 627.2, "end": 711.9}, {"action": "show", "start": 1793.3, "end": 1838.7, "tol": 3}]
+    },
+    {
+      "video": "SOQynHuWPeI", "creator": "fern", "note": "Coddy read (code FERN20); VPN disclaimer 1:11-1:27 and Onavo 11:57-12:14 must not be marked",
+      "expect": [{"action": "skip", "start": 287.4, "end": 339.5}],
+      "forbid": [{"start": 71, "end": 87}, {"start": 717, "end": 734}]
+    },
+    {
+      "video": "vGoRpjE-svI", "creator": "Hindi vlog", "note": "no sponsorship at all",
+      "must_not_skip": true
+    },
+    {
+      "video": "QVZHQ8Cmr70", "creator": "Sidemen", "note": "unverified; only asserts no skip until someone watches it",
+      "must_not_skip": true
+    }
+  ]
+}
