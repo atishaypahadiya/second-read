@@ -112,8 +112,10 @@ second-read/                 (the folder may still be called sponsor-skipper on 
 ### [3] Parse (page.js)
 - json3 `events[]`: `tStartMs`, `dDurationMs`, `segs[].utf8`. Skip events without `segs` or with whitespace-only text.
 - Merge cues into lines: close a line at sentence-ending punctuation or when it would exceed ~8s.
-- Keep word timing: `segs[].tOffsetMs` relative to `tStartMs`; word end = next word's start. Manual tracks
-  (one seg per cue) give every word the cue's span, which degrades to cue-level timing on the server.
+- Keep word timing: `segs[].tOffsetMs` relative to `tStartMs`; word end = next word's start. A seg without
+  `tOffsetMs` (manual tracks, and some auto tracks: one multi-word seg per cue) has its words spread by character
+  position, **inside `[cue start, next cue start)`**: auto cues stay on screen while the next one is spoken, so
+  cue ends are clamped first and the words are placed afterwards. Such lines are `timed: false` (an estimate).
 - Output: `[{start, end, text, words: [[start, end, word], …]}]` in seconds, 2 decimals.
 
 ### [4] Handoff
@@ -237,7 +239,8 @@ Every GET/POST for a video counts as a poll.
   - `POST_VERSION`: evidence gate, thresholds, snapping, merge, filters (no model calls; re-process is < 1s).
   A rubric change in `SYSTEM_PROMPT` affects both passes: bump DETECT and REFINE.
   **Inputs digest:** besides the transcript hash, a job/cache entry carries `inputs` = hash of (transcript, title,
-  description, paid-promotion flag, analysis track). A request with a different digest for the same transcript is
+  description, paid-promotion flag, analysis track, word timings; the transcript hash itself only covers line
+  starts and text, so better word estimates from a newer page.js redo the cuts without any model call). A request with a different digest for the same transcript is
   re-processed (model calls reused where their own inputs are unchanged), so a job created without metadata can
   never mask a later request that has it. Metadata that doesn't change the analysis (creator, channelId, kind,
   duration, heat) is filled into the existing job and synced to stats instead. The cache file also stores the
@@ -421,9 +424,8 @@ Each stage ends with a "done when" check on a real video.
      pass 1 gave a different candidate range (L101–L110 vs L103–L109) so refine saw a different window. Errs safe.
      Consider widening the refine window or anchoring on the earliest candidate line.
    - auto tracks without word timing (`tdIUMkXxtHg`, `yTwtg9cwr90`: kind asr, 0 timed lines, one multi-word seg
-     per cue): page.js spreads each cue's words over its display time, which overlaps the next cue, so estimated
-     word starts run past the line end (about a quarter of all words). The server now clamps them; the better fix
-     is to spread the words over the clamped cue span in page.js (`eventsToCues`).
+     per cue): fixed in build 17 (words are spread inside the clamped cue span; the server also clamps). Their
+     cuts are still estimates; check a few against the audio.
    - fern's end boundary logged "estimated (track has no word timing)" although 428/496 lines have word timing:
      the end line's `timed` flag seems lost (last line of a merged / aAppend event?). End still landed inside
      "year." so it's safe, but find out why.

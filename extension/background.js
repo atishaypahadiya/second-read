@@ -4,7 +4,7 @@
 // send messages here and we relay them over fetch. host_permissions covers this.
 
 const SERVER = 'http://127.0.0.1:8765';
-const BUILD = 16; // keep equal to page.js, content.js and server.py CLIENT_BUILD
+const BUILD = 17; // keep equal to page.js, content.js and server.py CLIENT_BUILD
 
 async function call(path, init) {
   let res;

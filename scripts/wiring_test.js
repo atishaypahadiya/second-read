@@ -19,6 +19,36 @@ const src = { page: read('extension/page.js'), content: read('extension/content.
 const failures = [];
 const check = (ok, msg) => { if (!ok) failures.push(msg); };
 
+// ---------------------------------------------------------------------------- page.js caption parsing (the real functions)
+// An auto track without word timing: one multi-word seg per cue, and each cue stays on screen while the next one is
+// spoken (dDurationMs overlaps the next tStartMs). Words must stay inside [cue start, next cue start).
+{
+  const fn = (name) => (src.page.match(new RegExp(`  function ${name}\\([\\s\\S]*?\\n  \\}\\n`)) || [''])[0];
+  const maxLine = (src.page.match(/const MAX_LINE_SECONDS = (\d+);/) || [])[1];
+  check(!!fn('eventsToCues') && !!fn('mergeCues') && !!maxLine, 'could not locate eventsToCues / mergeCues / MAX_LINE_SECONDS in page.js');
+  const parse = vm.runInNewContext(`const MAX_LINE_SECONDS = ${maxLine || 8};\n${fn('eventsToCues')}\n${fn('mergeCues')}\n` +
+                                   '(events) => mergeCues(eventsToCues(events));');
+  const untimed = parse([
+    { tStartMs: 447600, dDurationMs: 7520, segs: [{ utf8: "been moving between two different continents. So, it's a happy coincidence" }] },
+    { tStartMs: 451120, dDurationMs: 7200, segs: [{ utf8: "that the sponsor for this week's episode is Headspace, the mental health" }] },
+    { tStartMs: 455120, dDurationMs: 5300, segs: [{ utf8: 'platform. Did you try it?' }] },
+    { tStartMs: 456800, dDurationMs: 3600, segs: [{ utf8: "Yeah. Yeah. They sent me a free subscription and I've been taking their" }] },
+  ]);
+  const flat = untimed.flatMap((l) => l.words.map((w) => ({ w, l })));
+  check(flat.length === 41, `untimed fixture: ${flat.length} words, expected 41`);
+  const outside = flat.filter(({ w, l }) => !(l.start <= w[0] && w[0] <= w[1] && w[1] <= l.end));
+  check(outside.length === 0, `untimed track: ${outside.length} word(s) outside their line, e.g. ${JSON.stringify(outside[0] && [outside[0].w, outside[0].l.start, outside[0].l.end])}`);
+  const backwards = flat.filter((x, i) => i > 0 && x.w[0] < flat[i - 1].w[0]);
+  check(backwards.length === 0, `untimed track: ${backwards.length} word(s) start before the word spoken before them, e.g. ${JSON.stringify(backwards[0] && backwards[0].w)}`);
+  check(untimed.every((l) => l.timed === false), 'untimed track: lines must be flagged timed=false');
+  const timed = parse([
+    { tStartMs: 1000, dDurationMs: 6000, segs: [{ utf8: 'hello', tOffsetMs: 0 }, { utf8: ' there', tOffsetMs: 600 }, { utf8: ' world.', tOffsetMs: 1500 }] },
+    { tStartMs: 4000, dDurationMs: 3000, segs: [{ utf8: 'Next', tOffsetMs: 0 }, { utf8: ' line.', tOffsetMs: 500 }] },
+  ]);
+  check(JSON.stringify(timed.map((l) => l.words.map((w) => w[0]))) === '[[1,1.6,2.5],[4,4.5]]' && timed.every((l) => l.timed),
+        `timed track: word starts must stay exactly as given, got ${JSON.stringify(timed.map((l) => l.words))}`);
+}
+
 // ---------------------------------------------------------------------------- fixture: what page.js would reply
 const VIDEO_ID = 'SOQynHuWPeI';
 const DESCRIPTION = 'Learn to code with Coddy (ad): https://fern.deals/coddy\n0:00 Intro\n4:47 Sponsor\n5:39 Onavo';

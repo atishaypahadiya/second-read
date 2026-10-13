@@ -207,6 +207,13 @@ def unit_checks():
     eq("words: never start after their line's end, and cleaning is stable",
        (all(w[0] <= w[1] <= l["end"] for l in est for w in l["words"]), server.clean_lines(est) == est), (True, True))
     eq("end snap: no pause at the pick -> stays (was 517.84, +4 words)", server.snap_end(est, 0, 0, 517.8)[0], None)
+    # the same lines with other word timings are another input: a cached result made from older estimates is redone
+    moved = [dict(l, words=[[w[0], round(w[1] - 0.01, 2), w[2]] for w in l["words"]]) for l in est]
+    eq("inputs digest: covers word timings, not only line starts and text",
+       (server.transcript_hash(est) == server.transcript_hash(moved),
+        server.inputs_digest("h", "t", "d", None, None, est) == server.inputs_digest("h", "t", "d", None, None, moved),
+        server.inputs_digest("h", "t", "d", None, None, est) == server.inputs_digest("h", "t", "d", None, None, list(est))),
+       (True, False, True))
 
     def gapped(after_free, after_before):
         t = 517.8 + after_free

@@ -19,7 +19,7 @@
 
   // Bumped together in page.js, content.js, background.js and server.py (CLIENT_BUILD). The server logs all three
   // and warns when they differ, which is how a half-reloaded extension shows up.
-  const BUILD = 16;
+  const BUILD = 17;
   const TAG = '[SecondRead:page]';
   const dbg = (...a) => console.log(TAG, ...a);
   const MAX_LINE_SECONDS = 8;
@@ -237,8 +237,8 @@
   // Parse: json3 events -> cues -> merged lines
   // ---------------------------------------------------------------------------
   // Each cue carries its words with timing. Auto tracks have one seg per word with tOffsetMs.
-  // Manual tracks usually have one multi-word seg per cue with no word timing; we then spread
-  // the words across the seg's span by character position (an estimate) and mark the line
+  // Manual tracks, and some auto tracks, have one multi-word seg per cue with no word timing; we then
+  // spread the words across the seg's span by character position (an estimate) and mark the line
   // timed=false so the server can log/treat it as approximate.
   function eventsToCues(events) {
     const cues = [];
@@ -254,29 +254,34 @@
         }))
         .filter((x) => x.text.trim());
       if (segs.length === 0) continue;
-      const timed = segs.some((x) => x.timed);
+      cues.push({ start, end, segs, timed: segs.some((x) => x.timed) });
+    }
+    cues.sort((a, b) => a.start - b.start);
+    // Auto captions often overlap the next cue (a cue stays on screen while the next one is spoken);
+    // clamp so lines don't bleed into each other.
+    for (let i = 0; i < cues.length - 1; i++) {
+      if (cues[i].end > cues[i + 1].start) cues[i].end = Math.max(cues[i].start, cues[i + 1].start);
+    }
+    // Words only now, inside the clamped span [cue start, next cue start). Spread over the display time
+    // instead, the last words of every overlapping cue landed after the next cue's first word and past
+    // the end of their own line.
+    for (const cue of cues) {
       const words = [];
-      for (let i = 0; i < segs.length; i++) {
-        const segStart = segs[i].at;
-        const segEnd = i + 1 < segs.length ? Math.max(segStart, segs[i + 1].at) : Math.max(segStart, end);
-        const parts = segs[i].text.split(/\s+/).filter(Boolean);
+      for (let i = 0; i < cue.segs.length; i++) {
+        const segStart = cue.segs[i].at;
+        const segEnd = i + 1 < cue.segs.length ? Math.max(segStart, cue.segs[i + 1].at) : Math.max(segStart, cue.end);
+        const parts = cue.segs[i].text.split(/\s+/).filter(Boolean);
         const totalChars = parts.reduce((n, w) => n + w.length, 0) + Math.max(0, parts.length - 1);
         let pos = 0;
         for (const w of parts) {
           const frac = totalChars > 0 ? pos / totalChars : 0;
-          words.push({ start: segStart + (segEnd - segStart) * frac, text: w, cueEnd: end });
+          words.push({ start: segStart + (segEnd - segStart) * frac, text: w, cueEnd: cue.end });
           pos += w.length + 1;
         }
       }
-      cues.push({ start, end, words, timed, text: words.map((w) => w.text).join(' ') });
-    }
-    cues.sort((a, b) => a.start - b.start);
-    // Auto captions often overlap the next cue; clamp so lines don't bleed into each other.
-    for (let i = 0; i < cues.length - 1; i++) {
-      if (cues[i].end > cues[i + 1].start) {
-        cues[i].end = Math.max(cues[i].start, cues[i + 1].start);
-        for (const w of cues[i].words) w.cueEnd = cues[i].end;
-      }
+      cue.words = words;
+      cue.text = words.map((w) => w.text).join(' ');
+      delete cue.segs;
     }
     return cues;
   }
