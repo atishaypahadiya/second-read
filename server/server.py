@@ -151,10 +151,11 @@ def fmt_time(s):
 # Sponsor cues. A window with none of these (nor any description hint) is never sent to the model:
 # the evidence gate requires a verbatim cue, so such a window could never produce a skip anyway.
 CUE_PATTERNS = [
-    r"sponsor", r"brought to you", r"thanks? to \w+", r"use (?:the |my |promo |discount )?code", r"promo ?code",
-    r"discount", r"\d+ ?(?:%|percent) off", r"link(?:'s| is)? in the description", r"link below", r"\.com/",
-    r"\.com\b", r"check (?:them |it )?out", r"sign ?up", r"free trial", r"partner(?:ed|ing)? with",
-    r"go to \w+\.", r"head (?:over )?to", r"today'?s video", r"this video is", r"first \d+ (?:people|months)",
+    r"sponsor", r"brought to you", r"thanks? to \w+", r"special thanks to", r"use (?:the |my |promo |discount )?code",
+    r"promo ?code", r"discount", r"\d+ ?(?:%|percent) off", r"link(?:'s| is)? in the description", r"link below",
+    r"\.com/", r"\.com\b", r"check (?:them |it )?out", r"sign ?up", r"free trial", r"partner(?:ed|ing)? with",
+    r"in partnership with", r"supported by", r"made possible by", r"today'?s sponsor", r"go to \w+", r"head (?:over )?to",
+    r"\bvisit\b", r"today'?s video", r"this video is", r"first \d+ (?:people|months)",
 ]
 CUE_RE = re.compile("|".join(CUE_PATTERNS), re.I)
 
@@ -1117,10 +1118,17 @@ def plan_job(job):
     alines, position, terms = job["alines"], job.get("position", 0.0), job["terms"]
     wins = windows(alines)
     sent = []
+    brand_terms_only = [t for t in terms if t in job["hints"]["brands"]]
     for first, last in wins:
         text = " ".join(alines[i]["text"] for i in range(first, last + 1))
         if window_cues(text, terms):
             sent.append((first, last))
+        else:
+            low = text.lower()
+            named = [b for b in brand_terms_only if b.lower() in low]
+            if named:  # can't happen while brands are cue terms, but guards future cue-list changes
+                log(f"[{job['video_id']}] prefilter: POSSIBLE MISS, skipped window "
+                    f"{fmt_time(alines[first]['start'])}-{fmt_time(alines[last]['end'])} mentions hint brand {named}")
     with jobs_lock:
         job["n_windows"] = len(wins)
         job["n_sent"] = len(sent)

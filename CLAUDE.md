@@ -117,8 +117,10 @@ Every GET/POST for a video counts as a poll.
   not polled for 10s is paused between calls (partial model outputs are on disk; it resumes when polled again).
   At most 4 unfinished jobs in memory; beyond that the least-recently-polled one is evicted, never the newest.
 - **Windows:** 240s with 30s overlap. **Prefilter:** a window is sent to the model only if its text contains a
-  sponsor cue (sponsor, brought to you, thanks to, use code, promo code, discount, % off, link in the description,
-  .com/, check out, sign up, free trial, …) or a description hint. Skipped windows could never yield a skip (the
+  sponsor cue (sponsor, brought to you, thanks to, special thanks to, use code, promo code, discount, % off, link in
+  the description, .com/, check out, sign up, free trial, partnered with, in partnership with, supported by, made
+  possible by, today's sponsor, head to, go to, visit, …) or a description hint. A skipped window that still names a
+  description-hint brand is logged as `POSSIBLE MISS`. Skipped windows could never yield a skip (the
   evidence gate needs a verbatim cue). Log: `prefilter: X of Y windows sent`.
 - **Order:** the window containing the playhead first, then later windows, then earlier ones; within each group,
   windows matching description hints first. Segments are published after every window.
