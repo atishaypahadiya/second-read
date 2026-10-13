@@ -380,8 +380,8 @@ def extract_hints(description):
             caps = re.findall(r"\b[A-Z][A-Za-z0-9]{2,}\b", line)
             first_tok = line.split()[0].strip(".,:;!?()[]\"'") if line.split() else ""
             for w in caps:
-                if w.lower() in STOPWORDS or w in hints["codes"]:
-                    continue
+                if w.lower() in STOPWORDS or w in hints["codes"] or stats.is_generic(w):
+                    continue  # "Coddy Pro Plan": Pro and Plan are not brands, and as hint terms they would be sponsor cues
                 if w == first_tok and len(line.split()) > 3 and not re.match(rf"{re.escape(w)}\s*(\(ad\)|[:—–-])", line) \
                         and w.lower() not in line.lower()[len(w):]:
                     continue  # sentence-initial capital ("Learn to code with...") is usually not a brand;

@@ -255,7 +255,8 @@ Every GET/POST for a video counts as a poll.
   prompt header (so a misheard "Udo" can be matched to Odoo). **Only sponsor lines contribute links and brands:** a
   line with an (ad)/sponsor/partner marker, a promo code or an offer, or the line right after one. The creator's own
   shop, socials (with or without `www.`) and source links are ignored, and any term that is really the creator's own
-  name ("fern" from fern.deals/coddy, "HARRIS" for Johnny Harris) is dropped from the hint terms. Reason: hint terms
+  name ("fern" from fern.deals/coddy, "HARRIS" for Johnny Harris) is dropped from the hint terms. Generic capitalized
+  words on a sponsor line ("Coddy Pro Plan for Tech lovers" → only Coddy; `stats.GENERIC_WORDS`) are not brands either. Reason: hint terms
   count as sponsor cues for the skip gate, so they must never include things the creator says in ordinary content.
 - **Chapter fast path:** a description chapter whose title reads like an ad (sponsor, ad, advert, promo, partner,
   paid promotion, and common non-English equivalents) ≤ 4 min long becomes a `skip` segment from its bounds
