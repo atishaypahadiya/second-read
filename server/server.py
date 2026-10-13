@@ -2474,7 +2474,9 @@ class Handler(BaseHTTPRequestHandler):
             return
         if u.path == "/health":
             ok = ollama_available()
-            return self.send_json(200, {"ok": True, "model": MODEL, "ollama": ok, "loaded": ok and model_loaded(MODEL)})
+            # build: so the popup can say when the running server is older than the extension's files
+            return self.send_json(200, {"ok": True, "model": MODEL, "ollama": ok, "loaded": ok and model_loaded(MODEL),
+                                        "build": CLIENT_BUILD})
         if u.path == "/analyze":
             vid = (parse_qs(u.query).get("v") or [""])[0]
             if not VIDEO_ID_RE.match(vid):

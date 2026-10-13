@@ -215,7 +215,11 @@ function save() {
 // One set of numbers, the server's: it is what the dashboard shows, and it survives what resets the extension's
 // own storage (a new extension ID after the folder moves, a reinstall). chrome.storage is the copy shown while
 // the server cannot be asked, and it is brought in line every time the popup opens.
-const todayKey = () => new Date().toISOString().slice(0, 10);
+// "today" is the local day, as on the server; toISOString() would give the UTC day and turn over mid-afternoon
+const todayKey = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
 
 function syncStats() {
   chrome.runtime.sendMessage({ type: 'stats' }, async (res) => {
@@ -273,6 +277,8 @@ function paintStatus() {
 function checkServer() {
   chrome.runtime.sendMessage({ type: 'health' }, (res) => {
     if (!res || !res.ok) return setStatus('sr-dot--ring', 'server offline', 'start it: python3 server/server.py');
+    // A server that was not restarted after an update answers with older code: it has no "today" total, for one.
+    if (res.build !== res.extensionBuild) return setStatus('sr-dot--ring', 'restart server', 'restart the server: it is older than the extension');
     if (!res.ollama) return setStatus('sr-dot--ring', 'model offline', `start Ollama, or pull ${res.model}`);
     if (res.loaded === false) return setStatus('sr-dot--ink is-live', 'loading model', `${res.model} is not loaded yet; the first video will be slow`);
     setStatus('sr-dot--ink', 'server ready', `${res.model} loaded`);

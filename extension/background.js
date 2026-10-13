@@ -49,7 +49,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       p = call(`/codes.json?q=${encodeURIComponent(msg.q || '')}`);
       break;
     case 'health':
-      p = call('/health');
+      p = call('/health').then((r) => ({ ...r, extensionBuild: BUILD }));
       break;
     case 'stats':   // the popup's numbers: the same totals the dashboard shows
       p = call('/stats.json').then((r) => (r.ok ? { ok: true, overall: r.overall } : r));
