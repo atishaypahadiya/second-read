@@ -621,6 +621,15 @@ def unit_checks():
     eq("disclosure: only (False, False) is undisclosed", sorted(k for k, v in table.items() if v == "undisclosed"), [(False, False)])
     eq("disclosure: any missing signal without a positive one is unknown",
        [table[(None, None)], table[(False, None)], table[(None, False)]], ["unknown"] * 3)
+    # ---- a candidate overlapping what was found is dropped unless it runs >= 30 s past it (synthetic s09: a long
+    # read crossing a window edge ended where the first refine's context ended; 4zxG: a backward overshoot is no reason)
+    found = [{"start": 175.4, "end": 344.4, "action": "skip"}]
+    holed = [{"start": 174.4, "end": 291.0, "action": "skip"}, {"start": 356.9, "end": 396.7, "action": "skip"}]
+    eq("windows: a candidate that runs on past a found read or spans a hole in it is refined; one inside it or overshooting backwards is not",
+       [server.covered({"start": 212.0, "end": 397.0}, found), server.covered({"start": 300.0, "end": 360.0}, found),
+        server.covered({"start": 120.0, "end": 340.0}, found), server.covered({"start": 400.0, "end": 420.0}, found),
+        server.covered({"start": 212.0, "end": 390.0}, holed)],
+       [False, True, True, False, False])
     return out
 
 

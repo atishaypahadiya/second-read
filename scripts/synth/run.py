@@ -13,8 +13,8 @@ model, POSTs each built transcript like the extension does, polls until the job 
   wrong               a 'keep' without a keep marker, a 'label' without a label of its category, anything marked on a
                       'none' segment (rule labels like 'subscribe' aside), a skip on a 'noskip' segment
   boundary            start/end of the skip covering a 'skip' segment minus the truth (s); + = later
-A run passes with no miss, nothing wrong, false skips <= 1.5 s, and every covering skip starting at most 4 s late
-and ending at most 4 s early. Results: one JSON line per run in scripts/synth/results/<split>-<stamp>.jsonl.
+A run passes with no miss, nothing wrong, false skips <= 1.5 s, and every covering skip starting at most 4 s late,
+ending at most 4 s early, and leaving no more than 4 s unskipped between its first and last skip. Results: one JSON line per run in scripts/synth/results/<split>-<stamp>.jsonl.
 """
 import glob
 import hashlib
@@ -38,6 +38,7 @@ API = f"http://127.0.0.1:{PORT}"
 FALSE_SKIP_MAX = 1.5
 LATE_START_MAX = 4.0
 EARLY_END_MAX = 4.0
+HOLE_MAX = 4.0
 RULE_CATS = {"interaction", "intro", "outro", "recap"}
 LABEL_ALIKE = {"selfpromo": {"selfpromo", "membership"}, "membership": {"selfpromo", "membership"}}
 
@@ -91,6 +92,10 @@ def score(truth, segs):
             res["boundary"].append([ds, de])
             if ds > LATE_START_MAX or de < -EARLY_END_MAX:
                 res["wrong"].append(f"{name}: boundary start {ds:+.1f} s, end {de:+.1f} s")
+            a, b = max(t["start"], min(s["start"] for s in cov)), min(t["end"], max(s["end"] for s in cov))
+            hole = (b - a) - got
+            if hole > HOLE_MAX:
+                res["wrong"].append(f"{name}: {hole:.0f} s inside it not skipped")
         elif t["expect"] == "keep":
             if not any(s["action"] == "keep" and overlap(s["start"], s["end"], t["start"], t["end"]) >= 0.5 * span for s in over):
                 res["wrong"].append(f"{name}: no keep marker ({[(s['action'], s['category']) for s in over]})")
@@ -147,7 +152,11 @@ def main():
     paths = sorted(glob.glob(os.path.join(HERE, split, "s*.json")))
     if only:
         paths = [p for p in paths if any(os.path.basename(p).startswith(o) for o in only)]
-    data_dir = tempfile.mkdtemp(prefix="sr-synth-")
+    # DEV may keep one data dir across runs (SYNTH_DATA_DIR): model calls are then reused whenever their inputs are
+    # unchanged, so a change to filters or rules re-scores in seconds. HELD always starts from an empty one.
+    keep_dir = os.environ.get("SYNTH_DATA_DIR") if not held else None
+    data_dir = keep_dir or tempfile.mkdtemp(prefix="sr-synth-")
+    os.makedirs(data_dir, exist_ok=True)
     os.makedirs(os.path.join(HERE, "results"), exist_ok=True)
     stamp = time.strftime("%Y%m%d-%H%M%S")
     out_path = os.path.join(HERE, "results", f"{split}-{stamp}.jsonl")
@@ -187,7 +196,8 @@ def main():
             proc.wait(10)
         except subprocess.TimeoutExpired:
             proc.kill()
-        shutil.rmtree(data_dir, ignore_errors=True)
+        if not keep_dir:
+            shutil.rmtree(data_dir, ignore_errors=True)
     print(f"synth: done in {(time.time() - t_all) / 60:.0f} min")
     report(out_path)
 
