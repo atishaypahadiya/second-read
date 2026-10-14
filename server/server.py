@@ -75,7 +75,7 @@ KEEP_ALIVE = -1                                       # keep the model loaded be
 # Rubric changes in SYSTEM_PROMPT affect both passes: bump DETECT and REFINE.
 DETECT_VERSION = 3
 REFINE_VERSION = 3
-POST_VERSION = 10
+POST_VERSION = 11
 LEADIN_VERSION = 2   # the lead-in check: LEADIN_PROMPT / LEADIN_SYSTEM, the sentences it is shown, its caps
 NUM_CTX = 8192
 LLM_TIMEOUT_S = 600
@@ -360,7 +360,8 @@ STOPWORDS = {"the", "this", "video", "sponsored", "sponsor", "by", "thanks", "to
 SOCIAL_HOSTS = ("youtube.", "youtu.be", "instagram.", "twitter.", "x.com", "tiktok.", "facebook.", "patreon.", "discord.",
                 "twitch.", "reddit.", "spotify.", "apple.", "bit.ly", "linktr.ee", "threads.", "snapchat.", "linkedin.",
                 "soundcloud.", "google.", "goo.gl", "amzn.to", "amazon.")
-OFFER_LINE_RE = re.compile(r"\d+ ?(?:%|percent) off|discount|free trial|promo ?code|coupon|use (?:my|the|our) link", re.I)
+OFFER_LINE_RE = re.compile(r"\d+ ?(?:%|percent) off|discount|free trial|promo ?code|coupon|use (?:my|the|our) link|"
+                           r"\bexclusive\b[^\n]{0,40}\b(?:deal|offer)\b|\b(?:special|limited[- ]time) (?:deal|offer)\b|\bdeal here\b", re.I)
 
 
 def is_social(domain):
@@ -402,7 +403,10 @@ def extract_hints(description):
             for d in DOMAIN_RE.findall(line):
                 if not is_social(d):
                     hints["domains"].append(d[4:] if d.lower().startswith("www.") else d)
-        if marked:
+        # A brand is named on a line that marks the sponsorship, or on an offer line that carries the sponsor's own
+        # link ("Get an exclusive NordVPN deal here https://NordVPN.com/dhruv": no "sponsor" word, lyMTD1eAZAw).
+        offer_link = bool(OFFER_LINE_RE.search(line)) and any(not is_social(d) for d in DOMAIN_RE.findall(line))
+        if marked or offer_link:
             caps = re.findall(r"\b[A-Z][A-Za-z0-9]{2,}\b", line)
             first_tok = line.split()[0].strip(".,:;!?()[]\"'") if line.split() else ""
             for w in caps:

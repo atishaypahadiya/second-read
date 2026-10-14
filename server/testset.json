@@ -585,12 +585,89 @@
     {
       "video": "lyMTD1eAZAw",
       "creator": "Dhruv Rathee",
-      "meta": "cached",
+      "meta": {
+        "cached": true,
+        "analysisLang": "en",
+        "analysisLines": [
+          {
+            "start": 547.84,
+            "end": 555.12,
+            "text": "was being repeated on flight 236. And if that warning system had been installed, maybe this situation would not have happened today. And this is not just about aviation"
+          },
+          {
+            "start": 555.12,
+            "end": 561.76,
+            "text": "safety. Even in today's digital world we ignore warnings like these every day. Unsafe websites,"
+          },
+          {
+            "start": 561.76,
+            "end": 568.16,
+            "text": "tracking, cookies, phishing links, we think nothing will happen to us. But just as flight 236 needed an"
+          },
+          {
+            "start": 568.16,
+            "end": 574.96,
+            "text": "automated warning system, you too need a reliable protection system for your digital life. And"
+          },
+          {
+            "start": 574.96,
+            "end": 581.84,
+            "text": "this is exactly what Na VPN's threat protection feature does. Na VPN is a VPN app, but this feature works even without"
+          },
+          {
+            "start": 581.84,
+            "end": 589.76,
+            "text": "connecting the VPN. It automatically stops trackers, blocks annoying ads, and if you are about to go to a scam or phishing website"
+          },
+          {
+            "start": 589.76,
+            "end": 597.76,
+            "text": "it warns you first. With one Na VPN account you can protect up to 10 devices. And its VPN functionality is also very"
+          },
+          {
+            "start": 597.76,
+            "end": 603.92,
+            "text": "useful for spoofing your location. When traveling in different countries there are often country restrictions. It"
+          },
+          {
+            "start": 603.92,
+            "end": 611.68,
+            "text": "can bypass them. And since Na VPN has sponsored this video, you will get a big discount on their 2 year plan. Plus four extra"
+          },
+          {
+            "start": 611.68,
+            "end": 619.12,
+            "text": "months free. You can take advantage of this offer by going to this link. na vpn.com dhruv plus there is also a 30 day money back guarantee"
+          },
+          {
+            "start": 619.12,
+            "end": 626.64,
+            "text": "here. So there is no risk. You can go to na vpn.com dhruv and check it yourself. Coming back to our flight 236, after opening the cross feed"
+          },
+          {
+            "start": 626.64,
+            "end": 633.04,
+            "text": "the captain expected that the fuel readings would stabilize but the numbers kept falling. On the left side too the fuel"
+          }
+        ]
+      },
       "verified": false,
-      "source": "needs-label",
-      "question": "Times of the NordVPN read (live: skip 9:35-10:10 as 'Na VPN'; the description says 'Get an exclusive NordVPN deal here https://NordVPN.com/dhruv'). The hint parser missed that line and took 'Viewer' from the sponsor disclaimer line instead; the Hindi-only replay labels 9:28-10:26 sponsor 'Viewer' show (0.95).",
-      "note": "The Terrifying Story of Flight 236 | Dhruv Rathee. Replay at snapshot time: show sponsor 9:28.2-10:26.6 'Viewer'.",
-      "expect": []
+      "source": "transcript-labeled",
+      "note": "The Terrifying Story of Flight 236. Labeled from the transcript (Hindi asr): a NordVPN read (the asr says 'न वीpए', the live translation 'Na VPN'). It starts with the segue 'And this is not just about aviation safety...' (9:14.2), names the brand at 9:35, and ends '...न vpn.com ध्रुव खुद जाकर चेक कर सकते हो।' (10:23.5) before 'Coming back to our flight 236'. A start up to 22 s late (at the brand) is accepted. The live run analyzed YouTube's English auto-translation, which the cache does not keep: analysisLines is a stand-in, my translation of the Hindi lines 9:07-10:33 on their own timings, with the brand as the live translation heard it. The description writes NordVPN only on an 'exclusive deal' line (no 'sponsor' word); its other sponsor-ish line is a disclaimer.",
+      "expect": [
+        {
+          "action": "skip",
+          "category": "sponsor",
+          "start": 554.16,
+          "end": 623.52,
+          "start_late_ok": 22
+        }
+      ],
+      "expect_meta": {
+        "hints": true,
+        "brand": "NordVPN"
+      },
+      "known_issue": "the skip covers only 10:05-10:18: detect and refine both start the read at 'since Na VPN has sponsored this video' and leave out the product pitch before it (9:35-10:05) and the segue (9:14-9:35); the live run on YouTube's own translation started at 9:35. Plays ad, never content."
     },
     {
       "video": "4zxG_oUxBg4",
@@ -598,7 +675,7 @@
       "meta": "cached",
       "verified": false,
       "source": "transcript-labeled",
-      "note": "The Scariest Building in Europe. Labeled from the transcript: two DeleteMe ads. The read runs from the segue 'But there's your way out of this shady data labyrinth.' (5:28.8) to 'Scan this QR code or hit the link in the description.' (ends 6:16.9); the reminder 'Thanks again to DeleteMe for supporting this video... joindeme.com/fern.' 24:40.2-24:49.0. The skip may start up to 4 s late and end up to 4.5 s early (the safe direction): at labeling time it ran 5:32.4-6:12.9.",
+      "note": "The Scariest Building in Europe. Labeled from the transcript: two DeleteMe ads. The read runs from the segue 'But there's your way out of this shady data labyrinth.' (5:28.8) to 'Scan this QR code or hit the link in the description.' (ends 6:16.9); the reminder 'Thanks again to DeleteMe for supporting this video... joindeme.com/fern.' 24:40.2-24:49.0. The skip may start up to 4 s late and end up to 4.5 s early (the safe direction): at labeling time it ran 5:32.4-6:12.9. Canonical brand DeleteMe (the creator's spelling on the sponsor line; it showed as 'Joindeleteme' from the link before brand rules v4).",
       "expect": [
         {
           "action": "skip",
@@ -614,7 +691,10 @@
           "start": 1480.21,
           "end": 1489.0
         }
-      ]
+      ],
+      "expect_meta": {
+        "brand": "DeleteMe"
+      }
     },
     {
       "video": "yS0ML6cwEYQ",

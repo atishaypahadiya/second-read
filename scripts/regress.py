@@ -432,7 +432,7 @@ def unit_checks():
     h = server.extract_hints("Order food at: https://www.eatsides.com/\nMerch: https://www.sidemenclothing.com\nhttps://www.instagram.com/Sidemen")
     eq("hints: own shop and social links are not sponsor hints", (h["brands"], h["domains"]), ([], []))
     h = server.extract_hints("Get 60% off Incogni with code HARRIS: https://incogni.com/harris")
-    eq("hint terms: creator's code/name excluded, brand kept", server.hint_terms(h, "Johnny Harris"), ["incogni.com/harris", "incogni"])
+    eq("hint terms: creator's code/name excluded, brand kept", server.hint_terms(h, "Johnny Harris"), ["Incogni", "incogni.com/harris", "incogni"])
     h = server.extract_hints("This video is sponsored by Odoo.\nhttps://www.odoo.com/r/fern")
     eq("hints: link on the line after a sponsor line", (h["brands"], h["domains"]), (["Odoo"], ["odoo.com/r"]))
     dhruv = ("Get an exclusive NordVPN deal here \u27b5  https://NordVPN.com/dhruv\n"
@@ -442,6 +442,8 @@ def unit_checks():
        (server.is_ad_line(dhruv.splitlines()[1]), "Viewer" in server.extract_hints(dhruv)["brands"],
         server.is_ad_line("This video is sponsored by Odoo. Odoo takes no responsibility for my opinions.")),
        (False, False, True))
+    eq("hints: an offer line with the sponsor's own link names the brand, without the word 'sponsor' (lyMTD1eAZAw)",
+       server.extract_hints("Get an exclusive NordVPN deal here \u27b5  https://NordVPN.com/dhruv")["brands"], ["NordVPN"])
     eq("ad lines: a denial is not a sponsorship marker",
        [server.is_ad_line(l) for l in ("Coddy (ad): https://fern.deals/coddy", "This video is sponsored by Odoo.",
                                        "This video is not sponsored.", "No sponsor today.")], [True, True, False, False])
@@ -487,6 +489,8 @@ def unit_checks():
        ["Headspace", "Headspace", "Odoo", "Nordvpn", ""])
     eq("brands: spoken name kept over the domain label", canon("Headspace", link_only), "Headspace")
     eq("brands: no spoken name -> the name from the link", canon("", link_only), "Headspace")
+    eq("brands: the creator's written spelling is not respelled by the link (DeleteMe, not Joindeleteme)",
+       canon("DeleteMe", {"brands": ["DeleteMe"], "domains": ["joindeleteme.com/FERN"]}), "DeleteMe")
     eq("brands: a written hint brand still corrects a misheard one", canon("Udo", {"brands": ["Odoo"], "domains": ["odoo.com/r"]}), "Odoo")
     # brands: generic words are never a brand or an alias; an alias is learned only for a name the video backs up
     learned = []
@@ -636,6 +640,12 @@ def main():
             continue
         results = check(e, job["segments"]) + check_forbid(e, job["segments"]) + check_published(e, job) + check_meta(e, job)
         ok = all(r[0] for r in results)
+        if e.get("known_issue"):   # a labeled failure that is open: printed and counted apart, never hidden
+            msgs = [m for _, m in results]
+            rows.append((label, e.get("creator", ""), "PASS" if ok else "KNOWN",
+                         ([f"known issue no longer reproduces, remove 'known_issue': {e['known_issue']}"] if ok
+                          else [f"known issue: {e['known_issue']}"]) + msgs, time.time() - t0, kind))
+            continue
         failures += 0 if ok else 1
         rows.append((label, e.get("creator", ""), "PASS" if ok else "FAIL", [m for _, m in results] or ["nothing expected, no skip"],
                      time.time() - t0, kind))
@@ -651,13 +661,16 @@ def main():
             print(f"{'':22} {'':14} {'':5} {'':6} {'':>6}  {d}")
     skipped = sum(1 for r in rows if r[2] == "SKIP")
     labels = sum(1 for r in rows if r[2] == "LABEL")
+    known = sum(1 for r in rows if r[2] == "KNOWN")
     print("-" * 116)
-    print(f"{len(rows) - failures - skipped - labels} passed, {failures} failed, {skipped} not run"
-          f"  (versions detect={server.DETECT_VERSION} refine={server.REFINE_VERSION} post={server.POST_VERSION})")
+    print(f"{len(rows) - failures - skipped - labels - known} passed, {failures} failed, {skipped} not run"
+          + (f", {known} known issue(s) open" if known else "")
+          + f"  (versions detect={server.DETECT_VERSION} refine={server.REFINE_VERSION} post={server.POST_VERSION})")
 
     def tally(kind):
         mine = [r for r in rows if r[5] == kind]
-        return f"{sum(1 for r in mine if r[2] == 'PASS')}/{len(mine)}"
+        k = sum(1 for r in mine if r[2] == "KNOWN")
+        return f"{sum(1 for r in mine if r[2] == 'PASS')}/{len(mine)}" + (f" ({k} known issue)" if k else "")
     print(f"video rows: {tally('verified')} verified, {tally('transcript')} transcript-labeled (not human-checked), "
           f"{tally('snapshot')} snapshot (the pipeline's own output, not truth), "
           f"{labels} need a label (replayed, not checked)")
