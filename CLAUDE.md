@@ -322,6 +322,10 @@ Every GET/POST for a video counts as a poll.
   over the content between) into regions that go **straight to refine** as candidates (`source: hint`). Regions run
   before any detect window; detect windows overlapping a region ± 60s run after them, still (post v13: the
   description often names one of several sponsors, and the others were never detected). Synthetic suite, s21/s24.
+- **Back-to-back reads stay apart:** detect candidates that touch are merged into one only if they do not name
+  clearly different brands (`other_brand`, post v19: "Udo"/"Odoo" merge, "Wealthfront"/"Ledgerly" do not). A
+  podcast's three-read break became one candidate that overlapped the third read's skip and was never refined
+  (synthetic s22).
 - **A long read across a window edge:** a later candidate that overlaps what was already found is dropped, unless
   ≥ 30 s of it is new: a run past the found end or a hole between found pieces (`covered`, post v16). Each refine
   sees only 90 s around its own candidate, and a 3.7-minute read was skipped to 5:44 of 6:37, or with a 65 s hole

@@ -641,6 +641,15 @@ def unit_checks():
         "if you go to note well app slash hana you get two months", "head to fern dot deals slash coddy",
         "my friend slash roommate", "the app slash the website", "reddit.com is huge")],
        [True, True, True, False, False, False])
+    # ---- back-to-back reads for different brands stay separate candidates (synthetic s22); one ad seen twice merges
+    def cnd(a, b, la, lb, brand):
+        return {"start": a, "end": b, "start_line": la, "end_line": lb, "category": "sponsor", "style": "read",
+                "brand": brand, "confidence": 0.95, "reason": "", "action": "skip"}
+    eq("windows: touching candidates for different brands are not merged; the same ad misheard in two windows is",
+       [len(server.merge_candidates([cnd(26, 63.4, 5, 9, "Wealthfront"), cnd(64, 90, 10, 15, "Ledgerly"),
+                                     cnd(90.6, 115, 16, 19, "Tidewater Pens")])),
+        len(server.merge_candidates([cnd(540, 580, 101, 108, "Udo"), cnd(560, 596, 104, 110, "Odoo")]))],
+       [3, 1])
     # ---- a candidate overlapping what was found is dropped unless it runs >= 30 s past it (synthetic s09: a long
     # read crossing a window edge ended where the first refine's context ended; 4zxG: a backward overshoot is no reason)
     found = [{"start": 175.4, "end": 344.4, "action": "skip"}]
