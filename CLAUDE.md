@@ -270,6 +270,8 @@ Every GET/POST for a video counts as a poll.
   - `POST_VERSION`: evidence gate, thresholds, snapping, merge, filters (no model calls; re-process is < 1s).
   - `LEADIN_VERSION`: the lead-in check (`LEADIN_PROMPT`, the sentences it is shown, its caps). Its outputs are
     cached under their own version, so changing it re-runs one small call per skip and nothing else.
+  - `INTEGRATION_VERSION`: the integration check (`INTEGRATION_PROMPT`, its anchors, the lines it is shown); same
+    caching as the lead-in check, one small call per anchor.
   A rubric change in `SYSTEM_PROMPT` affects both passes: bump DETECT and REFINE.
   **Inputs digest:** besides the transcript hash, a job/cache entry carries `inputs` = hash of (transcript, title,
   description, paid-promotion flag, analysis track, word timings; the transcript hash itself only covers line
@@ -363,6 +365,20 @@ Every GET/POST for a video counts as a poll.
   (`queue_leadin_checks`), and the segment is republished only if the start moved. Segments carry `lead_in_s` and
   `lead_in` {from, sentences}; the tooltip says "incl. Ns lead-in". content.js moves a segment's handled state to
   its new key when the start changes.
+- **Integrations get their keep marker from a separate check** (`check_integration`, post v24, after every other
+  unit; markers only, it never adds, moves or removes a skip). The model finds the creator's usage of a sponsor's
+  product poorly: it returns nothing or only the one-line disclosure, while the usage runs on for one to two minutes
+  without naming the product (synthetic s10), or names it once where the usage starts, a minute before the pitch (s23).
+  Anchors (`integration_anchors`): (1) a line saying a sponsor supports *this part* of the video ("they're sponsoring
+  this part of the video", `INTEGRATION_PART_RE`) outside every skip that stays a skip, with the lines up to 180 s after
+  it; (2) the earliest line naming a sponsor skip's brand (letters and digits only) 15–150 s before that skip, outside
+  every segment, with no other segment and no sponsor cue in between (a cue there means the read's own start that the
+  skip left out: lyMTD1eAZAw's NordVPN read), with the lines up to the skip. One call labels each line `use` or `other`;
+  the run of `use` from the anchor (up to two `other` lines inside it) of at least 15 s becomes a `keep`, `source:
+  integration`, ending before any skip, and replaces a model keep/label (or a disclosure-line skip) inside it. Its brand
+  is the pitch's, a description hint in the anchor line, the replaced label's, or the model's name for it unless
+  generic. The subject filter counts only its brand's full name, outside its own pitch; the lead-in check does not stop
+  at it. On the 28 cached real videos no anchor survives: (1) occurs only inside a read and (2) only within 5 s of one.
 - **Two tracks for manual captions:** a manual track spells brands right but has no word timing. When the picked
   track is manual and an auto track in the same language exists, page.js reads that too (`timingTrackFor`) and
   sends it as `lines` (the cut is placed on its word offsets) with the manual text as `analysisLines`

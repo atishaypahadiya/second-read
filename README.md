@@ -164,7 +164,7 @@ are the pipeline's own output and never count as verified.
 | Category | Detected by | Default action | Status |
 | --- | --- | --- | --- |
 | `sponsor`, scripted read | model (detect, then refine); description-hint fast path; chapter fast path | skip at confidence 0.85 or more with a verbatim sponsor cue, else label | verified live on three videos (Odoo, Incogni, Coddy) |
-| `sponsor`, integration | model; needs an ad marker or YouTube's paid-promotion flag, else it is dropped | keep: always plays, not a setting | built; markers seen in real runs, no verdict recorded |
+| `sponsor`, integration | model; an integration check (one small model call) places the keep over the usage after a "sponsoring this part" line or before a pitch; needs an ad marker or YouTube's paid-promotion flag, else it is dropped | keep: always plays, not a setting | built; markers seen in real runs, no verdict recorded; the integration check has fired only on synthetic transcripts |
 | `selfpromo` | model | label | verified live on one video (newpress.com) |
 | `affiliate` | model | label | built |
 | `membership` | model | label | built |
@@ -269,7 +269,7 @@ separately:
   snapshot row catches a change, not an error: a wrong result snapshotted
   stays wrong until someone labels it;
 
-It also runs 75 rule checks and the extension wiring test. At versions detect
+It also runs 77 rule checks and the extension wiring test. At versions detect
 3, refine 3, post 24, lead-in 2 all verified and snapshot rows pass, and every
 transcript-labeled row but the known issue. The
 expectations were written from the same videos the prompt and thresholds were
