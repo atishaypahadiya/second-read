@@ -473,6 +473,19 @@ def unit_checks():
     eq("skips: a disclosure line is labeled (2 s, or 5.8 s with no offer); a 9 s reminder with an offer and a link stays a skip",
        [bool(server.disclosure_only({"start": 2.0, "end": 4.0}, disc)), bool(server.disclosure_only({"start": 2.0, "end": 7.8}, disc)),
         bool(server.disclosure_only({"start": 100.0, "end": 109.0}, remind)), server.MIN_SKIP_S], [True, True, False, 3.0])
+    quoted = [said(20.0, "i wrote it down word for word"), said(23.0, "use code moon50 for fifty percent off at the link below"),
+              said(28.0, "thats it thats the whole ad")]
+    read = [said(20.0, "this video is sponsored by lumen"), said(23.0, "use code grow for ten percent off at the link below")]
+    eq("skips: a pitch framed as quoted (s14: 'word for word', 'that's the whole ad') is not a read; a plain read is",
+       [server.quoted_ad({"start": 23.0, "end": 27.4}, quoted), server.quoted_ad({"start": 23.0, "end": 27.4}, quoted[2:]),
+        server.quoted_ad({"start": 20.0, "end": 27.4}, read)], ["word for word", "thats it thats the whole ad", None])
+    garden = [said(0.0, "this video is sponsored by lumen"), said(3.0, "lumen keeps your plants alive all year"),
+              said(10.0, "head to lumen dot com slash grow okay so back to the garden"), said(16.0, "the soil here is mostly clay"),
+              said(30.0, "we dug three beds this week"), said(45.0, "next spring we try tomatoes")]
+    cjob = {"video_id": "unitChapter0", "lines": garden, "alines": garden, "chapter_times": [(0.0, "Sponsor"), (60.0, "The beds")],
+            "duration": 120.0, "terms": [], "hints": {"brands": []}}
+    eq("chapters: a chapter running 20+ s past its last sponsor cue ends at that cue's last word (s22: 52 s of podcast skipped)",
+       [(s["start"], s["end"]) for s in server.chapter_segments(cjob)], [(0.0, 12.8)])
     # description hints: only sponsor lines count; the creator's own links, socials and name do not
     h = server.extract_hints("Learn to code with Coddy (ad): https://fern.deals/coddy")
     eq("hints: (ad) line -> brand + link", (h["brands"], h["domains"]), (["Coddy"], ["fern.deals/coddy"]))

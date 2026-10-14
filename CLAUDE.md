@@ -314,7 +314,10 @@ Every GET/POST for a video counts as a poll.
   *about* ads such as "The fake ad, line by line" or "Why Super Bowl ads cost so much" is not one, synthetic s14)
   ≤ 4 min long becomes a `skip` segment from its bounds
   immediately, snapped to pauses but never past the chapter end, `source: chapter`, no model call; the evidence is
-  the chapter title. Detect windows it covers are deferred like hint regions. **Trade-off:** this trusts the
+  the chapter title. **The bounds are trusted only up to 20 s of speech without a sponsor cue** (`CHAPTER_SLACK_S`,
+  post v24): a chapter running further past its last cue line ends at that cue's last word, and one starting further
+  before its first cue starts there ("1:40 Sponsors" up to 3:20 in a podcast whose reads end at 2:28 skipped 52 s of
+  conversation, synthetic s22). Detect windows it covers are deferred like hint regions. **Trade-off:** this trusts the
   creator's own chapter label over the evidence gate (a description is page-supplied); it is bounded by the chapter
   and the 4-minute cap.
 - **Hint fast path:** transcript lines that mention a hint term (brand/code/domain, ≥ 4 chars) are clustered (gap
@@ -430,6 +433,11 @@ Every GET/POST for a video counts as a poll.
   - Word pass fallback is inward only: invalid pick → retry once → start = end of first ad line, end = start of
     last ad line; if < 3s remains, downgrade to `show`. Never fall back outward to a line end.
   - Merge overlapping or touching (gap ≤ 1s) segments with the same action and brand.
+  - **A quoted ad is not a read** (`quoted_ad`, post v24): a skip framed as a quotation in the lines from 15 s before
+    its start to 10 s into it, or around its end ("I wrote it down word for word", "the actual pitch", "that's the
+    whole ad", "sounds like a normal sponsor read"; `QUOTED_AD_RE`) is dropped, or labeled when the paid-promotion flag
+    is true or a description hint is in it. A scam-awareness video quoting the fake pitch was skipped for 22–27 s
+    (synthetic s14); no cached real transcript has such a frame near a segment.
   - **A disclosure line is labeled, not skipped** (`disclosure_only`): a final skip under `SHORT_SKIP_S` (5 s), or
     under `DISCLOSURE_MAX_S` (15 s) with no offer and no call to action in it (`CTA_RE`: code, %, off, link, .com,
     visit, head to, try, …). "Part of this video is sponsored by Shopify." (bCmwCkNY85g, 2 s, no read anywhere in the

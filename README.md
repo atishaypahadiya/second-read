@@ -181,7 +181,9 @@ The two fast paths are shortcuts into the same pipeline. The hint path
 sponsor lines go straight to refine) fired in one live run and on synthetic
 transcripts. The chapter path (a description chapter titled like an ad, 4
 minutes or shorter, becomes a skip from its own bounds with no model call) is
-built and has not met a real video.
+built and has not met a real video. Its bounds are trusted only up to 20 s of
+speech without a sponsor cue: a chapter that runs on past the last read ends
+at that read's last cue word.
 
 Three things the pipeline must not do are also verified on the test set: skip
 anything in a Hindi vlog with no sponsor (it once did, before the evidence
@@ -191,7 +193,9 @@ the regression set: a creator narrating their own brand work as part of the
 story ("we're shooting for Fossil today") is content. A sponsor label that is
 not a skip needs an ad marker (sponsorship language, a call to action, a link,
 a code or an offer), or YouTube's paid-promotion flag on the video, or it is
-dropped.
+dropped. An ad the creator quotes to take apart ("I wrote it down word
+for word … that's the whole ad") is not skipped either; this one is checked
+only on synthetic transcripts.
 
 ## UI
 
@@ -265,8 +269,8 @@ separately:
   snapshot row catches a change, not an error: a wrong result snapshotted
   stays wrong until someone labels it;
 
-It also runs 73 rule checks and the extension wiring test. At versions detect
-3, refine 3, post 23, lead-in 2 all verified and snapshot rows pass, and every
+It also runs 75 rule checks and the extension wiring test. At versions detect
+3, refine 3, post 24, lead-in 2 all verified and snapshot rows pass, and every
 transcript-labeled row but the known issue. The
 expectations were written from the same videos the prompt and thresholds were
 tuned on, so a pass says nothing has regressed and nothing about unseen
