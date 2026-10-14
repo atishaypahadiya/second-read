@@ -24,6 +24,7 @@ API
 Status: queued -> classifying -> done | error  (+ paused:true while the video isn't being polled)
 """
 
+import difflib
 import hashlib
 import http.client
 import json
@@ -75,7 +76,7 @@ KEEP_ALIVE = -1                                       # keep the model loaded be
 # Rubric changes in SYSTEM_PROMPT affect both passes: bump DETECT and REFINE.
 DETECT_VERSION = 3
 REFINE_VERSION = 3
-POST_VERSION = 18
+POST_VERSION = 19
 LEADIN_VERSION = 2   # the lead-in check: LEADIN_PROMPT / LEADIN_SYSTEM, the sentences it is shown, its caps
 NUM_CTX = 8192
 LLM_TIMEOUT_S = 600
@@ -1247,12 +1248,23 @@ def same_brand(a, b):
     return a["brand"].strip().lower() == b["brand"].strip().lower() and a.get("category") == b.get("category")
 
 
+def other_brand(a, b):
+    """Do two candidates name clearly different brands? Both named, neither name inside the other, and spelled
+    unlike each other (a mishearing such as 'me undies' / 'MeUndies' or 'Udo' / 'Odoo' is the same brand)."""
+    x, y = (re.sub(r"[^a-z0-9]", "", (c.get("brand") or "").lower()) for c in (a, b))
+    if not x or not y or x in y or y in x:
+        return False
+    return difflib.SequenceMatcher(None, x, y).ratio() < 0.5
+
+
 def merge_candidates(cands):
-    """Pass-1 candidates from overlapping windows that cover the same span -> one candidate."""
+    """Pass-1 candidates from overlapping windows that cover the same span -> one candidate. Back-to-back reads for
+    different brands stay apart: merged, the first two of a podcast's three-read break became one candidate that
+    overlapped the third's skip and was never refined (synthetic s22)."""
     cands = sorted(cands, key=lambda c: c["start"])
     out = []
     for c in cands:
-        if out and out[-1]["category"] == c["category"] and overlaps(out[-1], c, MERGE_GAP_S):
+        if out and out[-1]["category"] == c["category"] and overlaps(out[-1], c, MERGE_GAP_S) and not other_brand(out[-1], c):
             m = out[-1]
             best = c if c["confidence"] > m["confidence"] else m
             m.update({"start": min(m["start"], c["start"]), "end": max(m["end"], c["end"]),
