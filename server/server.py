@@ -75,7 +75,7 @@ KEEP_ALIVE = -1                                       # keep the model loaded be
 # Rubric changes in SYSTEM_PROMPT affect both passes: bump DETECT and REFINE.
 DETECT_VERSION = 3
 REFINE_VERSION = 3
-POST_VERSION = 16
+POST_VERSION = 17
 LEADIN_VERSION = 2   # the lead-in check: LEADIN_PROMPT / LEADIN_SYSTEM, the sentences it is shown, its caps
 NUM_CTX = 8192
 LLM_TIMEOUT_S = 600
@@ -297,11 +297,17 @@ CUE_PATTERNS = [
 ]
 CUE_RE = re.compile("|".join(CUE_PATTERNS), re.I)
 # Strong cues: unambiguous sponsorship language. Used when the evidence quote itself has no cue and we look at the
-# segment's own lines instead; generic phrases (check out, visit, go to, sign up, .com) do not count there.
+# segment's own lines instead; generic phrases (check out, visit, go to, sign up, .com) do not count there. A link
+# with a path does ("notewell.app/hana", spoken "notewell app slash hana", "fern dot deals slash coddy"): a
+# creator-specific link is the sponsor pattern, and a pitch without any disclosure words may have nothing else
+# (synthetic s07: a read ending "go to notewell.app slash hana, two months of premium on me" was only labeled).
+LINK_PATH_RE = (r"\.(?:com|app|io|co|net|org|gg|ai|tv|me|deals|shop)/\w|"
+                r"\b(?!(?:the|an?|this|that|our|your|my|their|its)\b)\w+ (?:dot )?(?:com|app|io|co|net|org|gg|ai|tv|deals|shop) slash \w")
 STRONG_CUE_RE = re.compile(
     r"sponsor|brought to you|promo ?code|use (?:the |my |your )?code|\bcode [A-Z0-9]{3,}|discount|\d+ ?(?:%|percent) off|"
     r"link(?:'s| is)? in the description|partner(?:ed|ing)? with|in partnership with|supported by|made possible by|"
-    r"it'?s an ad\b|this is an ad\b|an ad for\b|ad break|free trial|free for life|first \d+ (?:people|months)", re.I)
+    r"it'?s an ad\b|this is an ad\b|an ad for\b|ad break|free trial|free for life|first \d+ (?:people|months)|"
+    + LINK_PATH_RE, re.I)
 # Ad markers: what separates an ad from a brand that merely comes up in the story ("we're shooting for Fossil
 # today"). Sponsorship language, a code, an offer, a link or a call to action. A sponsor label that is not a skip
 # (an integration, or a read that was downgraded) needs one; a skip already needs a cue in its evidence.
