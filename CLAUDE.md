@@ -410,8 +410,11 @@ Every GET/POST for a video counts as a poll.
   - Word pass fallback is inward only: invalid pick → retry once → start = end of first ad line, end = start of
     last ad line; if < 3s remains, downgrade to `show`. Never fall back outward to a line end.
   - Merge overlapping or touching (gap ≤ 1s) segments with the same action and brand.
-  - **A skip shorter than `MIN_SKIP_S` (5 s) is labeled instead** (post v10): "Part of this video is sponsored by
-    Shopify." (bCmwCkNY85g, 2 s, no read anywhere in the captions) is a disclosure line; a seek that short gains nothing.
+  - **A disclosure line is labeled, not skipped** (`disclosure_only`): a final skip under `SHORT_SKIP_S` (5 s), or
+    under `DISCLOSURE_MAX_S` (15 s) with no offer and no call to action in it (`CTA_RE`: code, %, off, link, .com,
+    visit, head to, try, …). "Part of this video is sponsored by Shopify." (bCmwCkNY85g, 2 s, no read anywhere in the
+    captions; synthetic s25, 5.8 s on a noisy track) gains nothing from a seek. A 9 s reminder with an offer stays.
+    (`MIN_SKIP_S` 3 s is the inward-fallback floor; post v10–v14 accidentally raised it to 5 s by declaring it twice.)
   - **Post-filter** (keep/show only; skips are never dropped here, only logged): drop if evidence/reason reads like
     a sponsor disclaimer; drop if the brand appears in the video title or is mentioned in ≥ 3 transcript lines
     outside the segment (it's the subject); **drop a `sponsor` keep/show that has no ad marker**; drop `show` below
