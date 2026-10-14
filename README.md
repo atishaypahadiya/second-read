@@ -265,7 +265,7 @@ separately:
   stays wrong until someone labels it;
 
 It also runs 72 rule checks and the extension wiring test. At versions detect
-3, refine 3, post 22, lead-in 2 all verified and snapshot rows pass, and every
+3, refine 3, post 23, lead-in 2 all verified and snapshot rows pass, and every
 transcript-labeled row but the known issue. The
 expectations were written from the same videos the prompt and thresholds were
 tuned on, so a pass says nothing has regressed and nothing about unseen
