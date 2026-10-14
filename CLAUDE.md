@@ -43,6 +43,11 @@ everything runs on Atishay's M4 Pro MacBook.
   video is seen: YouTube does not always return the same captions for a video, and re-watching a test video
   rewrites its cache file, which moved an expectation once (`vGoRpjE-svI`, first line at 0:11 instead of 0:15).
   Delete a video's entry from that file to re-freeze it from the cache.
+  **Three kinds of rows**, reported separately (`video rows: 13/13 verified, 12/12 snapshot, 4 need a label`):
+  verified (a person checked the expectations against the video; the default), `"verified": false, "source":
+  "pipeline-snapshot"` (the pipeline's output when the row was added: catches changes, not errors) and `"source":
+  "needs-label"` (replayed and printed with its `question`, never counted). Only verified rows back a "verified"
+  claim in the README. Gate commits on the pass line `N passed, 0 failed, 0 not run`.
 - If a decision in "Open decisions" comes up, ask; don't pick silently.
 
 ## Repo layout
