@@ -1,0 +1,147 @@
+{
+  "id": "s04_d1",
+  "scenario": 4,
+  "split": "dev",
+  "lang": "en",
+  "title": "I Bought the Cheapest Laptop on Amazon. It's... Something.",
+  "creator": "Sam Okoro",
+  "description": "A $149 laptop with a Celeron, 4GB of RAM and 64GB of storage. Is it a bargain or e-waste?\n\nGet 4 extra months of ExpressVPN free: https://expressvpn.com/samokoro (sponsor)\n\n0:00 Intro\n0:40 Unboxing\n1:50 Setup\n3:00 Real-world use\n4:10 Verdict",
+  "paid_promotion": true,
+  "sentences": [
+    {
+      "t": "This laptop cost me a hundred and forty-nine dollars, and I genuinely did not expect it to turn on."
+    },
+    {
+      "t": "Today we find out if it's a bargain or just e-waste with a keyboard."
+    },
+    {
+      "t": "But first, this video is sponsored by ExpressVPN.",
+      "seg": "A",
+      "gap": 0.6
+    },
+    {
+      "t": "If you've ever used hotel or airport Wi-Fi, you're basically trusting whoever runs that network with everything you do.",
+      "seg": "A"
+    },
+    {
+      "t": "ExpressVPN encrypts all your traffic, so nobody on that network can snoop on what you're up to.",
+      "seg": "A"
+    },
+    {
+      "t": "It works on basically everything, your phone, your laptop, even this sad little machine, and you just tap one button to connect.",
+      "seg": "A"
+    },
+    {
+      "t": "It's also fast enough that I stream on it without noticing it's on.",
+      "seg": "A"
+    },
+    {
+      "t": "Go to expressvpn.com/samokoro to get four extra months for free, link in the description.",
+      "seg": "A"
+    },
+    {
+      "t": "Okay, unboxing.",
+      "gap": 1.0
+    },
+    {
+      "t": "The box is about as thin as a pizza box and weighs roughly the same."
+    },
+    {
+      "t": "Inside, laptop, a charger with a very long cable, and a manual that's mostly in German for some reason."
+    },
+    {
+      "t": "Out of the box it actually looks fine, it's a silver plastic shell trying very hard to look like aluminum."
+    },
+    {
+      "t": "If you squint from across the room, you might think it's something nicer."
+    },
+    {
+      "t": "Up close, the lid flexes when you open it, which is not ideal."
+    },
+    {
+      "t": "Specs, it's got an Intel Celeron, four gigs of RAM, and sixty-four gigabytes of storage, which is less than my phone."
+    },
+    {
+      "t": "The screen is fourteen inches and, let's be generous, it's a screen."
+    },
+    {
+      "t": "Let's turn it on."
+    },
+    {
+      "t": "Okay, it's thinking."
+    },
+    {
+      "t": "Still thinking."
+    },
+    {
+      "t": "And we're in Windows setup after about a minute, which is honestly better than I feared."
+    },
+    {
+      "t": "Setup took a little over twenty minutes, and then it immediately wanted to install updates."
+    },
+    {
+      "t": "And here's the first real problem, the updates need more space than the laptop has free."
+    },
+    {
+      "t": "Out of sixty-four gigs, Windows was already using about forty, so I had to plug in a USB stick just to update it."
+    },
+    {
+      "t": "Alright, real-world use."
+    },
+    {
+      "t": "I opened a browser with three tabs, email, a document, and YouTube, and it was usable, sluggish, but usable."
+    },
+    {
+      "t": "Opening a fourth tab with a news site full of ads and it just froze for about eight seconds."
+    },
+    {
+      "t": "YouTube at 1080p stuttered, at 720p it was smooth, so lower your expectations a bit."
+    },
+    {
+      "t": "Typing on it is actually not bad, the keys are mushy but they're spaced fine."
+    },
+    {
+      "t": "The trackpad, on the other hand, I would describe as a suggestion."
+    },
+    {
+      "t": "Battery life, I got about five and a half hours of light browsing, which surprised me."
+    },
+    {
+      "t": "The speakers, though, sound like someone talking inside a cereal box, so bring headphones."
+    },
+    {
+      "t": "And the webcam is technically a webcam, but on a video call my friend asked if I was calling from a submarine."
+    },
+    {
+      "t": "So, the verdict."
+    },
+    {
+      "t": "If you need something for a kid to do homework on, or a backup machine for email and documents, it kind of works."
+    },
+    {
+      "t": "If you want to do anything more than that, save up another hundred bucks and buy a used business laptop instead, you'll get way more for your money."
+    },
+    {
+      "t": "Let me know what cheap tech you want me to suffer through next."
+    }
+  ],
+  "segments": {
+    "A": {
+      "expect": "skip",
+      "category": "sponsor",
+      "brand": "ExpressVPN"
+    }
+  },
+  "noisy": {
+    "swaps": [
+      [
+        "ExpressVPN",
+        "express vpn"
+      ],
+      [
+        "Celeron",
+        "salary on"
+      ]
+    ]
+  }
+}

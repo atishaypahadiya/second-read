@@ -1,0 +1,133 @@
+{
+  "id": "s08_d3",
+  "scenario": 8,
+  "split": "dev",
+  "lang": "en",
+  "title": "24 Hours on a Night Shift as a Cardiac Step-Down Nurse",
+  "creator": "Maria Santos RN",
+  "description": "A full 12-hour night shift with me (no patients filmed, obviously).\n\nThanks to Huel for sponsoring! Get 15% off + a free shaker with code MARIA at https://huel.com/maria\n\nCompression socks, stethoscope, bag: I get asked a lot, I'll do a separate video.\n\nMy sleep routine after nights: https://youtube.com/watch?v=mariasleep1",
+  "paid_promotion": null,
+  "sentences": [
+    {
+      "t": "It's six forty p.m., and I'm getting ready for a twelve-hour night shift on a cardiac step-down unit."
+    },
+    {
+      "t": "I've been a nurse for six years, on nights for four of them, and a lot of you asked what a shift actually looks like."
+    },
+    {
+      "t": "So I'm bringing you along, minus anything with patients in it, obviously."
+    },
+    {
+      "t": "First, the bag."
+    },
+    {
+      "t": "Compression socks are already on, because twelve hours on your feet without them is how you end up with legs like tree trunks."
+    },
+    {
+      "t": "In the bag, a spare set of scrubs, my stethoscope, three pens because they will get stolen, and a phone charger with an extra-long cable."
+    },
+    {
+      "t": "And food, because the cafeteria closes at eight and the vending machine is a war crime."
+    },
+    {
+      "t": "Seven p.m., I'm on the unit, and we start with handoff."
+    },
+    {
+      "t": "The day nurse walks me through each of my patients, what happened today, their meds, and anything to watch for overnight."
+    },
+    {
+      "t": "I have four patients tonight, which is a normal load for this unit."
+    },
+    {
+      "t": "The first couple of hours are busy, evening meds, assessments, getting everyone settled for the night."
+    },
+    {
+      "t": "Around ten, one of my patients' heart rhythm changes on the monitor, so I loop in the doctor, and we adjust a medication."
+    },
+    {
+      "t": "That's a pretty typical night, honestly, lots of small things, and you're always watching the monitors out of the corner of your eye."
+    },
+    {
+      "t": "Two a.m. is my break."
+    },
+    {
+      "t": "This is the part of the night where your body is very clearly asking you what you think you're doing."
+    },
+    {
+      "t": "And that's actually where today's sponsor comes in, because this video is sponsored by Fuel.",
+      "seg": "A"
+    },
+    {
+      "t": "For a long time my two a.m. meal was crackers and a granola bar from the vending machine, and I'd crash an hour later.",
+      "seg": "A"
+    },
+    {
+      "t": "Now I bring a bottle of Fuel Black Edition, which is a complete meal in a shake, with forty grams of protein and all your vitamins and minerals.",
+      "seg": "A"
+    },
+    {
+      "t": "It takes about ten seconds to make, and I can drink it at the nurses' station while I'm charting.",
+      "seg": "A"
+    },
+    {
+      "t": "The chocolate one tastes like a milkshake, and it actually keeps me full until the end of the shift.",
+      "seg": "A"
+    },
+    {
+      "t": "If your schedule is chaotic too, go to fuel dot com slash maria and use code MARIA for fifteen percent off, plus a free shaker with your first order.",
+      "seg": "A"
+    },
+    {
+      "t": "So, back to the floor."
+    },
+    {
+      "t": "Three to five a.m. is the quiet zone, if you're lucky."
+    },
+    {
+      "t": "I use it to catch up on charting, restock my rooms, and check on everyone every hour."
+    },
+    {
+      "t": "This is also when people tend to wake up confused, so a lot of my job at four a.m. is sitting with someone and reminding them where they are."
+    },
+    {
+      "t": "Five thirty, morning labs get drawn, and then morning meds."
+    },
+    {
+      "t": "Seven a.m., handoff again, and this time I'm the one giving report."
+    },
+    {
+      "t": "And then I go home, and the sun is up, and every bird in the neighborhood is screaming at me."
+    },
+    {
+      "t": "Blackout curtains, white noise, phone on do not disturb, and I'm asleep by eight thirty."
+    },
+    {
+      "t": "I'll be up around three in the afternoon to do it all again tomorrow night."
+    },
+    {
+      "t": "If you're a nurse, or thinking about becoming one, ask me anything in the comments, I read all of them."
+    },
+    {
+      "t": "And if you're on nights tonight, drink some water, I see you."
+    }
+  ],
+  "segments": {
+    "A": {
+      "expect": "skip",
+      "category": "sponsor",
+      "brand": "Huel"
+    }
+  },
+  "noisy": {
+    "swaps": [
+      [
+        "step-down",
+        "step town"
+      ],
+      [
+        "charting",
+        "carting"
+      ]
+    ]
+  }
+}

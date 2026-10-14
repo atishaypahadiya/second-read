@@ -1,0 +1,156 @@
+{
+  "id": "s07_d2",
+  "scenario": 7,
+  "split": "dev",
+  "lang": "en",
+  "title": "How I Study 6 Hours a Day Without Burning Out (Med School)",
+  "creator": "Hana Studies",
+  "description": "Final year of med school, and these are the seven things I changed after burning out in second year.\n\nNotewell, two months of premium free: https://notewell.app/hana\n\nMore videos:\nHow I make flashcards (coming soon)\nMy exam week routine: https://youtube.com/watch?v=hanaexam01",
+  "paid_promotion": true,
+  "sentences": [
+    {
+      "t": "I'm in my final year of med school, and during a normal exam block I study about six hours a day."
+    },
+    {
+      "t": "People always ask how I don't burn out, and the honest answer is I did burn out, badly, in second year."
+    },
+    {
+      "t": "So everything in this video is stuff I changed after that."
+    },
+    {
+      "t": "Number one, I stopped studying in one giant block."
+    },
+    {
+      "t": "I do four ninety-minute sessions with real breaks in between, like leave-the-room breaks, not phone-on-the-couch breaks."
+    },
+    {
+      "t": "Ninety minutes is about how long I can actually focus before my brain starts reading the same sentence four times."
+    },
+    {
+      "t": "Number two, I plan the day the night before, in about five minutes."
+    },
+    {
+      "t": "And this is where my whole system lives now.",
+      "seg": "A"
+    },
+    {
+      "t": "All of my notes and my study plan are in Notewell.",
+      "seg": "A"
+    },
+    {
+      "t": "It's a notes app, but it's built for studying, so you can turn any highlight into a flashcard with one tap.",
+      "seg": "A"
+    },
+    {
+      "t": "Then it schedules your reviews for you with spaced repetition, so you see the cards you're about to forget, not the ones you already know.",
+      "seg": "A"
+    },
+    {
+      "t": "I have every lecture from this year in there, and when I search for something like heart failure drugs, it pulls up every note and card across all my courses.",
+      "seg": "A"
+    },
+    {
+      "t": "It works offline, which matters, because the library basement here has zero signal.",
+      "seg": "A"
+    },
+    {
+      "t": "You can try it for free, and if you go to notewell.app slash hana you get two months of the premium plan on me.",
+      "seg": "A"
+    },
+    {
+      "t": "That link is in the description.",
+      "seg": "A"
+    },
+    {
+      "t": "Okay, number three, and this one sounds silly."
+    },
+    {
+      "t": "I eat lunch away from my desk, no textbook, no podcast about cardiology."
+    },
+    {
+      "t": "For about two years I ate over my notes and told myself it was efficient."
+    },
+    {
+      "t": "It wasn't, I just got crumbs in my notes and a headache by three p.m."
+    },
+    {
+      "t": "Number four, I protect my sleep like it's an exam."
+    },
+    {
+      "t": "Seven and a half hours minimum, same wake-up time every day, even on weekends."
+    },
+    {
+      "t": "I know that sounds boring."
+    },
+    {
+      "t": "But when I tracked my practice scores against my sleep last year, the difference was honestly kind of embarrassing."
+    },
+    {
+      "t": "On nights under six hours, my scores the next day dropped by about ten percent."
+    },
+    {
+      "t": "Number five, active recall over rereading, every single time."
+    },
+    {
+      "t": "Rereading feels productive because it's comfortable."
+    },
+    {
+      "t": "Closing the book and trying to explain the topic out loud to an empty room is uncomfortable, and that's exactly why it works."
+    },
+    {
+      "t": "I literally talk to my plant."
+    },
+    {
+      "t": "His name is Gerald, and he knows a lot about renal physiology at this point."
+    },
+    {
+      "t": "Number six, I schedule one full day off every week."
+    },
+    {
+      "t": "Not a half day where I feel guilty, a full day where I don't open anything."
+    },
+    {
+      "t": "That one was the hardest to accept, and it's also the one that fixed my burnout the most."
+    },
+    {
+      "t": "And last, I stopped comparing my hours to other people's."
+    },
+    {
+      "t": "Somebody on the internet will always be studying twelve hours a day."
+    },
+    {
+      "t": "Good for them, I'd be crying in a stairwell."
+    },
+    {
+      "t": "Find the amount you can keep up for months, not days."
+    },
+    {
+      "t": "So that's my system right now."
+    },
+    {
+      "t": "If you want a full video on how I make my flashcards, let me know below."
+    },
+    {
+      "t": "And good luck with whatever you're studying for, you've got this."
+    }
+  ],
+  "segments": {
+    "A": {
+      "expect": "skip",
+      "category": "sponsor",
+      "brand": "Notewell"
+    }
+  },
+  "noisy": {
+    "swaps": [
+      [
+        "Notewell",
+        "note well"
+      ],
+      [
+        "renal",
+        "rental"
+      ]
+    ]
+  }
+}

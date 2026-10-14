@@ -1,0 +1,167 @@
+{
+  "id": "s10_d3",
+  "scenario": 10,
+  "split": "dev",
+  "lang": "en",
+  "title": "How I Edit a Travel Vlog in 30 Minutes (Real Time)",
+  "creator": "Jun Park",
+  "description": "200 clips from a weekend in Kyoto, edited start to finish against a timer. My whole process, step by step.\n\nMusic: licensed lo-fi track\nShot on a phone + a small action cam, flat profile\n\nThe finished Kyoto vlog goes up Friday.",
+  "paid_promotion": false,
+  "sentences": [
+    {
+      "t": "I filmed a weekend in Kyoto last month, and I came home with about two hundred clips and zero energy to edit them."
+    },
+    {
+      "t": "So today I'm going to edit the whole vlog in thirty minutes, and I'll show you every step."
+    },
+    {
+      "t": "Timer is going, starting now."
+    },
+    {
+      "t": "Step one happens before I open any software."
+    },
+    {
+      "t": "I go through the clips on my computer and delete anything that's obviously bad, blurry, or my thumb over the lens."
+    },
+    {
+      "t": "Then I drop the rest into three folders, morning, afternoon, and night."
+    },
+    {
+      "t": "That takes about five minutes, and it saves me so much scrolling later."
+    },
+    {
+      "t": "Okay, time to edit."
+    },
+    {
+      "t": "I'm cutting this one in Clipforge, and quick note, they're sponsoring this tutorial, so thanks to them.",
+      "seg": "E"
+    },
+    {
+      "t": "I drag all three folders into a new project, and it keeps them as bins, so my morning, afternoon and night stuff stays separate.",
+      "seg": "E"
+    },
+    {
+      "t": "First pass is the rough cut.",
+      "seg": "E"
+    },
+    {
+      "t": "I skim through each clip with the hover preview, hit I and O to mark the good part, then press E to drop it on the end of the timeline.",
+      "seg": "E"
+    },
+    {
+      "t": "I'm not thinking about music or color yet, just story, so I'm going roughly in the order things happened.",
+      "seg": "E"
+    },
+    {
+      "t": "The fox shrine at sunrise, the train, the market, the bamboo forest, dinner, and the walk back.",
+      "seg": "E"
+    },
+    {
+      "t": "Twelve minutes in, and I have a rough cut that's about six minutes long, which is too long.",
+      "seg": "E"
+    },
+    {
+      "t": "Second pass, I tighten.",
+      "seg": "E"
+    },
+    {
+      "t": "I'm turning on silence detection for my talking clips, and it highlights every pause longer than half a second.",
+      "seg": "E"
+    },
+    {
+      "t": "I go through them one by one rather than deleting all of them, because some pauses are actually doing something, like right after I see the view.",
+      "seg": "E"
+    },
+    {
+      "t": "Now, music.",
+      "seg": "E"
+    },
+    {
+      "t": "I've got a lo-fi track I already licensed, so I drop it under everything, then turn on beat markers so I can see where the drums hit.",
+      "seg": "E"
+    },
+    {
+      "t": "Then I nudge my cuts so the scene changes land on the beat, especially in the market montage, because that's what makes it feel edited and not just stuck together.",
+      "seg": "E"
+    },
+    {
+      "t": "Color next, and I keep this really simple.",
+      "seg": "E"
+    },
+    {
+      "t": "I shot everything in a flat profile, so I apply one base grade to the whole timeline, a little contrast, warmer highlights, and that's ninety percent of it.",
+      "seg": "E"
+    },
+    {
+      "t": "The night clips are too noisy, so I select just those and add a bit of noise reduction.",
+      "seg": "E"
+    },
+    {
+      "t": "Last, captions.",
+      "seg": "E"
+    },
+    {
+      "t": "I hit auto-caption, it transcribes all my talking bits, and I fix the two places where it heard Kyoto as Tokyo, which, fair.",
+      "seg": "E"
+    },
+    {
+      "t": "Then I pick a simple white style with a soft shadow and apply it to all of them at once.",
+      "seg": "E"
+    },
+    {
+      "t": "And, time."
+    },
+    {
+      "t": "Twenty-eight minutes and forty seconds."
+    },
+    {
+      "t": "Is it the best vlog I've ever made?"
+    },
+    {
+      "t": "No."
+    },
+    {
+      "t": "But it's done, and done is so much better than two hundred clips sitting on a hard drive for a year."
+    },
+    {
+      "t": "A couple of things I want you to take from this."
+    },
+    {
+      "t": "One, sort your footage before you edit, even if it's just three folders."
+    },
+    {
+      "t": "Two, rough cut for story first, and only then worry about music and color."
+    },
+    {
+      "t": "Three, set a timer, because editing will happily eat your whole weekend if you let it."
+    },
+    {
+      "t": "And four, the first version doesn't have to be perfect, you can always make a long version later."
+    },
+    {
+      "t": "I'll put the finished Kyoto vlog up on Friday, so you can see how it turned out."
+    },
+    {
+      "t": "Let me know how long your edits usually take in the comments, and I'll see you next time."
+    }
+  ],
+  "segments": {
+    "E": {
+      "expect": "keep",
+      "category": "sponsor",
+      "brand": "Clipforge"
+    }
+  },
+  "noisy": {
+    "swaps": [
+      [
+        "Clipforge",
+        "clip forge"
+      ],
+      [
+        "lo-fi",
+        "low five"
+      ]
+    ]
+  }
+}

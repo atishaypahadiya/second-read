@@ -1,0 +1,192 @@
+{
+  "id": "s18_d2",
+  "scenario": 18,
+  "split": "dev",
+  "lang": "hi",
+  "title": "ढाबा स्टाइल दाल मखनी घर पर | बिना क्रीम के | Dal Makhani Recipe",
+  "creator": "Sunita Ki Rasoi",
+  "description": "Dhaba style dal makhani bina cream ke, meri saasu maa ki recipe.\n\nKuku FM download karein: https://kukufm.sng.link/sunita\nCode SUNITA50 lagayein aur pehle mahine par 50% off paayein.\n\nIngredients:\n1 cup sabut urad\n1/4 cup rajma\n2 chammach ghee, 1 chammach makkhan\n1 pyaz, 2 tamatar, adrak lehsun paste\nKashmiri lal mirch, haldi, dhaniya powder, kasuri methi\n\nInstagram: @sunitakirasoi",
+  "paid_promotion": null,
+  "sentences": [
+    {
+      "t": "नमस्ते दोस्तों, मैं हूं सुनीता और आज हम बनाने वाले हैं ढाबा स्टाइल दाल मखनी, वो भी बिना क्रीम के.",
+      "en": "Hello friends, I am Sunita and today we are going to make dhaba style dal makhani, that too without cream."
+    },
+    {
+      "t": "ये रेसिपी मेरी सासू मां की है और सच बताऊं तो इसका स्वाद होटल वाली दाल से भी अच्छा आता है.",
+      "en": "This recipe is my mother-in-law's and to tell the truth its taste comes out even better than the hotel's dal."
+    },
+    {
+      "t": "लेकिन रेसिपी शुरू करने से पहले एक छोटी सी बात.",
+      "en": "But before starting the recipe, one small thing.",
+      "seg": "A",
+      "gap": 0.7
+    },
+    {
+      "t": "आज का ये वीडियो स्पॉन्सर्ड है कुकू एफएम के द्वारा.",
+      "en": "Today's this video is sponsored by Kuku FM.",
+      "seg": "A"
+    },
+    {
+      "t": "आप में से बहुत लोग जानते होंगे, कुकू एफएम एक ऑडियो ऐप है जिसमें हजारों ऑडियोबुक्स, कहानियां और सेल्फ इंप्रूवमेंट के कोर्स हैं.",
+      "en": "Many of you must be knowing, Kuku FM is an audio app in which there are thousands of audiobooks, stories and self improvement courses.",
+      "seg": "A"
+    },
+    {
+      "t": "मैं तो इसे रोज किचन में खाना बनाते टाइम सुनती हूं, हाथ भी बिजी रहते हैं और कुछ नया सीखने को भी मिलता है.",
+      "en": "I listen to it daily while cooking food in the kitchen, the hands also remain busy and I also get to learn something new.",
+      "seg": "A"
+    },
+    {
+      "t": "अभी मैं इसमें रामायण की कहानियां सुन रही हूं और मेरे बच्चे भी साथ में बैठकर सुनते हैं.",
+      "en": "Right now I am listening to the stories of Ramayana in it and my children also sit together and listen.",
+      "seg": "A"
+    },
+    {
+      "t": "अगर आप भी ट्राई करना चाहते हैं तो डिस्क्रिप्शन में दिए गए लिंक से ऐप डाउनलोड करिए.",
+      "en": "If you also want to try then download the app from the link given in the description.",
+      "seg": "A"
+    },
+    {
+      "t": "और कोड सुनीता 50 लगाइए, तो पहले महीने पर आपको पचास परसेंट का डिस्काउंट मिलेगा.",
+      "en": "And apply code Sunita 50, then you will get a fifty percent discount on the first month.",
+      "seg": "A"
+    },
+    {
+      "t": "ये ऑफर सिर्फ इस हफ्ते के लिए है, तो जल्दी कीजिए.",
+      "en": "This offer is only for this week, so hurry up.",
+      "seg": "A"
+    },
+    {
+      "t": "चलिए अब शुरू करते हैं.",
+      "en": "Let's start now.",
+      "gap": 1.0
+    },
+    {
+      "t": "सबसे पहले हमने एक कप साबुत उड़द और एक चौथाई कप राजमा लिया है, जिसे रात भर भिगोकर रखा था.",
+      "en": "First of all we have taken one cup whole urad and a quarter cup rajma, which was kept soaked overnight."
+    },
+    {
+      "t": "इसको अच्छे से धो लीजिए, तीन चार बार, जब तक पानी साफ ना हो जाए.",
+      "en": "Wash it well, three four times, until the water becomes clean."
+    },
+    {
+      "t": "अब इसे कुकर में डालिए, साथ में थोड़ा नमक और तीन कप पानी.",
+      "en": "Now put it in the cooker, along with a little salt and three cups of water."
+    },
+    {
+      "t": "मीडियम आंच पर छह से सात सीटी आने दीजिए.",
+      "en": "Let six to seven whistles come on medium flame."
+    },
+    {
+      "t": "दाल को रात भर भिगोना बिल्कुल मत भूलिए, वरना कितनी भी सीटी लगा लो ये ठीक से नहीं गलेगी.",
+      "en": "Do not forget at all to soak the dal overnight, otherwise no matter how many whistles you give it will not cook properly."
+    },
+    {
+      "t": "दाल बिल्कुल मुलायम होनी चाहिए, उंगली से दबाएं तो एकदम मैश हो जाए.",
+      "en": "The dal should be completely soft, if you press it with the finger it should get mashed at once."
+    },
+    {
+      "t": "तब तक हम तड़का तैयार कर लेते हैं.",
+      "en": "Till then we prepare the tadka.",
+      "gap": 0.8
+    },
+    {
+      "t": "एक कड़ाही में दो चम्मच घी और एक चम्मच मक्खन डालिए.",
+      "en": "Put two spoons of ghee and one spoon of butter in a kadhai."
+    },
+    {
+      "t": "घी गरम हो जाए तो इसमें जीरा डालिए और फिर बारीक कटा हुआ प्याज.",
+      "en": "When the ghee gets hot add cumin in it and then finely chopped onion."
+    },
+    {
+      "t": "प्याज को सुनहरा होने तक भूनना है, जल्दबाजी मत करिए, यही असली स्वाद है.",
+      "en": "The onion has to be fried till golden, don't hurry, this is the real taste."
+    },
+    {
+      "t": "अब इसमें अदरक लहसुन का पेस्ट डालिए और कच्चापन जाने तक भूनिए.",
+      "en": "Now add ginger garlic paste in it and fry until the rawness goes away."
+    },
+    {
+      "t": "फिर दो टमाटर की प्यूरी, थोड़ी सी कश्मीरी लाल मिर्च, हल्दी और धनिया पाउडर.",
+      "en": "Then the puree of two tomatoes, a little Kashmiri red chilli, turmeric and coriander powder."
+    },
+    {
+      "t": "मसाला तब तक पकाइए जब तक घी किनारों से अलग ना होने लगे.",
+      "en": "Cook the masala until the ghee starts separating from the edges."
+    },
+    {
+      "t": "अब उबली हुई दाल को इसमें डाल दीजिए और अच्छे से मिलाइए.",
+      "en": "Now add the boiled dal into it and mix well.",
+      "gap": 0.8
+    },
+    {
+      "t": "यहां पर सबसे बड़ा सीक्रेट है, धीमी आंच पर कम से कम चालीस मिनट तक पकाना.",
+      "en": "The biggest secret here is cooking on low flame for at least forty minutes."
+    },
+    {
+      "t": "बीच बीच में चलाते रहिए और जरूरत हो तो थोड़ा गरम पानी डालिए.",
+      "en": "Keep stirring in between and if needed add a little hot water."
+    },
+    {
+      "t": "क्रीम की जगह मैं आखिर में दो चम्मच घर की मलाई डालती हूं.",
+      "en": "Instead of cream I put two spoons of homemade malai at the end."
+    },
+    {
+      "t": "और ऊपर से एक चम्मच कसूरी मेथी हाथों से मसलकर.",
+      "en": "And from above one spoon of kasuri methi crushed with the hands."
+    },
+    {
+      "t": "अगर आपके पास टाइम है तो कोयले का धुआं भी दे सकते हैं, एकदम ढाबे वाला फ्लेवर आएगा.",
+      "en": "If you have time you can also give charcoal smoke, exactly dhaba-like flavor will come."
+    },
+    {
+      "t": "मेरी सासू मां कहती हैं कि दाल मखनी जितनी देर पकेगी उतनी ही स्वादिष्ट बनेगी, और ये बात बिल्कुल सही है.",
+      "en": "My mother-in-law says that the longer dal makhani cooks the tastier it becomes, and this thing is absolutely right."
+    },
+    {
+      "t": "देखिए, कितना सुंदर रंग आया है.",
+      "en": "Look, what a beautiful color has come.",
+      "gap": 0.9
+    },
+    {
+      "t": "इसे गरमा गरम जीरा राइस या बटर नान के साथ सर्व करिए.",
+      "en": "Serve it with piping hot jeera rice or butter naan."
+    },
+    {
+      "t": "और अगर अगले दिन बच जाए तो और भी अच्छी लगती है, क्योंकि रात भर में सारे मसाले अच्छे से मिल जाते हैं.",
+      "en": "And if it is left over for the next day it tastes even better, because overnight all the spices mix well."
+    },
+    {
+      "t": "मेरे घर में तो जब ये बनती है तो एक दाना भी नहीं बचता.",
+      "en": "In my house when this is made, not even a single grain is left."
+    },
+    {
+      "t": "आप भी बनाइए और कमेंट में बताइए कि कैसी बनी.",
+      "en": "You also make it and tell in the comments how it turned out."
+    },
+    {
+      "t": "फिर मिलेंगे एक नई रेसिपी के साथ, तब तक के लिए नमस्ते.",
+      "en": "We will meet again with a new recipe, till then namaste."
+    }
+  ],
+  "segments": {
+    "A": {
+      "expect": "skip",
+      "category": "sponsor",
+      "brand": "Kuku FM"
+    }
+  },
+  "noisy": {
+    "swaps": [
+      [
+        "कुकू एफएम",
+        "कुकु एफ एम"
+      ],
+      [
+        "मखनी",
+        "मखानी"
+      ]
+    ]
+  }
+}

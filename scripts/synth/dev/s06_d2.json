@@ -1,0 +1,183 @@
+{
+  "id": "s06_d2",
+  "scenario": 6,
+  "split": "dev",
+  "lang": "en",
+  "title": "$11 Flea Market Game Boy Advance: Full Restore + Backlit Screen",
+  "creator": "Dex Rewires",
+  "description": "This GBA \"turns on sometimes\". Let's fix that.\n\nParts used:\nIPS backlight kit + clear purple shell\nReplacement power switch\n\nTimestamps\n0:00 The patient\n0:40 Corrosion cleanup\n1:30 Power switch\n2:10 IPS screen install\n3:20 Testing\n\nMy repair bench tour: https://youtube.com/watch?v=dexbench01",
+  "paid_promotion": null,
+  "sentences": [
+    {
+      "t": "So this Game Boy Advance came to me for eleven dollars at a flea market, and the seller was very honest about it."
+    },
+    {
+      "t": "He said, quote, it turns on sometimes."
+    },
+    {
+      "t": "Which, in my experience, means it does not turn on."
+    },
+    {
+      "t": "Let's crack it open and see what we're working with."
+    },
+    {
+      "t": "First problem, these are tri-wing screws, so you need the little Y-shaped bit, because a normal Phillips will just strip them."
+    },
+    {
+      "t": "Okay, back shell's off."
+    },
+    {
+      "t": "And yeah, look at that, there's corrosion on the battery terminals, that green crusty stuff."
+    },
+    {
+      "t": "Somebody left double A's in here for probably fifteen years."
+    },
+    {
+      "t": "That's actually really common, and it's usually fixable."
+    },
+    {
+      "t": "I'm going to scrub the contacts with some isopropyl and an old toothbrush."
+    },
+    {
+      "t": "For the really stubborn bits, a little white vinegar on a cotton swab breaks it down."
+    },
+    {
+      "t": "Then rinse that with isopropyl again so you don't leave any acid behind."
+    },
+    {
+      "t": "Now while the board is out, let's look at the power switch."
+    },
+    {
+      "t": "These switches get gunked up, and that's what gives you the turns on sometimes problem."
+    },
+    {
+      "t": "Normally I'd hit it with some contact cleaner and flick it back and forth like twenty times."
+    },
+    {
+      "t": "But on this one I'm just going to replace it, they're like a dollar."
+    },
+    {
+      "t": "Desoldering the old one, a bit of flux, and some solder wick."
+    },
+    {
+      "t": "Okay, new switch in."
+    },
+    {
+      "t": "Now the fun part."
+    },
+    {
+      "t": "The original screen on these has no backlight, which is why everyone remembers playing Pokemon under a desk lamp."
+    },
+    {
+      "t": "So we're putting in an IPS backlit panel."
+    },
+    {
+      "t": "These kits come with a new screen, a ribbon cable, and usually a new shell, because the old one needs trimming."
+    },
+    {
+      "t": "I'm going with a new shell, a clear purple one, because I have no self-control."
+    },
+    {
+      "t": "The ribbon connects here, and you have to be gentle, these little latches snap if you even look at them wrong."
+    },
+    {
+      "t": "There's also one wire you solder to the board for the brightness control."
+    },
+    {
+      "t": "Mine goes to the L button pad, so I'll be able to hold select and press L to cycle the brightness."
+    },
+    {
+      "t": "Okay, solder's on, that's a decent joint, nice and shiny."
+    },
+    {
+      "t": "Screen goes in the shell, with a bit of the included adhesive to hold it."
+    },
+    {
+      "t": "Board goes in, then the buttons, the membranes, and we close it up."
+    },
+    {
+      "t": "Moment of truth."
+    },
+    {
+      "t": "Fresh batteries in, power on."
+    },
+    {
+      "t": "And there's the logo!"
+    },
+    {
+      "t": "That's so much brighter than I expected."
+    },
+    {
+      "t": "Let's test brightness, select plus L."
+    },
+    {
+      "t": "Yep, five levels, and the highest one is honestly blinding."
+    },
+    {
+      "t": "I tested all the buttons and the speaker, and it all works."
+    },
+    {
+      "t": "So total cost on this one was about fifty-five dollars including the screen kit."
+    },
+    {
+      "t": "Not bad for a console that, quote, turns on sometimes."
+    },
+    {
+      "t": "That's going to wrap it up for this one."
+    },
+    {
+      "t": "Thanks for watching, and if you've got a busted handheld in a drawer somewhere, drop it in the comments and maybe I'll do it next."
+    },
+    {
+      "t": "See you in the next one."
+    },
+    {
+      "t": "And real quick, today's video is brought to you by Voltkit.",
+      "gap": 1.2,
+      "seg": "A"
+    },
+    {
+      "t": "This is the driver set I use on basically every repair on this channel.",
+      "seg": "A"
+    },
+    {
+      "t": "It's got sixty-four bits in it, including tri-wing, pentalobe, and all the weird game console ones, plus a magnetic case that actually stays shut.",
+      "seg": "A"
+    },
+    {
+      "t": "The driver itself has a swivel cap and an aluminum body, and it's held up through about two years of me knocking it off the bench.",
+      "seg": "A"
+    },
+    {
+      "t": "They also have a lifetime warranty on every bit, so if you strip one, they just send you a new one.",
+      "seg": "A"
+    },
+    {
+      "t": "Go to voltkit.com slash dex and use code DEX15 for fifteen percent off any set.",
+      "seg": "A"
+    },
+    {
+      "t": "That's voltkit.com slash dex, code DEX15.",
+      "seg": "A"
+    }
+  ],
+  "segments": {
+    "A": {
+      "expect": "skip",
+      "category": "sponsor",
+      "brand": "Voltkit"
+    }
+  },
+  "noisy": {
+    "swaps": [
+      [
+        "Voltkit",
+        "volt kit"
+      ],
+      [
+        "tri-wing",
+        "try wing"
+      ]
+    ]
+  }
+}

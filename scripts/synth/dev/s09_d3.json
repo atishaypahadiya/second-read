@@ -1,0 +1,287 @@
+{
+  "id": "s09_d3",
+  "scenario": 9,
+  "split": "dev",
+  "lang": "en",
+  "title": "Why You're Always Broke on the 25th (and How to Fix It)",
+  "creator": "Leah Ofori, CFP",
+  "description": "It's not the lattes. Four boring reasons your money runs out before the month does, and what to do about each one.\n\nSponsored by Ledgerly. Try it free for 34 days, then 50% off your first year: https://ledgerly.app/leah\n\n0:00 It's not the lattes\n0:40 Bills all in one week\n1:30 Irregular expenses\n2:20 Where does it go?",
+  "paid_promotion": false,
+  "sentences": [
+    {
+      "t": "If you get paid on the first, and by the twenty-fifth you're checking your balance before you buy a sandwich, this video is for you."
+    },
+    {
+      "t": "And I want to say up front, it is not because you bought too many lattes."
+    },
+    {
+      "t": "I hate that advice."
+    },
+    {
+      "t": "The latte is not the problem."
+    },
+    {
+      "t": "The problem is usually something much more boring, and it's fixable."
+    },
+    {
+      "t": "I've been a financial planner for nine years, and I see the same pattern over and over."
+    },
+    {
+      "t": "So let's go through it."
+    },
+    {
+      "t": "Reason number one is that your bills aren't spread out."
+    },
+    {
+      "t": "A lot of people have rent, the car payment, the phone, and the credit card minimum all landing in the first week of the month."
+    },
+    {
+      "t": "So for a few days you feel rich, and then suddenly most of your paycheck is gone before the ninth."
+    },
+    {
+      "t": "What's left has to last three weeks, and your brain still thinks you've got a full paycheck."
+    },
+    {
+      "t": "The fix is easy, and almost nobody does it."
+    },
+    {
+      "t": "Call your providers, or log in, and move your due dates."
+    },
+    {
+      "t": "Most companies will let you pick any date, and it takes five minutes."
+    },
+    {
+      "t": "I like to split bills between the first and the fifteenth, so the pain is spread out."
+    },
+    {
+      "t": "Reason number two is irregular expenses."
+    },
+    {
+      "t": "These are the things that are completely predictable but don't happen every month."
+    },
+    {
+      "t": "Car insurance every six months, your annual subscriptions, birthdays, the dentist, holiday flights."
+    },
+    {
+      "t": "They feel like emergencies, but they're not, you knew they were coming."
+    },
+    {
+      "t": "The fix here is what I call a boring account."
+    },
+    {
+      "t": "Add up all of those costs for a year, divide by twelve, and move that amount into a separate savings account every payday."
+    },
+    {
+      "t": "When the car insurance bill comes, the money's already sitting there, and it doesn't touch your regular spending at all."
+    },
+    {
+      "t": "Reason number three, and this one is the big one."
+    },
+    {
+      "t": "You don't actually know where your money goes."
+    },
+    {
+      "t": "I don't mean that as an insult."
+    },
+    {
+      "t": "I mean that when I ask clients to guess how much they spend on food in a month, including groceries, takeout, and coffee, they are off by an average of about forty percent."
+    },
+    {
+      "t": "Almost always too low."
+    },
+    {
+      "t": "It's not because people are lying, it's because small purchases don't feel like real money."
+    },
+    {
+      "t": "Eight dollars here, fourteen dollars there, and it adds up to hundreds by the end of the month."
+    },
+    {
+      "t": "So the first step is to get honest about where it's going, without judging yourself."
+    },
+    {
+      "t": "You can do that with a spreadsheet and your bank statements, and I did it that way for years."
+    },
+    {
+      "t": "But it's tedious, and most people give up after a month."
+    },
+    {
+      "t": "Which is actually why I want to tell you about Ledgerly, who's sponsoring today's video.",
+      "seg": "A"
+    },
+    {
+      "t": "Ledgerly is a budgeting app, and I've been using it myself for about eight months, and I now recommend it to most of my clients.",
+      "seg": "A"
+    },
+    {
+      "t": "You connect your bank accounts and cards, and it pulls in every transaction automatically and sorts them into categories.",
+      "seg": "A"
+    },
+    {
+      "t": "So instead of guessing what you spend on food, you can just look, and the number is right there.",
+      "seg": "A"
+    },
+    {
+      "t": "The first time I opened it, I found out I was paying for three different cloud storage plans.",
+      "seg": "A"
+    },
+    {
+      "t": "Three!",
+      "seg": "A"
+    },
+    {
+      "t": "I don't even know how that happened.",
+      "seg": "A"
+    },
+    {
+      "t": "But it's the kind of thing that's invisible until something puts it right in front of you.",
+      "seg": "A"
+    },
+    {
+      "t": "The feature I like most is the calendar view.",
+      "seg": "A"
+    },
+    {
+      "t": "It shows every bill and every payday on a calendar, so you can actually see that crunch in the first week of the month, the one I was just talking about.",
+      "seg": "A"
+    },
+    {
+      "t": "You can see exactly which bills to move, and when you move them, it updates the whole forecast.",
+      "seg": "A"
+    },
+    {
+      "t": "And it warns you a few days ahead if a bill is going to land when your balance is low, which is the exact moment most people get hit with an overdraft fee.",
+      "seg": "A"
+    },
+    {
+      "t": "It also does the boring account thing for you.",
+      "seg": "A"
+    },
+    {
+      "t": "You tell it about your irregular expenses, the insurance, the gifts, the annual subscriptions, and it works out how much to set aside every payday so you're never surprised.",
+      "seg": "A"
+    },
+    {
+      "t": "There are goals too, so if you're saving for a trip or an emergency fund, you can watch it fill up, which is weirdly motivating.",
+      "seg": "A"
+    },
+    {
+      "t": "You can also set a monthly limit for any category, like eating out, and it'll quietly tell you when you're at eighty percent, without making you feel like a criminal.",
+      "seg": "A"
+    },
+    {
+      "t": "And if you share money with a partner, you can both use the same account and see the same numbers, which has, I'm told, prevented a lot of arguments.",
+      "seg": "A"
+    },
+    {
+      "t": "One thing I want to be really clear about, because it matters to me as a planner.",
+      "seg": "A"
+    },
+    {
+      "t": "Ledgerly doesn't sell your data, and it doesn't push credit cards or loans at you.",
+      "seg": "A"
+    },
+    {
+      "t": "It's a paid app, and that's how it makes money, which is exactly how I want my budgeting tool to work.",
+      "seg": "A"
+    },
+    {
+      "t": "It's read-only access to your accounts, too, so it can see your transactions but it can't move money anywhere.",
+      "seg": "A"
+    },
+    {
+      "t": "It works on your phone and in a browser, and it syncs across both, so I do my weekly check-in on the laptop on Sunday mornings and look up quick stuff on my phone during the week.",
+      "seg": "A"
+    },
+    {
+      "t": "That weekly check-in, by the way, takes me about ten minutes now.",
+      "seg": "A"
+    },
+    {
+      "t": "It used to be an hour with a spreadsheet and a lot of sighing.",
+      "seg": "A"
+    },
+    {
+      "t": "And every month it gives you a little report, where your money went, how it compares to last month, and which subscriptions went up in price without telling you.",
+      "seg": "A"
+    },
+    {
+      "t": "I caught a streaming service that had raised its price twice in one year, and I had never noticed.",
+      "seg": "A"
+    },
+    {
+      "t": "If you want to try it, Ledgerly gives you thirty-four days completely free, not just the usual week.",
+      "seg": "A"
+    },
+    {
+      "t": "Go to ledgerly.app slash leah, and after the trial, you'll also get fifty percent off your first year.",
+      "seg": "A"
+    },
+    {
+      "t": "That's ledgerly.app slash leah, and the link is in the description.",
+      "seg": "A"
+    },
+    {
+      "t": "And if it's not for you, cancel during the trial, and you won't pay anything.",
+      "seg": "A"
+    },
+    {
+      "t": "Okay, reason number four, and then I'll let you go.",
+      "gap": 0.8
+    },
+    {
+      "t": "You don't have a buffer."
+    },
+    {
+      "t": "If your checking account sits near zero every month, then one surprise, a parking ticket, a vet bill, a friend's wedding, throws the whole month off."
+    },
+    {
+      "t": "The goal, eventually, is to have one full month of expenses sitting in your checking account, so you're spending last month's money, not this month's."
+    },
+    {
+      "t": "That sounds impossible, I know."
+    },
+    {
+      "t": "Start with a hundred dollars."
+    },
+    {
+      "t": "Then two hundred."
+    },
+    {
+      "t": "Every time you get a little extra, a tax refund, a bonus, some birthday money, put a piece of it there."
+    },
+    {
+      "t": "It might take a year or two, and that's fine."
+    },
+    {
+      "t": "Once you get there, the twenty-fifth just becomes another day."
+    },
+    {
+      "t": "So, recap, spread out your bills, build a boring account, find out where your money really goes, and build a buffer."
+    },
+    {
+      "t": "None of it is exciting, but all of it works."
+    },
+    {
+      "t": "If this helped, share it with the friend who texts you the broke emoji every month, and I'll see you next week."
+    }
+  ],
+  "segments": {
+    "A": {
+      "expect": "skip",
+      "category": "sponsor",
+      "brand": "Ledgerly"
+    }
+  },
+  "noisy": {
+    "swaps": [
+      [
+        "Ledgerly",
+        "ledger lee"
+      ],
+      [
+        "latte",
+        "lottie"
+      ]
+    ]
+  }
+}

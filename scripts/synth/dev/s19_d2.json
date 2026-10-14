@@ -1,0 +1,158 @@
+{
+  "id": "s19_d2",
+  "scenario": 19,
+  "split": "dev",
+  "lang": "en",
+  "title": "First Bass of the Season! (Ice Just Came Off the Pond)",
+  "creator": "Big Creek Wes",
+  "description": "Ice finally came off the back pond this week so you know where I was at 6 a.m.\n\n---\nDISCLAIMER: This channel may from time to time feature products from sponsors. Big Creek Outdoors is not responsible for any claims made by sponsors or advertisers. Always check and follow your state's fishing regulations.\n---\n\nBusiness: wesoutdoors@gmail.com\nPO Box 112, Chillicothe, OH",
+  "paid_promotion": false,
+  "sentences": [
+    {
+      "t": "Morning, y'all, welcome back to the channel."
+    },
+    {
+      "t": "It is thirty-eight degrees out here, the ice came off this pond about four days ago, and I could not sleep last night."
+    },
+    {
+      "t": "First open water of the year, and I'm hoping to put a bass in the boat."
+    },
+    {
+      "t": "Well, I say boat, it's a twelve foot jon boat with a trolling motor that sounds like a blender."
+    },
+    {
+      "t": "So here's the deal with early spring fishing.",
+      "gap": 0.9
+    },
+    {
+      "t": "That water is cold, probably low forties, so the fish are slow."
+    },
+    {
+      "t": "They're not going to chase anything fast."
+    },
+    {
+      "t": "You want to find the warmest water in the pond, which is usually the shallow north bank, because it gets sun all afternoon."
+    },
+    {
+      "t": "And you want to fish slow, and I mean painfully slow."
+    },
+    {
+      "t": "If you think you're fishing slow enough, slow down some more."
+    },
+    {
+      "t": "I know it's boring, but that's early spring for you."
+    },
+    {
+      "t": "Right now I'm throwing a little suspending jerkbait.",
+      "seg": "A",
+      "gap": 0.8
+    },
+    {
+      "t": "It's an old Rapala my granddad gave me, I think it's older than I am, the paint's half rubbed off.",
+      "seg": "A"
+    },
+    {
+      "t": "I've lost about a dozen newer ones over the years, but this one keeps coming home, so it's my lucky one.",
+      "seg": "A"
+    },
+    {
+      "t": "So the cadence is jerk, jerk, and then you just let it sit.",
+      "gap": 0.6
+    },
+    {
+      "t": "Five seconds, ten seconds, sometimes fifteen."
+    },
+    {
+      "t": "That pause is where they eat it, nine times out of ten."
+    },
+    {
+      "t": "Okay, nothing on that bank, let's ease down toward the old willow.",
+      "gap": 1.2
+    },
+    {
+      "t": "There's a laydown under there, a whole tree fell in about three years back, and it holds fish all year."
+    },
+    {
+      "t": "Jerk, jerk, pause."
+    },
+    {
+      "t": "Come on."
+    },
+    {
+      "t": "There, did you see that, that line just jumped!"
+    },
+    {
+      "t": "Oh he's on, he's on, and he's heavy!"
+    },
+    {
+      "t": "Don't you go in that tree, buddy, don't you do it."
+    },
+    {
+      "t": "Get the net, oh wait, I'm by myself, hold on."
+    },
+    {
+      "t": "There we go, look at that!",
+      "gap": 0.8
+    },
+    {
+      "t": "First bass of the year, and that's a good one, I'd guess right around four pounds."
+    },
+    {
+      "t": "Look at the belly on her, she's fat, she's been eating all winter under that ice."
+    },
+    {
+      "t": "Look how dark she is, that's from the cold water, they get real dark this time of year."
+    },
+    {
+      "t": "I'm going to get her right back in, because she's probably going to spawn here in a few weeks."
+    },
+    {
+      "t": "There she goes, thank you, ma'am.",
+      "gap": 0.6
+    },
+    {
+      "t": "Whew, my hands are shaking, and it's not just from the cold."
+    },
+    {
+      "t": "I fished for another two hours after that and caught two more small ones off that same tree, nothing like the first one though."
+    },
+    {
+      "t": "So, to sum it up for early spring.",
+      "gap": 0.9
+    },
+    {
+      "t": "Find the warm water, find some cover, and fish slower than you think you need to."
+    },
+    {
+      "t": "And be careful out there, that water is cold enough to get you in trouble real quick if you fall in, so wear your life jacket."
+    },
+    {
+      "t": "Next week, if the weather holds, we're going to try the river for some smallmouth."
+    },
+    {
+      "t": "If you caught your first one of the year already, let me know down in the comments what you got it on."
+    },
+    {
+      "t": "Tight lines, y'all."
+    }
+  ],
+  "segments": {
+    "A": {
+      "expect": "none",
+      "category": "sponsor",
+      "brand": "Rapala"
+    }
+  },
+  "noisy": {
+    "swaps": [
+      [
+        "Rapala",
+        "rap paula"
+      ],
+      [
+        "jerkbait",
+        "jerk bait"
+      ]
+    ]
+  }
+}

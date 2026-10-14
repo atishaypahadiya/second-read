@@ -1,0 +1,145 @@
+{
+  "id": "s07_d3",
+  "scenario": 7,
+  "split": "dev",
+  "lang": "en",
+  "title": "Fall Garden Cleanup: What I Cut, What I Leave, What I Plant",
+  "creator": "Jo Whitfield Gardens",
+  "description": "First frost is coming! My October jobs: clearing blighted tomatoes, leaving seed heads for the birds, mulching the beds and planting spring bulbs.\n\nBulbs from Rootstock Seeds, 15% off with code GARDENJO: https://rootstockseeds.com\n\nThe pollinator mix: crocus, allium, tulip 'Queen of Night'.",
+  "paid_promotion": false,
+  "sentences": [
+    {
+      "t": "It's the middle of October, the first frost is coming this weekend, and the garden looks like a crime scene."
+    },
+    {
+      "t": "So today I'm doing my big fall cleanup, and I'll show you what I cut back, what I leave, and what I plant now for spring."
+    },
+    {
+      "t": "First up, the tomatoes."
+    },
+    {
+      "t": "These are done, they've got blight on the lower leaves, and the last few fruit are never going to ripen out here."
+    },
+    {
+      "t": "I pick everything that's showing even a little color and ripen it on the windowsill."
+    },
+    {
+      "t": "The green ones become green tomato chutney, which my husband pretends to like."
+    },
+    {
+      "t": "The plants themselves come out, roots and all."
+    },
+    {
+      "t": "And because of the blight, these do not go on the compost heap."
+    },
+    {
+      "t": "They go in the green bin for the council to take, because a home compost heap doesn't get hot enough to kill it."
+    },
+    {
+      "t": "Next, the perennials."
+    },
+    {
+      "t": "A lot of people cut everything down to the ground in the fall, and I used to do that too."
+    },
+    {
+      "t": "Now I leave most of the seed heads standing, the echinacea, the sedum, the grasses."
+    },
+    {
+      "t": "Birds eat the seeds all winter, and insects overwinter in the hollow stems."
+    },
+    {
+      "t": "Plus, honestly, frost on a seed head in January is one of the prettiest things in the garden."
+    },
+    {
+      "t": "What I do cut back is anything that's gone mushy or diseased, like this hosta, which is basically soup now."
+    },
+    {
+      "t": "Then the beds get a blanket."
+    },
+    {
+      "t": "I spread about two inches of leaf mold and compost over everything that's bare."
+    },
+    {
+      "t": "The worms pull it down over the winter, and by spring the soil is dark and crumbly."
+    },
+    {
+      "t": "And now the fun part, which is planting for spring."
+    },
+    {
+      "t": "This year all my bulbs came from Rootstock Seeds.",
+      "seg": "A"
+    },
+    {
+      "t": "They're a small grower, and everything ships in paper bags with the planting depth printed right on the label, which, for someone like me who loses every plant tag, is a lifesaver.",
+      "seg": "A"
+    },
+    {
+      "t": "I got their spring pollinator mix, it's crocus, alliums, and these gorgeous dark purple tulips called Queen of Night.",
+      "seg": "A"
+    },
+    {
+      "t": "The bulbs are huge, look at this one, it's bigger than a golf ball, and that's what gives you big flowers.",
+      "seg": "A"
+    },
+    {
+      "t": "They also guarantee them, so if something doesn't come up in spring, they'll replace it.",
+      "seg": "A"
+    },
+    {
+      "t": "If you want to grab some before the ground freezes, use code GARDENJO for fifteen percent off at rootstockseeds.com.",
+      "seg": "A"
+    },
+    {
+      "t": "Okay, planting."
+    },
+    {
+      "t": "The rule of thumb is three times as deep as the bulb is tall."
+    },
+    {
+      "t": "So for these tulips, that's about six inches down, pointy end up."
+    },
+    {
+      "t": "I plant them in clumps of seven or nine, never in neat little rows, because rows look like a car park."
+    },
+    {
+      "t": "Alliums go at the back of the border, because they get tall."
+    },
+    {
+      "t": "Crocus I just toss onto the lawn and plant wherever they land, so it looks natural."
+    },
+    {
+      "t": "Then a bit of chicken wire over the top, because the squirrels in this garden have no shame."
+    },
+    {
+      "t": "Last job, the tools."
+    },
+    {
+      "t": "Clean them, oil them, and hang them up, because a rusty pair of secateurs in March is a sad way to start the season."
+    },
+    {
+      "t": "That's my fall cleanup."
+    },
+    {
+      "t": "Let me know what you're planting for spring in the comments, and I'll see you next time."
+    }
+  ],
+  "segments": {
+    "A": {
+      "expect": "skip",
+      "category": "sponsor",
+      "brand": "Rootstock Seeds"
+    }
+  },
+  "noisy": {
+    "swaps": [
+      [
+        "Rootstock",
+        "root stock"
+      ],
+      [
+        "secateurs",
+        "secret tears"
+      ]
+    ]
+  }
+}

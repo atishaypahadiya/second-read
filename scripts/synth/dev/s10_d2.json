@@ -1,0 +1,144 @@
+{
+  "id": "s10_d2",
+  "scenario": 10,
+  "split": "dev",
+  "lang": "en",
+  "title": "Solo Hiking the Lost Lakes Loop (5 Miles Off-Trail)",
+  "creator": "Wren Halvorsen",
+  "description": "14.2 miles, ~4,000 ft of gain, and a cross-country section over a granite saddle. Go after snowmelt, before the late-summer storms, and only if you're comfortable route finding.\n\nGear: 3L water, filter, puffy, rain shell, first aid, PLB.\n\nAlways leave your route and turnaround time with someone.",
+  "paid_promotion": null,
+  "sentences": [
+    {
+      "t": "Morning from the trailhead, it's five forty-five, and it is very cold."
+    },
+    {
+      "t": "Today I'm hiking the Lost Lakes Loop, about fourteen miles, and the middle section has no trail at all, it's a cross-country route over a granite saddle."
+    },
+    {
+      "t": "I've wanted to do this one for two years, and the snow finally melted out last week."
+    },
+    {
+      "t": "Pack check, three liters of water, a filter, lunch, a puffy, a rain shell, a first aid kit, and an emergency beacon."
+    },
+    {
+      "t": "I'm going solo, so I left my route and my turnaround time with my sister."
+    },
+    {
+      "t": "Turnaround time is two p.m., no matter where I am."
+    },
+    {
+      "t": "The first four miles are on a real trail, switchbacks up through the pines."
+    },
+    {
+      "t": "Not much to say about this part, except that my legs hate me."
+    },
+    {
+      "t": "Okay, mile four, Upper Lake, and this is where the trail ends."
+    },
+    {
+      "t": "From here I'm navigating with Trailpath, and they're sponsoring this part of the video, so thanks to them for that.",
+      "seg": "N"
+    },
+    {
+      "t": "Last night at home, I drew the route on the map, and it snapped my line to the contours so I could see exactly how steep each section is.",
+      "seg": "N"
+    },
+    {
+      "t": "And I downloaded the whole area for offline, because there's zero cell signal up here.",
+      "seg": "N"
+    },
+    {
+      "t": "So right now my phone's in airplane mode, and the blue dot still knows exactly where I am.",
+      "seg": "N"
+    },
+    {
+      "t": "The plan is to contour around the east side of the lake and then head up this gully to the saddle.",
+      "seg": "N"
+    },
+    {
+      "t": "On the map the gully looks fine, but I'm turning on the slope-angle layer, and you can see the top fifty feet go red, which means it's over thirty-five degrees.",
+      "seg": "N"
+    },
+    {
+      "t": "So instead I'm going to take the ridge just to the left, it's longer, but it stays orange the whole way.",
+      "seg": "N"
+    },
+    {
+      "t": "Okay, I'm up on the ridge now, and I've drifted a bit, the dot says I'm about a hundred feet below my line.",
+      "seg": "N"
+    },
+    {
+      "t": "That's the nice thing about having the line drawn, I can see I need to cut up and right before these cliffs.",
+      "seg": "N"
+    },
+    {
+      "t": "And here's the saddle, eleven thousand two hundred feet, right on time.",
+      "seg": "N"
+    },
+    {
+      "t": "Going down the other side, it's all talus, these big loose boulders, and it's really easy to lose track of where you're heading.",
+      "seg": "N"
+    },
+    {
+      "t": "I'm checking the map every few minutes, and I can see the next lake below me, so I just aim for its outlet stream.",
+      "seg": "N"
+    },
+    {
+      "t": "Heading down the drainage, I tap the screen and drop a waypoint at this little spring, so I remember there's water here next time.",
+      "seg": "N"
+    },
+    {
+      "t": "And there's the trail again, right where the map said it would be, which after five miles of boulders is a beautiful sight.",
+      "seg": "N"
+    },
+    {
+      "t": "So, the hard part's done, and it's only twelve thirty."
+    },
+    {
+      "t": "I'm sitting by Lost Lake number three with my shoes off, and the water is so cold it actually hurts."
+    },
+    {
+      "t": "There's a family of marmots on the rock behind me who are very interested in my lunch."
+    },
+    {
+      "t": "No, you can't have it."
+    },
+    {
+      "t": "The last five miles back are all downhill on a good trail, past three more lakes, each one a slightly different shade of blue."
+    },
+    {
+      "t": "If you want to do this loop, I really recommend going after the snow melts and before the late summer thunderstorms."
+    },
+    {
+      "t": "And please don't do the off-trail section unless you're comfortable with route finding, because it's not marked, and there's nobody up there to help you."
+    },
+    {
+      "t": "I made it back to the car at four fifteen, fourteen point two miles and about four thousand feet of climbing."
+    },
+    {
+      "t": "Tired, sunburned, and very happy."
+    },
+    {
+      "t": "Thanks for coming along, and I'll see you on the next one."
+    }
+  ],
+  "segments": {
+    "N": {
+      "expect": "keep",
+      "category": "sponsor",
+      "brand": "Trailpath"
+    }
+  },
+  "noisy": {
+    "swaps": [
+      [
+        "Trailpath",
+        "trail path"
+      ],
+      [
+        "talus",
+        "tell us"
+      ]
+    ]
+  }
+}

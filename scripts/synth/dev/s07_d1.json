@@ -1,0 +1,162 @@
+{
+  "id": "s07_d1",
+  "scenario": 7,
+  "split": "dev",
+  "lang": "en",
+  "title": "I Ran My First Ultramarathon (50K Trail Race)",
+  "creator": "Kofi Runs",
+  "description": "50 kilometers, 1,300 meters of climbing, one very bad descent. Here's how my first ultra went and what I'd do differently.\n\nRace: Ridgeback 50K\nShoes: the same pair as my last three videos\nStrava: kofiruns\n\n0:00 Start\n1:10 The fueling mistake\n2:40 The good part\n3:20 Kilometer 38\n4:00 Lessons",
+  "paid_promotion": null,
+  "sentences": [
+    {
+      "t": "So I did it, I ran fifty kilometers on Saturday, and I am currently walking down stairs backwards."
+    },
+    {
+      "t": "This was my first ultra, a trail race up in the hills, with about thirteen hundred meters of climbing."
+    },
+    {
+      "t": "I want to walk you through how it went, what I got wrong, and what I'd change."
+    },
+    {
+      "t": "The start was at six a.m., still dark, everyone with headlamps on."
+    },
+    {
+      "t": "My plan was simple, go out slow, slower than feels right, and hike every hill steeper than a driveway."
+    },
+    {
+      "t": "And for the first ten K, I actually did that."
+    },
+    {
+      "t": "Which, for me, is a miracle."
+    },
+    {
+      "t": "Around kilometer twelve, there's this long climb up a fire road, and I got sucked into chatting with a guy from Denver."
+    },
+    {
+      "t": "We were talking about everything, and I totally forgot to eat."
+    },
+    {
+      "t": "That was mistake number one."
+    },
+    {
+      "t": "By the top of that climb, I could feel that first little wave of, hm, this is not great."
+    },
+    {
+      "t": "So I took a gel, slowed down, and things came back around kilometer eighteen."
+    },
+    {
+      "t": "Hydration was the thing I worried about most going into this."
+    },
+    {
+      "t": "In training I cramped on every long run over three hours, and my calves would just lock up."
+    },
+    {
+      "t": "And what fixed that for me was getting my sodium sorted."
+    },
+    {
+      "t": "I've been using Saltline for about four months now.",
+      "gap": 0.8,
+      "seg": "A"
+    },
+    {
+      "t": "It's an electrolyte mix with way more sodium than the usual sports drinks, about a thousand milligrams a serving, and almost no sugar.",
+      "seg": "A"
+    },
+    {
+      "t": "It comes in these little stick packs, so I keep two in my vest and dump one into a soft flask at every aid station.",
+      "seg": "A"
+    },
+    {
+      "t": "The citrus one tastes like lemonade that went to the gym, which I mean as a compliment.",
+      "seg": "A"
+    },
+    {
+      "t": "Since I switched, I haven't had a single cramp, including all fifty K on Saturday.",
+      "seg": "A"
+    },
+    {
+      "t": "If you want to try it, use code KOFI for twenty percent off your first order at saltline.co slash kofi.",
+      "seg": "A"
+    },
+    {
+      "t": "There's also a sampler pack with all six flavors if you're not sure which one you'll like.",
+      "seg": "A"
+    },
+    {
+      "t": "Okay, back to the race."
+    },
+    {
+      "t": "The aid station at kilometer twenty-five had boiled potatoes dipped in salt, and I think I ate six."
+    },
+    {
+      "t": "Kilometers twenty-five to thirty-five were honestly the best part of the day."
+    },
+    {
+      "t": "The trail goes along a ridge, the sun was coming through the trees, and I felt unstoppable."
+    },
+    {
+      "t": "Then kilometer thirty-eight happened."
+    },
+    {
+      "t": "There's a descent that just goes straight down for about three kilometers, rocky and loose, and my quads gave out completely."
+    },
+    {
+      "t": "I was walking downhill, people were passing me, and I had a real conversation with myself about dropping out."
+    },
+    {
+      "t": "What got me through was breaking it into tiny pieces, just get to the next ribbon, then the next one."
+    },
+    {
+      "t": "The last five K were flat, and I shuffled them at a pace I'm not going to say out loud."
+    },
+    {
+      "t": "But I crossed the line in seven hours and forty-two minutes."
+    },
+    {
+      "t": "My goal was under eight, so I'll take it."
+    },
+    {
+      "t": "So, lessons."
+    },
+    {
+      "t": "One, eat on a timer, every thirty minutes, whether you feel like it or not."
+    },
+    {
+      "t": "Two, train downhills, not just uphills, because the downhills are what wrecked me."
+    },
+    {
+      "t": "Three, have a mantra or a trick for the low points, because there will be low points."
+    },
+    {
+      "t": "Would I do another one?"
+    },
+    {
+      "t": "Ask me in two weeks."
+    },
+    {
+      "t": "Okay, probably yes."
+    },
+    {
+      "t": "If you're training for your first ultra, tell me which race in the comments, and I'll see you in the next one."
+    }
+  ],
+  "segments": {
+    "A": {
+      "expect": "skip",
+      "category": "sponsor",
+      "brand": "Saltline"
+    }
+  },
+  "noisy": {
+    "swaps": [
+      [
+        "Saltline",
+        "salt line"
+      ],
+      [
+        "Kofi",
+        "coffee"
+      ]
+    ]
+  }
+}

@@ -1,0 +1,162 @@
+{
+  "id": "s10_d1",
+  "scenario": 10,
+  "split": "dev",
+  "lang": "en",
+  "title": "Building My Mom's Bakery a Website in One Afternoon",
+  "creator": "Marcus Webb",
+  "description": "Twenty-two years in business, zero websites. Fixed that in an afternoon.\n\nThanks to Pagecraft for sponsoring this video.\n\nIf you're ever in town: get there before 10, the cinnamon rolls sell out.",
+  "paid_promotion": true,
+  "sentences": [
+    {
+      "t": "My mom has run a bakery in our town for twenty-two years, and she has never had a website."
+    },
+    {
+      "t": "Her entire online presence is a Facebook page that my cousin set up in 2014, and nobody knows the password to it."
+    },
+    {
+      "t": "So this weekend, I'm fixing that."
+    },
+    {
+      "t": "I've got one afternoon, a bunch of photos I took of her bread this morning, and a mom who keeps asking if this is going to cost her money."
+    },
+    {
+      "t": "Okay, first I sat down with her and asked what people actually need from the site."
+    },
+    {
+      "t": "Her answer was, my hours, my address, and that the cinnamon rolls sell out by ten."
+    },
+    {
+      "t": "Which honestly is a better brief than most clients give me."
+    },
+    {
+      "t": "So the plan is one page, with hours, location, a menu, and a gallery of the good stuff."
+    },
+    {
+      "t": "I'm building it in Pagecraft, and they're sponsoring this part of the video, so thanks to them.",
+      "seg": "K"
+    },
+    {
+      "t": "I started from a blank page, not a template, because I wanted it to feel like her shop, not like every other bakery site.",
+      "seg": "K"
+    },
+    {
+      "t": "First the header, I'm dragging in her logo, which I scanned off an old paper bag, and setting the background to this warm cream color from the shop walls.",
+      "seg": "K"
+    },
+    {
+      "t": "For fonts, I picked a chunky serif for the headings, because her chalkboard menu has that hand-lettered feel.",
+      "seg": "K"
+    },
+    {
+      "t": "Now the hours section, I'm adding a simple two-column block, days on the left, times on the right.",
+      "seg": "K"
+    },
+    {
+      "t": "And here's a detail I love, I can set a little banner that only shows on Sundays, saying closed today, see you Monday.",
+      "seg": "K"
+    },
+    {
+      "t": "Next, the menu.",
+      "seg": "K"
+    },
+    {
+      "t": "Instead of typing it all out as a list, I'm using the grid, one card per item, with a photo, the name, and the price.",
+      "seg": "K"
+    },
+    {
+      "t": "Sourdough loaf, six fifty, the famous cinnamon rolls, four dollars, and her seeded rye, which she insists be listed first.",
+      "seg": "K"
+    },
+    {
+      "t": "Mom, it's alphabetical.",
+      "seg": "K"
+    },
+    {
+      "t": "She said, it's my bakery.",
+      "seg": "K"
+    },
+    {
+      "t": "So the seeded rye is first.",
+      "seg": "K"
+    },
+    {
+      "t": "For the gallery, I'm dropping in about twenty photos, and it builds a masonry layout on its own, then I just drag the best ones to the top.",
+      "seg": "K"
+    },
+    {
+      "t": "The map block takes the address and drops in a pin, and I'm putting it right next to the parking info, because parking on Main Street is a nightmare.",
+      "seg": "K"
+    },
+    {
+      "t": "Then I check the phone preview, because I'd bet most of her customers look this up on their phone while standing outside.",
+      "seg": "K"
+    },
+    {
+      "t": "The menu cards were a bit squished on mobile, so I switched them to a single column there, and now it reads nicely.",
+      "seg": "K"
+    },
+    {
+      "t": "And finally, I connect her domain, which I bought last week as a surprise, and hit publish.",
+      "seg": "K"
+    },
+    {
+      "t": "Okay, now the important part, the client review."
+    },
+    {
+      "t": "I handed her my laptop and just let her scroll."
+    },
+    {
+      "t": "She was quiet for a long time."
+    },
+    {
+      "t": "Then she said, the cinnamon rolls look smaller than they are."
+    },
+    {
+      "t": "That was the only note."
+    },
+    {
+      "t": "I'll take it."
+    },
+    {
+      "t": "Then she scrolled back up and read her hours out loud, like she was making sure they were real."
+    },
+    {
+      "t": "And I think she got a little emotional, though she will deny that."
+    },
+    {
+      "t": "Twenty-two years of people knocking on the door on Sundays, and now there's finally a place that says closed today, see you Monday."
+    },
+    {
+      "t": "She's already asked if we can add a page for birthday cakes."
+    },
+    {
+      "t": "So I guess I have another job."
+    },
+    {
+      "t": "If you've got a small business in your family that's still living on a Facebook page from 2014, this is your sign."
+    },
+    {
+      "t": "Thanks for watching, and if you're ever in town, get there before ten."
+    }
+  ],
+  "segments": {
+    "K": {
+      "expect": "keep",
+      "category": "sponsor",
+      "brand": "Pagecraft"
+    }
+  },
+  "noisy": {
+    "swaps": [
+      [
+        "Pagecraft",
+        "page craft"
+      ],
+      [
+        "masonry",
+        "mason re"
+      ]
+    ]
+  }
+}

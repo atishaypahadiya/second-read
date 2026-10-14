@@ -1,0 +1,145 @@
+{
+  "id": "s08_d2",
+  "scenario": 8,
+  "split": "dev",
+  "lang": "en",
+  "title": "I Learned Portuguese in 30 Days (Then Tested It on a Real Brazilian)",
+  "creator": "Kenji Learns Languages",
+  "description": "30 days, zero to a 15-minute conversation with my friend Bia in São Paulo. Here's what worked and what didn't.\n\nSponsored by Babbel: get up to 55% off your subscription at https://babbel.com/kenji\n\nConversation group I joined: Thursday nights online\nPodcast I listened to: search \"português para iniciantes\"",
+  "paid_promotion": true,
+  "sentences": [
+    {
+      "t": "Thirty days ago I knew exactly two words of Portuguese, obrigado and caipirinha."
+    },
+    {
+      "t": "Today I'm going to try to have a fifteen-minute conversation with my friend Bia in São Paulo, entirely in Portuguese, no English allowed."
+    },
+    {
+      "t": "But before that, let me tell you how the month actually went, because it did not go to plan."
+    },
+    {
+      "t": "Week one, I was way too ambitious."
+    },
+    {
+      "t": "I made this spreadsheet with two hours of study a day, and I kept it up for exactly three days."
+    },
+    {
+      "t": "And honestly, what saved the whole challenge was Babble, who's sponsoring this video.",
+      "seg": "A"
+    },
+    {
+      "t": "Babble is a language app with short lessons, about ten or fifteen minutes each, built around real conversations instead of random vocabulary lists.",
+      "seg": "A"
+    },
+    {
+      "t": "So instead of learning the word for elephant on day one, you learn how to order a coffee and ask for directions.",
+      "seg": "A"
+    },
+    {
+      "t": "The part I used the most was the speech recognition, where you say the phrase out loud and it tells you if your pronunciation is off.",
+      "seg": "A"
+    },
+    {
+      "t": "For Brazilian Portuguese that is a lifesaver, because the nasal sounds are brutal.",
+      "seg": "A"
+    },
+    {
+      "t": "They also have live classes with real teachers, if you want someone to correct you in real time.",
+      "seg": "A"
+    },
+    {
+      "t": "Right now you can get up to fifty-five percent off a subscription at babble dot com slash kenji.",
+      "seg": "A"
+    },
+    {
+      "t": "That's babble dot com slash kenji, and the link is below.",
+      "seg": "A"
+    },
+    {
+      "t": "So, week two."
+    },
+    {
+      "t": "I cut it down to one short lesson every morning, plus twenty minutes of a Brazilian podcast on my walk."
+    },
+    {
+      "t": "I understood maybe ten percent of the podcast."
+    },
+    {
+      "t": "But by the end of the week it was more like twenty, and that felt huge."
+    },
+    {
+      "t": "Week three is when I started talking."
+    },
+    {
+      "t": "I found a conversation group that meets online on Thursdays, and I was terrified."
+    },
+    {
+      "t": "My first sentence was supposed to be, I am learning Portuguese, and instead I said, I am a Portuguese."
+    },
+    {
+      "t": "Everyone was very kind about it."
+    },
+    {
+      "t": "Week four, I mostly just talked, to anyone, about anything."
+    },
+    {
+      "t": "I narrated my cooking out loud, I left voice messages for Bia, I argued with the GPS."
+    },
+    {
+      "t": "Okay, it's time."
+    },
+    {
+      "t": "Bia's on the call, and from here on it's Portuguese only."
+    },
+    {
+      "t": "So that went better than I expected?",
+      "gap": 2.0
+    },
+    {
+      "t": "We talked about her job, my trip to Lisbon last year, and food, mostly food."
+    },
+    {
+      "t": "I lost the thread twice, once when she started talking about her landlord, and once when she used the word saudade and then tried to explain it."
+    },
+    {
+      "t": "Saudade is this feeling of missing something or someone, a kind of sweet sadness, and apparently there's no real English word for it."
+    },
+    {
+      "t": "But I never switched to English, which was the whole goal."
+    },
+    {
+      "t": "So my verdict after thirty days?"
+    },
+    {
+      "t": "I can get by, I can make friends, and I can embarrass myself confidently in a second language."
+    },
+    {
+      "t": "I'm going to keep going for another two months and then try a trip to Brazil."
+    },
+    {
+      "t": "If you want to see that, subscribe, and tell me what language you're learning in the comments."
+    },
+    {
+      "t": "Até logo!"
+    }
+  ],
+  "segments": {
+    "A": {
+      "expect": "skip",
+      "category": "sponsor",
+      "brand": "Babbel"
+    }
+  },
+  "noisy": {
+    "swaps": [
+      [
+        "saudade",
+        "so dodgy"
+      ],
+      [
+        "Kenji",
+        "Kenny"
+      ]
+    ]
+  }
+}
