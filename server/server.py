@@ -75,7 +75,7 @@ KEEP_ALIVE = -1                                       # keep the model loaded be
 # Rubric changes in SYSTEM_PROMPT affect both passes: bump DETECT and REFINE.
 DETECT_VERSION = 3
 REFINE_VERSION = 3
-POST_VERSION = 6
+POST_VERSION = 7
 LEADIN_VERSION = 2   # the lead-in check: LEADIN_PROMPT / LEADIN_SYSTEM, the sentences it is shown, its caps
 NUM_CTX = 8192
 LLM_TIMEOUT_S = 600
@@ -330,12 +330,21 @@ CODE_RE = re.compile(r"\bcode[:\s]+([A-Z0-9]{3,20})\b")
 DOMAIN_RE = re.compile(r"\b([a-z0-9-]{1,63}(?:\.[a-z0-9-]{1,63}){0,4}\.(?:com|net|org|io|co|deals|gg|ai|app|tv|me|ly|fm|shop|store|xyz|dev|to)(?:/[\w.-]{1,80})?)\b", re.I)
 AD_LINE_RE = re.compile(r"\(ad\)|\bsponsor|\bpartner|#ad\b|\bpaid promotion", re.I)
 NOT_AD_LINE_RE = re.compile(r"\b(?:not|no|non|never|isn'?t|aren'?t|wasn'?t|without)\b[^.!?\n]{0,20}\b(?:sponsor|paid promotion|partner)", re.I)
+# A standing legal disclaimer about sponsors in general ("Viewer's discretion is advised w.r.t. the products/services of
+# the sponsors advertised on our platforms. We do not claim any responsibility..."), pasted under every video of a
+# channel. It names no sponsor of this video; its capitalized first word became the brand hint "Viewer" (lyMTD1eAZAw).
+DISCLAIMER_LINE_RE = re.compile(r"\bdiscretion\b|\bdisclaimer\b|\bresponsibilit(?:y|ies)\b|\bnot (?:be )?(?:held )?(?:liable|responsible)\b"
+                                r"|\b(?:do|does|did)(?: not|n'?t) (?:claim|endorse|accept|guarantee)\b", re.I)
+# ... unless the line also names this video's own sponsorship outright
+STRONG_AD_LINE_RE = re.compile(r"\(ad\)|#ad\b|\bsponsored by\b|\bbrought to you by\b|\bin partnership with\b|\btoday'?s sponsor\b", re.I)
 
 
 def is_ad_line(line):
     """A line that marks a sponsorship: '(ad)', 'sponsored by', 'in partnership with', '#ad'. A denial
-    ('this video is not sponsored', 'no sponsor') is not one."""
-    return bool(AD_LINE_RE.search(line)) and not NOT_AD_LINE_RE.search(line)
+    ('this video is not sponsored', 'no sponsor') is not one, and neither is a disclaimer about sponsors in general."""
+    if not AD_LINE_RE.search(line) or NOT_AD_LINE_RE.search(line):
+        return False
+    return bool(STRONG_AD_LINE_RE.search(line)) or not DISCLAIMER_LINE_RE.search(line)
 CHAPTER_RE = re.compile(r"^\s*(?:\d+:)?\d{1,2}:\d{2}\s*[-–—:]?\s*(.+)$")
 STOPWORDS = {"the", "this", "video", "sponsored", "sponsor", "by", "thanks", "to", "for", "and", "with", "check", "out",
              "get", "use", "code", "off", "free", "trial", "link", "description", "below", "today", "ad", "our", "my",
@@ -2740,12 +2749,19 @@ def backfill_durations():
     except Exception as e:  # noqa: BLE001
         log(f"stats: code vault clean-up failed: {e!r}")
     try:
-        redone = stats.renormalize_brands()
+        redone = stats.renormalize_brands(fresh_hints)
         if redone:
             log(f"stats: brands re-derived under rules v{stats.BRAND_RULES_VERSION}: {redone[0]} segment(s) changed, "
                 f"{redone[1]} learned alias(es) dropped and re-learned where still valid")
     except Exception as e:  # noqa: BLE001
         log(f"stats: brand re-normalization failed: {e!r}")
+
+
+def fresh_hints(video_id):
+    """The description hints of a cached video under the current rules (None if no description was stored), so that a
+    brand re-derivation after a rules change does not reuse hints the old rules extracted."""
+    meta = (load_cache(video_id) or {}).get("meta") or {}
+    return extract_hints(meta["description"]) if meta.get("description") else None
 
 
 def model_present(name):

@@ -28,7 +28,7 @@ def set_logger(fn):
 EVENT_KINDS = ("skip", "undo", "seek_into", "false_skip", "missed_ad", "allowlisted", "integration_played")
 HALL_MIN_SPOTS = 3  # spots a brand needs before it can enter the Hall of Shame or the Hall of Fame
 RULE_CATEGORIES = ("interaction", "intro", "outro", "recap")  # same as server.RULE_CATEGORIES: never carry a brand
-BRAND_RULES_VERSION = 2  # bump when canonical_brand's rules change: stored brands are re-derived once at startup
+BRAND_RULES_VERSION = 3  # bump when canonical_brand's rules change: stored brands are re-derived once at startup
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS videos (
@@ -496,14 +496,20 @@ def repair_legacy_rows(current_post_version):
     return fixed, reset
 
 
-def renormalize_brands():
+def renormalize_brands(fresh_hints=None):
     """Once per BRAND_RULES_VERSION (kept in PRAGMA user_version): re-derive every stored canonical brand under the
     current rules. Learned aliases are derived data too, so they are dropped and re-learned from the segments.
-    Events and promo-code rows follow their segment's brand. Returns None when already done, else
+    Events and promo-code rows follow their segment's brand. fresh_hints(video_id) -> hints or None re-extracts a
+    video's description hints first (the hint rules change too). Returns None when already done, else
     (segments_changed, aliases_dropped)."""
     with _lock, connect() as c:
         if c.execute("PRAGMA user_version").fetchone()[0] >= BRAND_RULES_VERSION:
             return None
+        if fresh_hints:
+            for (vid,) in c.execute("SELECT video_id FROM videos").fetchall():
+                h = fresh_hints(vid)
+                if h is not None:
+                    c.execute("UPDATE videos SET hints = ? WHERE video_id = ?", (json.dumps(h), vid))
         dropped = c.execute("DELETE FROM brand_aliases WHERE how != 'builtin'").rowcount
         rows = c.execute("SELECT s.*, v.hints FROM segments s LEFT JOIN videos v ON v.video_id = s.video_id ORDER BY s.id").fetchall()
         c.execute("UPDATE segments SET brand = ''")  # the fuzzy match against known brands must not see an old value

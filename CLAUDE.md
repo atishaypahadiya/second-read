@@ -294,7 +294,10 @@ Every GET/POST for a video counts as a poll.
   titles are extracted from the description, added to the cue list, used for ordering, and shown to the model in the
   prompt header (so a misheard "Udo" can be matched to Odoo). **Only sponsor lines contribute links and brands:** a
   line with an (ad)/sponsor/partner marker, a promo code or an offer, or the line right after one. The creator's own
-  shop, socials (with or without `www.`) and source links are ignored, and any term that is really the creator's own
+  shop, socials (with or without `www.`) and source links are ignored, a standing disclaimer about sponsors in
+  general ("Viewer's discretion is advised w.r.t. … the sponsors advertised on our platforms. We do not claim any
+  responsibility …") is not a sponsor line unless it also says "sponsored by"/"(ad)" outright (it made "Viewer" a brand
+  hint on every Dhruv Rathee video; `BRAND_RULES_VERSION` 3 re-extracts stored hints from cached descriptions), and any term that is really the creator's own
   name ("fern" from fern.deals/coddy, "HARRIS" for Johnny Harris) is dropped from the hint terms. Generic capitalized
   words on a sponsor line ("Coddy Pro Plan for Tech lovers" → only Coddy; `stats.GENERIC_WORDS`) are not brands either. Reason: hint terms
   count as sponsor cues for the skip gate, so they must never include things the creator says in ordinary content.

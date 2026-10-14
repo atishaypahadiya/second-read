@@ -430,6 +430,13 @@ def unit_checks():
     eq("hint terms: creator's code/name excluded, brand kept", server.hint_terms(h, "Johnny Harris"), ["incogni.com/harris", "incogni"])
     h = server.extract_hints("This video is sponsored by Odoo.\nhttps://www.odoo.com/r/fern")
     eq("hints: link on the line after a sponsor line", (h["brands"], h["domains"]), (["Odoo"], ["odoo.com/r"]))
+    dhruv = ("Get an exclusive NordVPN deal here \u27b5  https://NordVPN.com/dhruv\n"
+             "Viewer\u2019s discretion is advised w.r.t. the products/services of the sponsors advertised on our platforms. "
+             "We do not claim any responsibility in any manner whatsoever.")
+    eq("ad lines: a disclaimer about sponsors in general is not a sponsorship marker, and gives no brand hint (was 'Viewer'); an outright 'sponsored by' still counts",
+       (server.is_ad_line(dhruv.splitlines()[1]), "Viewer" in server.extract_hints(dhruv)["brands"],
+        server.is_ad_line("This video is sponsored by Odoo. Odoo takes no responsibility for my opinions.")),
+       (False, False, True))
     eq("ad lines: a denial is not a sponsorship marker",
        [server.is_ad_line(l) for l in ("Coddy (ad): https://fern.deals/coddy", "This video is sponsored by Odoo.",
                                        "This video is not sponsored.", "No sponsor today.")], [True, True, False, False])
