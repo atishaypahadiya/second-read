@@ -513,7 +513,7 @@
       "meta": "cached",
       "verified": false,
       "source": "pipeline-snapshot",
-      "note": "India's Craziest Solo Traveller: Taliban, China, Nicaragua & more | Truly Nomadly | Untriggered #246. Nothing skipped. Podcast; no sponsor line in the description, 'sponsor' only in conversation. The cached track is labeled 'ar' although the transcript is English (an as-is read).",
+      "note": "India's Craziest Solo Traveller: Taliban, China, Nicaragua & more | Truly Nomadly | Untriggered #246. Nothing skipped. Podcast; no sponsor line in the description, 'sponsor' only in conversation. The cached track is labeled 'ar' although the transcript is English (an as-is read from before build 20); the expectation that it is analyzed as 'en' comes from reading the transcript (post v12), the segments are a snapshot.",
       "expect": [
         {
           "action": "show",
@@ -521,7 +521,10 @@
           "start": 5258.72,
           "end": 5261.12
         }
-      ]
+      ],
+      "expect_meta": {
+        "lang": "en"
+      }
     },
     {
       "video": "yTwtg9cwr90",
