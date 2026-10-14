@@ -1,0 +1,122 @@
+{
+ "id": "s08_h3",
+ "scenario": 8,
+ "split": "held",
+ "lang": "en",
+ "title": "Everything I Carry Every Day (2026 Edition)",
+ "creator": "Marcus Bell",
+ "description": "Pocket dump time. Phone, keys, wallet, sling, and the one thing that got stolen this year.\n\nThanks to Ekster for sponsoring this video! Get 20% off with code MARCUS20: https://ekster.com/marcus\n\nFull gear list in the pinned comment.",
+ "paid_promotion": false,
+ "sentences": [
+  {
+   "t": "What's up everybody, Marcus here, and today I'm emptying my pockets for you, because last year's everyday carry video is officially out of date."
+  },
+  {
+   "t": "A lot changed, some stuff got lost, one thing got stolen, and a couple of things I just stopped using."
+  },
+  {
+   "t": "So let's go pocket by pocket."
+  },
+  {
+   "t": "Front left pocket is always my phone, and this year that's the same phone as last year, because I'm trying to keep it for four years."
+  },
+  {
+   "t": "I put it in a slim case with a ring on the back, mostly because I drop it about once a day."
+  },
+  {
+   "t": "Front right pocket is keys, and I finally got these under control."
+  },
+  {
+   "t": "I used to have this giant jangly ring with a bottle opener and a tiny flashlight and three loyalty cards."
+  },
+  {
+   "t": "Now it's a little key organizer that folds everything into one stack, and it's quiet, which my coworkers appreciate."
+  },
+  {
+   "t": "Back pocket is my wallet, and this is a good time to mention that today's video is sponsored by Exter.",
+   "seg": "A"
+  },
+  {
+   "t": "This is the Exter Parliament wallet, and the trick is this little trigger on the side.",
+   "seg": "A"
+  },
+  {
+   "t": "Click it and your cards fan out, so you can grab the one you need without digging around.",
+   "seg": "A"
+  },
+  {
+   "t": "It's aluminum and leather, it holds up to twelve cards, and it blocks RFID, so nobody's skimming your cards on the subway.",
+   "seg": "A"
+  },
+  {
+   "t": "The new version also has a slot for a tracker card, so if you lose it, it shows up on your phone's map.",
+   "seg": "A"
+  },
+  {
+   "t": "After my last wallet got lifted on a train in Lisbon, that feature alone sold me.",
+   "seg": "A"
+  },
+  {
+   "t": "Use code MARCUS20 at Exter dot com slash marcus for twenty percent off, and the link's in the description.",
+   "seg": "A"
+  },
+  {
+   "t": "Okay, moving on to the bag, because I carry a small sling most days."
+  },
+  {
+   "t": "Inside the sling, there's a little pouch with the boring essentials, painkillers, plasters, lip balm, and a spare hair tie, which is for my girlfriend, not me."
+  },
+  {
+   "t": "Then there's my knife, which is a small slip joint with a short blade, so it's legal pretty much everywhere I go."
+  },
+  {
+   "t": "I mostly use it to open boxes, cut tags off clothes, and once to free a bird that got tangled in fishing line, which is the most heroic thing it's ever done."
+  },
+  {
+   "t": "Next, a pen, because I'm the person in every meeting who never has a pen, and I'm trying to change."
+  },
+  {
+   "t": "This one is a bolt action pen in brass, and it's slowly getting that nice worn patina."
+  },
+  {
+   "t": "Then earbuds, a flat charging cable, and a tiny power bank that's about the size of a lipstick."
+  },
+  {
+   "t": "The last thing is new this year, a little pocket notebook."
+  },
+  {
+   "t": "I've started writing things down instead of putting them in my phone, and I remember them so much better."
+  },
+  {
+   "t": "And that's it, that's everything I carry."
+  },
+  {
+   "t": "If I had to pick the one item that changed my day the most this year, it's honestly the key organizer, because I don't sound like a janitor walking down the hallway anymore."
+  },
+  {
+   "t": "Let me know what you carry, I read every comment on these."
+  },
+  {
+   "t": "And I'll see you in the next one."
+  }
+ ],
+ "segments": {
+  "A": {
+   "expect": "skip",
+   "category": "sponsor",
+   "brand": "Ekster"
+  }
+ },
+ "noisy": {
+  "swaps": [
+   [
+    "Exter",
+    "exeter"
+   ],
+   [
+    "MARCUS20",
+    "marcus 20"
+   ]
+  ]
+ }
+}

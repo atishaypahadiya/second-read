@@ -1,0 +1,129 @@
+{
+ "id": "s07_h2",
+ "scenario": 7,
+ "split": "held",
+ "lang": "en",
+ "title": "How I Paid Off $38,000 in 26 Months",
+ "creator": "Nina Brooks",
+ "description": "Four credit cards, a car loan and one very embarrassing store card. Here's every month of it, including the bad ones.\n\nNext video: the exact budget percentages I used.\n\nI'm not a financial advisor, this is just what worked for me.",
+ "paid_promotion": null,
+ "sentences": [
+  {
+   "t": "Twenty-six months ago I had thirty-eight thousand dollars of debt across four credit cards, a car loan, and one very embarrassing store card."
+  },
+  {
+   "t": "Today it's zero, and in this video I'm going to show you exactly how that happened, including the months where it didn't go well."
+  },
+  {
+   "t": "Before the numbers, let me show you the one tool I'd tell my past self to download on day one.",
+   "seg": "A"
+  },
+  {
+   "t": "It's called Ledgerleaf, and it connects to your bank accounts and cards and sorts every transaction into categories automatically, so you're not typing in receipts at midnight.",
+   "seg": "A"
+  },
+  {
+   "t": "The feature that changed things for me is the debt planner, where you put in every balance and interest rate and it builds you a payoff schedule with an actual date at the end.",
+   "seg": "A"
+  },
+  {
+   "t": "Seeing a date, like a real month and year, made the whole thing feel finite instead of endless.",
+   "seg": "A"
+  },
+  {
+   "t": "It's also built for couples, so if you share finances you can both see the same budget without sending each other screenshots.",
+   "seg": "A"
+  },
+  {
+   "t": "If you go to ledgerleaf.app slash nina, you get your first sixty days completely free, no card needed.",
+   "seg": "A"
+  },
+  {
+   "t": "Okay, so here's where I started."
+  },
+  {
+   "t": "Card one had about eleven thousand on it at twenty-four percent, and that was the scary one."
+  },
+  {
+   "t": "Cards two and three were smaller, around four thousand each, and the store card was nine hundred dollars that I had honestly forgotten about."
+  },
+  {
+   "t": "The car loan was the rest, at a much lower rate."
+  },
+  {
+   "t": "I used what people call the avalanche method, which means you pay minimums on everything and throw every extra dollar at the highest interest rate first."
+  },
+  {
+   "t": "Mathematically, that saves you the most money."
+  },
+  {
+   "t": "Emotionally, it's brutal, because that first balance takes forever to move."
+  },
+  {
+   "t": "So I made one exception, and I paid off the nine hundred dollar store card first, just to get a win."
+  },
+  {
+   "t": "Was that optimal?"
+  },
+  {
+   "t": "No."
+  },
+  {
+   "t": "Did it keep me going?"
+  },
+  {
+   "t": "Absolutely."
+  },
+  {
+   "t": "The second big change was income, not spending."
+  },
+  {
+   "t": "I was cutting coffee and canceling streaming and it was saving me maybe eighty dollars a month, which is real, but it's not going to kill thirty-eight thousand dollars."
+  },
+  {
+   "t": "What actually moved the needle was asking for a raise, which I'd been too scared to do for two years, and picking up weekend tutoring."
+  },
+  {
+   "t": "That added about seven hundred a month, and all of it went straight to debt."
+  },
+  {
+   "t": "Months nine through twelve were the worst."
+  },
+  {
+   "t": "My car needed a new transmission, I had to put some of it back on a card, and I cried in a grocery store parking lot."
+  },
+  {
+   "t": "I'm telling you that because so many payoff videos make it look like a straight line, and it isn't."
+  },
+  {
+   "t": "But by month eighteen, card one was gone, and after that everything snowballed, because all that money freed up at once."
+  },
+  {
+   "t": "The car loan was the last thing, I paid it off two months ago, and I took a very small, very cheap trip to celebrate."
+  },
+  {
+   "t": "If you're at the start of this, the one thing I'd say is, write the number down, look at it, and pick a date."
+  },
+  {
+   "t": "In the next video I'll go through the exact budget percentages I used each month."
+  },
+  {
+   "t": "Leave your questions below and I'll answer as many as I can."
+  }
+ ],
+ "segments": {
+  "A": {
+   "expect": "skip",
+   "category": "sponsor",
+   "brand": "Ledgerleaf"
+  }
+ },
+ "noisy": {
+  "swaps": [
+   [
+    "Ledgerleaf",
+    "ledger leaf"
+   ]
+  ]
+ }
+}

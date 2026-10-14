@@ -1,0 +1,148 @@
+{
+ "id": "s25_h2",
+ "scenario": 25,
+ "split": "held",
+ "lang": "en",
+ "title": "Building My Endgame Keyboard (Lubing Switches Is a Trap)",
+ "creator": "clackbyte",
+ "description": "Full build of my new 75% board: gasket mount, lubed linears, tape mod, and a lot of regret about the stabilizers.\n\nParts:\nCase: aluminium 75%, gasket mount\nSwitches: linears, 63.5g\nKeycaps: cherry profile PBT\n\nSound test at the end.",
+ "paid_promotion": null,
+ "sentences": [
+  {
+   "t": "Okay, today's the day, I'm finally building the keyboard I've been collecting parts for since the summer."
+  },
+  {
+   "t": "It's a seventy five percent layout, gasket mount, aluminium case, and I've been waiting on the keycaps for four months."
+  },
+  {
+   "t": "Let's open the case first."
+  },
+  {
+   "t": "This is heavy, like genuinely heavy, I think it's about two kilos fully built."
+  },
+  {
+   "t": "Inside you've got the plate, the PCB, and these little silicone gaskets that sit between the plate and the case."
+  },
+  {
+   "t": "The gaskets are what give it that soft, bouncy typing feel instead of slamming into solid metal."
+  },
+  {
+   "t": "So first job, stabilizers, and I'm going to be honest, this is the part I hate."
+  },
+  {
+   "t": "Stabilizers are what keep the long keys like the space bar from wobbling, and if they're not tuned, they rattle."
+  },
+  {
+   "t": "I'm clipping the little feet, adding some dielectric grease on the wire, and a bit of thicker lube on the housings."
+  },
+  {
+   "t": "Listen to this one before, that's the rattle, and now after."
+  },
+  {
+   "t": "Silence, beautiful."
+  },
+  {
+   "t": "Okay, that was one, and there are four more, so I'll speed this up."
+  },
+  {
+   "t": "By the way, part of today's video is sponsored by Tidewell.",
+   "seg": "A",
+   "gap": 1.0
+  },
+  {
+   "t": "Now the switches, and this is where I need to warn you about something.",
+   "gap": 0.8
+  },
+  {
+   "t": "Lubing switches is a trap."
+  },
+  {
+   "t": "It does make them smoother and quieter, but you have to open every single switch, brush lube on the stem and the housing, and close it again."
+  },
+  {
+   "t": "I have ninety switches."
+  },
+  {
+   "t": "I did this over four evenings, and by the end I was dreaming about tiny springs."
+  },
+  {
+   "t": "Is it worth it?"
+  },
+  {
+   "t": "For linears, yeah, you can really feel the difference, but if anyone tells you it's relaxing, they're lying."
+  },
+  {
+   "t": "Okay, next, the tape mod."
+  },
+  {
+   "t": "I'm putting two layers of painter's tape on the back of the PCB, which sounds silly, but it makes the sound deeper and more poppy."
+  },
+  {
+   "t": "And now into the plate, switches clicking in one by one."
+  },
+  {
+   "t": "This is the satisfying part, honestly, it's like a really expensive Lego set."
+  },
+  {
+   "t": "Plate goes onto the PCB, everything lines up, and I'm going to plug it in and test every key before I close the case."
+  },
+  {
+   "t": "Every key works, which never happens on my first try."
+  },
+  {
+   "t": "Last time I built one of these, the whole bottom row was dead and I had to reflow three solder joints."
+  },
+  {
+   "t": "So I'm going to take this as a sign from the universe."
+  },
+  {
+   "t": "Case goes back together, eight screws, and now the keycaps."
+  },
+  {
+   "t": "These are cherry profile, PBT plastic, with this cream and navy colour scheme that I love."
+  },
+  {
+   "t": "And there it is."
+  },
+  {
+   "t": "I'm really happy with how this looks, the colours match the desk perfectly."
+  },
+  {
+   "t": "Okay, sound test, I'm going to type a paragraph and then do some fast space bar spam."
+  },
+  {
+   "t": "That's deep, that's exactly the sound I wanted, that thocky marble sound."
+  },
+  {
+   "t": "Now, would I recommend this to a beginner?"
+  },
+  {
+   "t": "Not this exact build, it's a lot of work and a lot of money."
+  },
+  {
+   "t": "Start with something hot-swappable, where you can change switches without soldering, and work up from there."
+  },
+  {
+   "t": "Let me know what you think of the sound in the comments."
+  }
+ ],
+ "segments": {
+  "A": {
+   "expect": "noskip",
+   "category": "sponsor",
+   "brand": "Tidewell"
+  }
+ },
+ "noisy": {
+  "swaps": [
+   [
+    "Tidewell",
+    "tide well"
+   ],
+   [
+    "thocky",
+    "talky"
+   ]
+  ]
+ }
+}

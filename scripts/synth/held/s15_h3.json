@@ -1,0 +1,161 @@
+{
+ "id": "s15_h3",
+ "scenario": 15,
+ "split": "held",
+ "lang": "en",
+ "title": "I Played Hardcore Minecraft for 100 Days in a Single Biome",
+ "creator": "Kenji Arai",
+ "description": "100 days of hardcore Minecraft, but I can never leave the mushroom island. No villages, no trees, no mobs. How long can I last?\n\nBecome a channel member: click Join under the video for early access, member-only streams and a shoutout in the credits.\n\nSeed is in the pinned comment.",
+ "paid_promotion": false,
+ "sentences": [
+  {
+   "t": "Day one, and I've just spawned on a mushroom island in the middle of the ocean."
+  },
+  {
+   "t": "The rule for this challenge is simple, I can never leave this island, not even for a second."
+  },
+  {
+   "t": "And it's hardcore, so if I die, the video's over."
+  },
+  {
+   "t": "Mushroom islands are honestly one of the weirdest places in the game.",
+   "gap": 1.0
+  },
+  {
+   "t": "There are no trees, no normal animals, and hostile mobs can't spawn here at all."
+  },
+  {
+   "t": "So in theory it's safe, but in practice I have no wood, which is a massive problem."
+  },
+  {
+   "t": "Days two to five, I'm trying to figure out how to get wood without trees.",
+   "gap": 1.2
+  },
+  {
+   "t": "And the answer is giant mushrooms."
+  },
+  {
+   "t": "If I grow mushrooms on mycelium with some bone meal, they turn into huge mushrooms, and I can break those for stems."
+  },
+  {
+   "t": "I'm getting bone meal from, let's see, nothing, because there are no skeletons."
+  },
+  {
+   "t": "So I'm farming bone meal from a composter, stuffing it full of mushrooms."
+  },
+  {
+   "t": "Day eight, my first crafting table.",
+   "gap": 1.0
+  },
+  {
+   "t": "I nearly cried."
+  },
+  {
+   "t": "Seriously, eight days for a crafting table is a personal worst."
+  },
+  {
+   "t": "Quick shoutout while I'm building, to everyone who's become a member of the channel.",
+   "seg": "A",
+   "gap": 1.2
+  },
+  {
+   "t": "If you hit the join button under the video, you get every episode a day early, plus member-only streams where we play hardcore together.",
+   "seg": "A"
+  },
+  {
+   "t": "And members get their names in the credits at the end of every video, so this week you'll see about fifty names scroll past.",
+   "seg": "A"
+  },
+  {
+   "t": "You guys are the reason I can keep doing hundred-day videos, because these take weeks to record.",
+   "seg": "A"
+  },
+  {
+   "t": "Day fifteen.",
+   "gap": 1.1
+  },
+  {
+   "t": "The cows on this island are mooshrooms, which are red cows with mushrooms growing out of them."
+  },
+  {
+   "t": "If I milk one with a bowl, I get mushroom stew, which is basically infinite free food."
+  },
+  {
+   "t": "So food is officially solved."
+  },
+  {
+   "t": "Days twenty to forty, I'm building a base into the side of the island's biggest hill.",
+   "gap": 1.0
+  },
+  {
+   "t": "I'm digging down because stone gives me tools, and I've finally got a stone pickaxe and a stone sword."
+  },
+  {
+   "t": "At day thirty-two I hit iron, which is a huge deal, because iron means a bucket, and a bucket means water and farming."
+  },
+  {
+   "t": "Day forty-seven, the closest I came to dying.",
+   "gap": 0.9
+  },
+  {
+   "t": "I was digging down too fast, broke into a cave, and there were mobs in it, because caves don't count as the mushroom biome."
+  },
+  {
+   "t": "A creeper came round the corner and blew up right next to me."
+  },
+  {
+   "t": "I had two hearts left."
+  },
+  {
+   "t": "Two hearts."
+  },
+  {
+   "t": "I sealed myself in with dirt and just ate stew for about five minutes with my heart going crazy."
+  },
+  {
+   "t": "Days fifty to eighty, I've gone fishing crazy.",
+   "gap": 1.0
+  },
+  {
+   "t": "Fishing is the only way I can get stuff like enchanted books and name tags on this island."
+  },
+  {
+   "t": "And on day seventy-three, I fished up a bow with power three, which is ridiculous luck."
+  },
+  {
+   "t": "Days eighty to a hundred.",
+   "gap": 1.1
+  },
+  {
+   "t": "I built a lighthouse on the edge of the island, a mooshroom farm, and a huge mushroom garden on the roof of my base."
+  },
+  {
+   "t": "And on day one hundred, I'm still alive, on the island, with full diamond armor that I mined out of the caves underneath."
+  },
+  {
+   "t": "So yeah, the mushroom island turned out to be a pretty good home after all."
+  },
+  {
+   "t": "Let me know which biome I should try next, and I'll see you in the next hundred days."
+  }
+ ],
+ "segments": {
+  "A": {
+   "expect": "label",
+   "category": "membership",
+   "brand": "Channel membership"
+  }
+ },
+ "noisy": {
+  "swaps": [
+   [
+    "mycelium",
+    "my celium"
+   ],
+   [
+    "mooshroom",
+    "mushroom"
+   ]
+  ]
+ }
+}

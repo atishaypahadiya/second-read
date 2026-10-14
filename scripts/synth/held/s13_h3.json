@@ -1,0 +1,145 @@
+{
+ "id": "s13_h3",
+ "scenario": 13,
+ "split": "held",
+ "lang": "en",
+ "title": "This GPU Shouldn't Be This Fast for the Money",
+ "creator": "Marcus Feld",
+ "description": "Full review of the new mid-range card: twelve games at 1440p, power draw, thermals, noise, and how it compares to last year's cards.\n\nThe card was a review sample from the manufacturer and is being returned. They had no input on this video and did not see it before publishing.\n\nTest system: 8-core CPU, 32 GB RAM, same drivers for all cards.",
+ "paid_promotion": null,
+ "sentences": [
+  {
+   "t": "So this is the new Radeon card, the one that's supposed to sit right in the middle of the market."
+  },
+  {
+   "t": "And I've had it on my test bench for about a week now."
+  },
+  {
+   "t": "Spoiler, it's a lot faster than I expected for the price, but there are a couple of catches."
+  },
+  {
+   "t": "First, the boring but important bit.",
+   "gap": 1.0
+  },
+  {
+   "t": "AMD sent me this card as a review sample, and it's going back to them after this video.",
+   "seg": "A"
+  },
+  {
+   "t": "They didn't pay me anything, they didn't get to see this video before it went up, and they don't know what I'm about to say.",
+   "seg": "A"
+  },
+  {
+   "t": "I've also had sponsorships from hardware brands in the past, but this isn't one, and there's no affiliate link to this card anywhere in the description.",
+   "seg": "A"
+  },
+  {
+   "t": "Okay, let's actually look at it."
+  },
+  {
+   "t": "The card itself is pretty compact, two slots, two fans, and it uses a normal eight-pin power connector.",
+   "gap": 1.2
+  },
+  {
+   "t": "No weird adapters, which I really appreciate."
+  },
+  {
+   "t": "The build quality feels fine, a bit plasticky on the shroud, but nothing creaks."
+  },
+  {
+   "t": "Now, performance.",
+   "gap": 1.0
+  },
+  {
+   "t": "I tested twelve games at fourteen-forty p, with the same settings I use for every card."
+  },
+  {
+   "t": "In the big open world games, it's sitting right around sixty to seventy frames a second on high settings."
+  },
+  {
+   "t": "In competitive shooters, you're well over a hundred and fifty."
+  },
+  {
+   "t": "And compared to last year's card at this price, it's about twenty five percent faster on average."
+  },
+  {
+   "t": "That's a proper generational jump, which we haven't really seen in this price range for a while."
+  },
+  {
+   "t": "But here's catch number one.",
+   "gap": 1.0
+  },
+  {
+   "t": "Ray tracing."
+  },
+  {
+   "t": "Turn it on in the heavy games, and the frame rate basically halves."
+  },
+  {
+   "t": "In one game it dropped from sixty-eight to thirty-one, which is not a nice experience at all."
+  },
+  {
+   "t": "If ray tracing is the reason you're upgrading, this probably isn't the card for you."
+  },
+  {
+   "t": "Catch number two is drivers.",
+   "gap": 0.9
+  },
+  {
+   "t": "I had one game that crashed twice on launch with the first driver, and then a hotfix came out on day four and fixed it."
+  },
+  {
+   "t": "So it's sorted now, but if you buy one on launch day, update your drivers before you do anything else."
+  },
+  {
+   "t": "Let's talk power and thermals.",
+   "gap": 1.0
+  },
+  {
+   "t": "Under a full gaming load, the card pulls about two hundred watts."
+  },
+  {
+   "t": "The hottest it got was seventy-two degrees, in a case with decent airflow."
+  },
+  {
+   "t": "And it's quiet, like, genuinely quiet."
+  },
+  {
+   "t": "I had to put my microphone right next to it to even hear the fans over the room."
+  },
+  {
+   "t": "So, should you buy it?",
+   "gap": 1.1
+  },
+  {
+   "t": "If you're on a card from three or four years ago and you mostly play at fourteen-forty p without ray tracing, this is a really good upgrade for the money."
+  },
+  {
+   "t": "If you care a lot about ray tracing, or you play at 4K, you'll want to spend more."
+  },
+  {
+   "t": "And if the price creeps up after launch, which it sometimes does, the value argument gets a lot weaker."
+  },
+  {
+   "t": "I'll be testing it in a small form factor build next week, so if you want to see how it does in a tiny case, stick around."
+  },
+  {
+   "t": "Thanks for watching."
+  }
+ ],
+ "segments": {
+  "A": {
+   "expect": "none",
+   "category": "sponsor",
+   "brand": "AMD"
+  }
+ },
+ "noisy": {
+  "swaps": [
+   [
+    "Radeon",
+    "radian"
+   ]
+  ]
+ }
+}

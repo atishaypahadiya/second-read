@@ -1,0 +1,164 @@
+{
+ "id": "s23_h2",
+ "scenario": 23,
+ "split": "held",
+ "lang": "en",
+ "title": "The Only Reverse Sear Method You Need (Thick Ribeye)",
+ "creator": "Smoke & Salt with Big Ray",
+ "description": "Two-inch ribeye, reverse seared on a kettle grill. Timings, temps, and how to not overcook a forty dollar steak.\n\nMEATER: use code BIGRAY for 15% off at meater.com/bigray\n\nMy rub recipe: smokeandsaltbbq.com/rub\nKettle: 22 inch\nCharcoal: lump, about half a chimney",
+ "paid_promotion": null,
+ "sentences": [
+  {
+   "t": "Alright y'all, welcome back to the pit, today we're doing a big old ribeye, two inches thick, reverse sear."
+  },
+  {
+   "t": "If you've never done reverse sear, the idea is simple, you cook it low and slow first, then you hit it real hot at the end."
+  },
+  {
+   "t": "That way you get edge to edge pink instead of that grey band you get from searing first."
+  },
+  {
+   "t": "Now, I salted this steak last night and left it uncovered in the fridge, and look how dry that surface is."
+  },
+  {
+   "t": "That's what you want, dry surface means a better crust later."
+  },
+  {
+   "t": "I've got the kettle set up two-zone, coals all banked on one side, nothing on the other."
+  },
+  {
+   "t": "We're aiming for about two twenty five on the cool side."
+  },
+  {
+   "t": "Now I'm gonna take my MEATER probe here and push it right into the thickest part of the steak, sideways, all the way past that little line.",
+   "seg": "A",
+   "gap": 0.7
+  },
+  {
+   "t": "The nice thing is there's no wires, so I can close the lid and not have a cable pinched in there.",
+   "seg": "A"
+  },
+  {
+   "t": "I'm pulling up the app on my phone, and I'll set the target to one twenty five, cause I want to pull it off the indirect side before the sear.",
+   "seg": "A"
+  },
+  {
+   "t": "It's already reading ambient temp inside the grill too, so I can see it's sitting at about two thirty, which is right where we want it.",
+   "seg": "A"
+  },
+  {
+   "t": "Okay, lid on, and now we wait.",
+   "seg": "A"
+  },
+  {
+   "t": "Alright, it's been about forty minutes, and I'm not gonna open that lid, cause every time you peek you lose heat.",
+   "seg": "A",
+   "gap": 2.0
+  },
+  {
+   "t": "But if I look at the app, the steak's at a hundred and eight and climbing, and it's even estimating about twelve more minutes.",
+   "seg": "A",
+   "gap": 0.4
+  },
+  {
+   "t": "That estimate thing is honestly my favorite part, cause I can go get the sides going without babysitting it.",
+   "seg": "A"
+  },
+  {
+   "t": "And there it goes, it just buzzed my phone, we're at one twenty five, so I'm pulling it off.",
+   "seg": "A"
+  },
+  {
+   "t": "Real quick while it rests, I gotta say, today's video is sponsored by MEATER, and as you can see I use it every single cook.",
+   "seg": "B",
+   "gap": 0.8
+  },
+  {
+   "t": "If you've been guessing at doneness by poking your steaks, this'll change your life.",
+   "seg": "B"
+  },
+  {
+   "t": "It's completely wireless, it works with the app on your phone, and the new ones are dishwasher safe, which my wife appreciates.",
+   "seg": "B"
+  },
+  {
+   "t": "Head to meater dot com slash bigray, link's down below, and use code BIGRAY for fifteen percent off.",
+   "seg": "B"
+  },
+  {
+   "t": "Now, back to it, I'm opening up the vents all the way to get these coals ripping hot.",
+   "gap": 1.0
+  },
+  {
+   "t": "You want that grate screaming, like you can't hold your hand over it for more than a second."
+  },
+  {
+   "t": "And on she goes."
+  },
+  {
+   "t": "Listen to that sizzle, that's the sound of money well spent."
+  },
+  {
+   "t": "Sixty seconds a side, that's it, we're not cooking it anymore, we're just building crust."
+  },
+  {
+   "t": "Flip."
+  },
+  {
+   "t": "Oh, look at that, look at that crust."
+  },
+  {
+   "t": "I'm gonna hit the fat cap on the edge for a few seconds too, cause nobody wants a chewy rubbery strip of fat."
+  },
+  {
+   "t": "And off."
+  },
+  {
+   "t": "Now, a lot of folks will say you gotta rest it again, but with reverse sear it already rested, so we're slicing right in."
+  },
+  {
+   "t": "Against the grain, nice thick slices."
+  },
+  {
+   "t": "Look at that, wall to wall pink, not a hint of grey."
+  },
+  {
+   "t": "Little flaky salt on top, and that's it, nothing fancy."
+  },
+  {
+   "t": "Mm, oh man."
+  },
+  {
+   "t": "That's tender, that's real tender."
+  },
+  {
+   "t": "If you try this, tag me, I wanna see your crust."
+  },
+  {
+   "t": "And let me know what cut you want me to do next, I'm thinking tri-tip."
+  },
+  {
+   "t": "Catch y'all next time."
+  }
+ ],
+ "segments": {
+  "A": {
+   "expect": "keep",
+   "category": "sponsor",
+   "brand": "MEATER"
+  },
+  "B": {
+   "expect": "skip",
+   "category": "sponsor",
+   "brand": "MEATER"
+  }
+ },
+ "noisy": {
+  "swaps": [
+   [
+    "MEATER",
+    "meter"
+   ]
+  ]
+ }
+}

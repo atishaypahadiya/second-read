@@ -1,0 +1,149 @@
+{
+ "id": "s14_h3",
+ "scenario": 14,
+ "split": "held",
+ "lang": "en",
+ "title": "How Grocery Coupon Stacking Actually Works (Explained Simply)",
+ "creator": "Tasha Robinson",
+ "description": "Store coupons, manufacturer coupons, app offers and cashback: what stacks, what doesn't, and why your coupon got rejected at the till.\n\nThis is an explainer, not a deals post. Coupon rules change by store and by state, so always check your store's coupon policy.\n\n0:00 The four kinds of discount\n1:20 How stacking works\n2:40 Walking through a receipt\n4:00 Common mistakes",
+ "paid_promotion": null,
+ "sentences": [
+  {
+   "t": "Hey y'all, so I get this question constantly."
+  },
+  {
+   "t": "How do people walk out of the store with a cart full of food and pay like six dollars?"
+  },
+  {
+   "t": "Today I'm going to explain how coupon stacking actually works, no hype, just the rules."
+  },
+  {
+   "t": "So first, there are basically four kinds of discounts, and the whole trick is knowing which ones can be combined.",
+   "gap": 1.0
+  },
+  {
+   "t": "Number one is a store coupon, which comes from the store itself."
+  },
+  {
+   "t": "Number two is a manufacturer coupon, which comes from the company that makes the product, like the cereal brand."
+  },
+  {
+   "t": "Number three is a digital offer in the store's app."
+  },
+  {
+   "t": "And number four is a cashback app, which pays you after you've already bought something."
+  },
+  {
+   "t": "Now, stacking.",
+   "gap": 1.2
+  },
+  {
+   "t": "The general rule is you can use one store coupon and one manufacturer coupon on the same item."
+  },
+  {
+   "t": "But you usually can't use two manufacturer coupons on one item, even if you have two of them."
+  },
+  {
+   "t": "Cashback apps sit outside all of that, because the store never even sees them."
+  },
+  {
+   "t": "Let me walk you through an actual receipt from last week so this makes sense.",
+   "gap": 1.0
+  },
+  {
+   "t": "At Kroger, I bought a box of cereal that was four ninety-nine on the shelf.",
+   "seg": "A"
+  },
+  {
+   "t": "There was a Kroger digital coupon in the app, one dollar off when you buy two, so I bought two.",
+   "seg": "A"
+  },
+  {
+   "t": "Then I had a manufacturer coupon from the Sunday paper, seventy-five cents off one box, and I used two of those, one per box.",
+   "seg": "A"
+  },
+  {
+   "t": "And the store had a weekly sale where that cereal was marked down to three forty-nine anyway.",
+   "seg": "A"
+  },
+  {
+   "t": "So instead of almost ten dollars, I paid about four fifty for both boxes, before cashback.",
+   "seg": "A"
+  },
+  {
+   "t": "Then I scanned the receipt in Ibotta, and got another fifty cents back on each box a few days later.",
+   "seg": "A"
+  },
+  {
+   "t": "So that's all four types on one product, and that's really all stacking is.",
+   "gap": 1.0
+  },
+  {
+   "t": "It's not magic, it's just reading the fine print on four different things at once."
+  },
+  {
+   "t": "Okay, now the mistakes that get people's coupons rejected.",
+   "gap": 0.9
+  },
+  {
+   "t": "The big one is not reading the size."
+  },
+  {
+   "t": "If the coupon says sixteen ounce or larger, and you grab the twelve ounce, it'll beep at the register and the cashier can't override it."
+  },
+  {
+   "t": "Mistake number two, expiry dates."
+  },
+  {
+   "t": "Paper coupons expire, and a lot of people find a coupon in a drawer from three months ago and get annoyed at the till."
+  },
+  {
+   "t": "Mistake three is assuming every store doubles coupons."
+  },
+  {
+   "t": "Some stores used to double manufacturer coupons up to a certain value, but most don't anymore, so check before you build your whole list around it."
+  },
+  {
+   "t": "And honestly, the biggest mistake of all is buying stuff you don't need because there's a coupon.",
+   "gap": 1.1
+  },
+  {
+   "t": "A dollar off something you'd never buy is not saving a dollar, it's spending three."
+  },
+  {
+   "t": "I only coupon for things already on my list, and that alone keeps my grocery bill sane."
+  },
+  {
+   "t": "So that's coupon stacking in about five minutes.",
+   "gap": 1.0
+  },
+  {
+   "t": "In my next video I'm going to show you how I plan a week of meals around whatever is on sale, which is where the real savings are."
+  },
+  {
+   "t": "Let me know what your store's coupon rules are like in the comments, because they're all a little different."
+  },
+  {
+   "t": "Bye for now."
+  }
+ ],
+ "segments": {
+  "A": {
+   "expect": "none",
+   "category": "sponsor",
+   "brand": "Kroger"
+  }
+ },
+ "noisy": {
+  "swaps": [
+   [
+    "Kroger",
+    "kroeger"
+   ],
+   [
+    "Ibotta",
+    "i bought a"
+   ]
+  ]
+ }
+}

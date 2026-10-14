@@ -1,0 +1,131 @@
+{
+ "id": "s10_h3",
+ "scenario": 10,
+ "split": "held",
+ "lang": "en",
+ "title": "Hiking the Lost Lakes Loop (We Still Got Lost)",
+ "creator": "Ben Adeyemi",
+ "description": "Fourteen kilometers, five alpine lakes, one wrong turn. Trail notes and the full route below.\n\nPart of this hike was sponsored by Trailmark.\n\nPlease pack out everything you pack in.",
+ "paid_promotion": false,
+ "sentences": [
+  {
+   "t": "Good morning from the Lost Lakes trailhead, it's six thirty, it's freezing, and there's frost on the car."
+  },
+  {
+   "t": "Today's plan is the full loop, about fourteen kilometers, five alpine lakes, and roughly eight hundred meters of climbing."
+  },
+  {
+   "t": "The name of the trail is the Lost Lakes Loop, which, as you'll see, ended up being a little too accurate."
+  },
+  {
+   "t": "I've got my friend Dami with me, who has never done a hike longer than five kilometers, and who has brought, I am told, eleven snacks."
+  },
+  {
+   "t": "We start in the forest, and the first two kilometers are just steady switchbacks through the pines."
+  },
+  {
+   "t": "It's really quiet up here this early, the only sound is a woodpecker somewhere off to the left."
+  },
+  {
+   "t": "We hit the first lake after about an hour, and look at that, the water is completely still, you can see the whole ridge reflected in it."
+  },
+  {
+   "t": "Dami has already eaten three of the eleven snacks."
+  },
+  {
+   "t": "From here the trail gets a lot less obvious, because the next section crosses a big granite slab and there are basically no markers."
+  },
+  {
+   "t": "So this is where I'm going to use Trailmark, and they're sponsoring this part of the hike, so thanks to them.",
+   "seg": "A",
+   "gap": 0.8
+  },
+  {
+   "t": "I downloaded the loop map last night at home, because there's zero signal up here, and you can see our blue dot right at the edge of the lake.",
+   "seg": "A"
+  },
+  {
+   "t": "The route is the orange line, and it heads straight up across this slab toward that notch in the ridge.",
+   "seg": "A"
+  },
+  {
+   "t": "Okay, we're about halfway across the slab, and the app just buzzed, because we've drifted about forty meters off the route.",
+   "seg": "A"
+  },
+  {
+   "t": "You can see it on the map, we followed a line of rocks that someone stacked, and it was heading the wrong way, toward a drop-off.",
+   "seg": "A"
+  },
+  {
+   "t": "So we're cutting back to the left to rejoin the orange line, and the arrow is pointing us at that little gap between the boulders.",
+   "seg": "A"
+  },
+  {
+   "t": "There we go, back on route, and the buzzing stopped.",
+   "seg": "A"
+  },
+  {
+   "t": "I'm also recording the hike, so at the end we'll get the elevation profile and our actual track, including that little detour.",
+   "seg": "A"
+  },
+  {
+   "t": "And I'm dropping a pin here, with a note about the fake cairns, so I remember to warn you all about it.",
+   "seg": "A"
+  },
+  {
+   "t": "Okay, the notch."
+  },
+  {
+   "t": "And on the other side, look at this, three lakes in a row, stepping down the valley like a staircase."
+  },
+  {
+   "t": "This is honestly one of the most beautiful places I've ever been, and we have it completely to ourselves."
+  },
+  {
+   "t": "We stopped at the middle lake for lunch, and Dami produced snack number seven, which was a whole rotisserie chicken in a bag."
+  },
+  {
+   "t": "I didn't ask questions."
+  },
+  {
+   "t": "The descent is steep and rocky, so take it slow here, and poles really help your knees."
+  },
+  {
+   "t": "And this is where we actually got lost, by the way, not on the slab, but right at the end, when we took the wrong fork toward the parking lot for a different trail."
+  },
+  {
+   "t": "We added about two kilometers and a lot of complaining."
+  },
+  {
+   "t": "Total time was just under seven hours, with plenty of stops."
+  },
+  {
+   "t": "If you go, start early, bring layers, because it was freezing at the top even in summer, and download your maps before you lose signal."
+  },
+  {
+   "t": "Dami says he's never hiking again, and he also asked when the next one is, so I think that's a yes."
+  },
+  {
+   "t": "See you on the next trail."
+  }
+ ],
+ "segments": {
+  "A": {
+   "expect": "keep",
+   "category": "sponsor",
+   "brand": "Trailmark"
+  }
+ },
+ "noisy": {
+  "swaps": [
+   [
+    "Trailmark",
+    "trail mark"
+   ],
+   [
+    "switchbacks",
+    "switch backs"
+   ]
+  ]
+ }
+}

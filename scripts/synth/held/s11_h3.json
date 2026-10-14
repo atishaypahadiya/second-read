@@ -1,0 +1,159 @@
+{
+ "id": "s11_h3",
+ "scenario": 11,
+ "split": "held",
+ "lang": "en",
+ "title": "Choreographing a Sneaker Commercial in 5 Days | Dance Vlog",
+ "creator": "Jaylen Brooks",
+ "description": "Five days, one warehouse, twelve dancers and a lot of ice baths. This is the story of the hardest choreography job I've ever taken.\n\nShoutout to my dancers, you know who you are.\nThanks to the Puma team for trusting me with this one.\n\nInstagram: @jaylenmoves\nTikTok: @jaylenmoves",
+ "paid_promotion": false,
+ "sentences": [
+  {
+   "t": "Yo, what's up everybody, welcome back to the channel."
+  },
+  {
+   "t": "So this vlog is a little bit crazy, because I've been sitting on this news for like two months and I finally get to tell you."
+  },
+  {
+   "t": "Some of you know I do a lot of choreo for music videos, smaller artists, stuff like that.",
+   "gap": 0.8
+  },
+  {
+   "t": "Well, back in the summer my agent called me and said Puma wants you to choreograph their new sneaker spot.",
+   "seg": "A"
+  },
+  {
+   "t": "And I just stood in my kitchen like, are you sure they said my name?",
+   "seg": "A"
+  },
+  {
+   "t": "So the job was to build a sixty-second routine for twelve dancers that shows off the shoe, and we had five days from first rehearsal to the shoot.",
+   "seg": "A"
+  },
+  {
+   "t": "Their creative team had this whole concept about a city waking up, so every section of the dance is a different part of the morning.",
+   "seg": "A"
+  },
+  {
+   "t": "And I'm not going to lie to you, getting paid to do this by a brand I grew up wearing was kind of emotional for me.",
+   "seg": "A"
+  },
+  {
+   "t": "So, day one.",
+   "gap": 1.2
+  },
+  {
+   "t": "We're in a warehouse in Long Beach, and it is hot."
+  },
+  {
+   "t": "There's no air conditioning, there's one fan, and the fan is pointed at the director."
+  },
+  {
+   "t": "I came in with about forty counts of choreography already done, because I always over-prepare the first day."
+  },
+  {
+   "t": "And the dancers ate it up, honestly, faster than I expected."
+  },
+  {
+   "t": "By lunch we had the opening and the first transition clean."
+  },
+  {
+   "t": "Day two is where things fell apart a little bit.",
+   "gap": 1.0
+  },
+  {
+   "t": "The director came in and said the opening was too busy, they wanted more stillness."
+  },
+  {
+   "t": "And as a choreographer that hurts, because you fall in love with the busy stuff."
+  },
+  {
+   "t": "But he was right."
+  },
+  {
+   "t": "When you stop moving, the camera actually gets to see the dancer, you know what I mean?"
+  },
+  {
+   "t": "So I cut sixteen counts and replaced them with this slow walk, and it's way better now."
+  },
+  {
+   "t": "Day three, I want to show you this part right here.",
+   "gap": 1.0
+  },
+  {
+   "t": "This is Monique, and she has a solo in the middle where she does this floor spin into a freeze."
+  },
+  {
+   "t": "We tried it on concrete, and it was just shredding her knees."
+  },
+  {
+   "t": "So we got knee pads under the costume, and I changed the entry so she slides in instead of drops."
+  },
+  {
+   "t": "Little adjustments like that are honestly ninety percent of the job."
+  },
+  {
+   "t": "Day four is the full run with cameras.",
+   "gap": 0.9
+  },
+  {
+   "t": "We ran it maybe thirty times."
+  },
+  {
+   "t": "By run twenty, everyone's legs were jelly, and I was yelling counts with no voice left."
+  },
+  {
+   "t": "That night half of us went and sat in ice baths, which I do not recommend unless you enjoy screaming."
+  },
+  {
+   "t": "And then day five, the actual shoot.",
+   "gap": 1.1
+  },
+  {
+   "t": "Fourteen hours on set."
+  },
+  {
+   "t": "The crazy thing is you dance it full out, every take, because you never know which take they'll use."
+  },
+  {
+   "t": "At one point the steadicam operator was running backwards in front of twelve dancers and I genuinely thought he was going to die."
+  },
+  {
+   "t": "He didn't, he's a legend."
+  },
+  {
+   "t": "So what did I learn from this?",
+   "gap": 1.0
+  },
+  {
+   "t": "Prepare way more than you need, and then be ready to throw half of it away."
+  },
+  {
+   "t": "Listen to the director even when your ego doesn't want to."
+  },
+  {
+   "t": "And look after your dancers, because they are the ones who make you look good."
+  },
+  {
+   "t": "The spot drops sometime next month, and I'll post a breakdown of the full routine once it's out, so you can learn it yourself."
+  },
+  {
+   "t": "Peace, I'm going to go sleep for three days."
+  }
+ ],
+ "segments": {
+  "A": {
+   "expect": "none",
+   "category": "sponsor",
+   "brand": "Puma"
+  }
+ },
+ "noisy": {
+  "swaps": [
+   [
+    "Puma",
+    "pooma"
+   ]
+  ]
+ }
+}

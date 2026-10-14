@@ -1,0 +1,136 @@
+{
+ "id": "s10_h2",
+ "scenario": 10,
+ "split": "held",
+ "lang": "en",
+ "title": "I Helped My Friend Launch Her Bakery in One Weekend",
+ "creator": "Lucia Ferrante",
+ "description": "My best friend Rosa has been baking out of her apartment for two years. This weekend we gave her a menu, photos and a real website.\n\nRosa's pastry Instagram: @rosabakes\n\nCamera: borrowed. Croissants: eaten.",
+ "paid_promotion": null,
+ "sentences": [
+  {
+   "t": "This is Rosa, she is my best friend, and she makes the best croissants I have ever eaten, and I've been to Paris."
+  },
+  {
+   "t": "For two years she's been selling them out of her apartment through text messages and a very chaotic spreadsheet."
+  },
+  {
+   "t": "This weekend we're fixing that."
+  },
+  {
+   "t": "By Sunday night, she's going to have a real menu, real photos, and a real website where people can order."
+  },
+  {
+   "t": "Rosa, how do you feel?"
+  },
+  {
+   "t": "She says terrified, which is fair."
+  },
+  {
+   "t": "Okay, Saturday morning, step one is the menu."
+  },
+  {
+   "t": "Rosa makes something like fifteen different things, and the problem is that nobody knows what to order."
+  },
+  {
+   "t": "So we sat down with coffee and cut it to six, the three things people order the most and three seasonal ones."
+  },
+  {
+   "t": "The croissants stay, obviously, the cardamom buns stay, and the sourdough loaf stays."
+  },
+  {
+   "t": "The seasonal ones this month are a pear tart, a pumpkin cinnamon roll, and a chocolate rye cookie that I would personally go to war for."
+  },
+  {
+   "t": "Step two, photos."
+  },
+  {
+   "t": "We set up a little table by her window with a linen cloth, because natural light makes pastry look incredible and harsh kitchen lights make it look sad."
+  },
+  {
+   "t": "The trick is to shoot from slightly above, and get one shot where something is broken open, so you can see the layers inside."
+  },
+  {
+   "t": "I ate a lot of props this weekend, and I regret nothing."
+  },
+  {
+   "t": "Okay, it's Saturday afternoon and it's time to build the actual website, and Pagecraft sponsored this part of the video, so thanks to them for that.",
+   "seg": "A",
+   "gap": 1.0
+  },
+  {
+   "t": "I'm opening Pagecraft and picking a blank template, because Rosa's vibe is not the stock bakery look with chalkboards everywhere.",
+   "seg": "A"
+  },
+  {
+   "t": "First I'm setting her colors, a warm cream for the background and that deep terracotta from her apron for the buttons.",
+   "seg": "A"
+  },
+  {
+   "t": "Now I'm dragging in a big header block and dropping in the photo of the croissant broken open, with her name over it in a simple serif font.",
+   "seg": "A"
+  },
+  {
+   "t": "Under that, I'm adding a menu section, and I'm uploading each of the six photos with the name, price, and one short line about it.",
+   "seg": "A"
+  },
+  {
+   "t": "Rosa wrote the descriptions herself, and the one for the cookie just says trust me, which I think is perfect.",
+   "seg": "A"
+  },
+  {
+   "t": "Next is ordering, so I'm turning on the order form, setting pickup on Fridays and Saturdays only, and limiting it to forty orders a day so she doesn't burn out.",
+   "seg": "A"
+  },
+  {
+   "t": "Then I'm connecting her domain, which we bought for about twelve dollars, and checking the mobile preview, because almost everyone is going to order from their phone.",
+   "seg": "A"
+  },
+  {
+   "t": "And there it is, live.",
+   "seg": "A"
+  },
+  {
+   "t": "Rosa just made a noise I've never heard a human make."
+  },
+  {
+   "t": "Sunday, launch day."
+  },
+  {
+   "t": "She posted the link on her Instagram at nine in the morning, and we sat on the couch refreshing the orders page like it was an election night."
+  },
+  {
+   "t": "The first order came in at nine oh four, from her cousin, which we're counting."
+  },
+  {
+   "t": "By noon she had twenty-three orders, and by the evening, she had sold out of croissants for the whole next week."
+  },
+  {
+   "t": "I think the biggest change isn't even the website, it's that she finally sees this as a real business and not a hobby that got out of hand."
+  },
+  {
+   "t": "She's already talking about renting a commercial kitchen in the spring."
+  },
+  {
+   "t": "If you're in the area, go order a cookie, and tell her I sent you."
+  },
+  {
+   "t": "Thank you for watching, and I'll see you next week."
+  }
+ ],
+ "segments": {
+  "A": {
+   "expect": "keep",
+   "category": "sponsor",
+   "brand": "Pagecraft"
+  }
+ },
+ "noisy": {
+  "swaps": [
+   [
+    "Pagecraft",
+    "page craft"
+   ]
+  ]
+ }
+}

@@ -1,0 +1,125 @@
+{
+ "id": "s06_h2",
+ "scenario": 6,
+ "split": "held",
+ "lang": "en",
+ "title": "The Day Boston Drowned in Molasses",
+ "creator": "The Archive Hour",
+ "description": "In January 1919 a storage tank in Boston's North End burst and sent a wave of molasses through the streets. Twenty-one people died. This is what happened, and what changed because of it.\n\nSources:\nStephen Puleo, Dark Tide: The Great Boston Molasses Flood of 1919\nBoston Public Library digital archive, newspaper scans Jan-Feb 1919\nMassachusetts court records, Dorr v. United States Industrial Alcohol\n\nSuggest a topic in the comments.",
+ "paid_promotion": null,
+ "sentences": [
+  {
+   "t": "So that's the story of the Great Molasses Flood, and honestly I still find it hard to say that phrase with a straight face."
+  },
+  {
+   "t": "But twenty-one people died that January afternoon in Boston, and around a hundred and fifty were hurt."
+  },
+  {
+   "t": "A wave of molasses, something like twenty-five feet high at its peak, came down Commercial Street at about thirty-five miles an hour."
+  },
+  {
+   "t": "It flattened buildings, it buckled the steel supports of the elevated railway, and it trapped horses and people in a substance that got thicker as it cooled."
+  },
+  {
+   "t": "Rescuers waded in up to their waists, and some of the victims weren't found for days."
+  },
+  {
+   "t": "Now, the part I keep coming back to is what happened afterwards."
+  },
+  {
+   "t": "The company that owned the tank, United States Industrial Alcohol, insisted the tank had been blown up by anarchists."
+  },
+  {
+   "t": "That wasn't a crazy thing to claim in 1919, because bombings really were happening, and the company knew a jury might believe it."
+  },
+  {
+   "t": "But the case dragged on for years, and the court-appointed auditor heard from something like three thousand witnesses."
+  },
+  {
+   "t": "And what came out was pretty damning."
+  },
+  {
+   "t": "The tank had been built in a hurry, it had never been properly tested by filling it with water, and it leaked so badly that the company painted it brown to hide the streaks."
+  },
+  {
+   "t": "Locals used to collect the leaking molasses in buckets and take it home."
+  },
+  {
+   "t": "In the end the company was found responsible and paid out the equivalent of millions in today's money."
+  },
+  {
+   "t": "More importantly, the case pushed Massachusetts, and later other states, to require that engineers actually sign off on structures like this."
+  },
+  {
+   "t": "So in a strange way, every certified engineer's stamp on a building plan has a little bit of molasses in its history."
+  },
+  {
+   "t": "People in the North End will tell you that on hot summer days, the neighborhood still smelled sweet decades later."
+  },
+  {
+   "t": "I can't verify that, but I love that it's the kind of detail that just refuses to go away."
+  },
+  {
+   "t": "If you want to read more, the best book on this is Dark Tide by Stephen Puleo, and I've put a few other sources in the description."
+  },
+  {
+   "t": "That's it for this one."
+  },
+  {
+   "t": "Thank you for watching, and an especially big thank you to everyone who sent in topic suggestions last month, there are some absolute gems in there."
+  },
+  {
+   "t": "Next time we're heading to London in 1814 for a disaster involving a brewery and a lot of beer, so, yes, a theme is emerging."
+  },
+  {
+   "t": "See you in two weeks."
+  },
+  {
+   "t": "And now, as promised at the top, a word for the folks who keep the lights on here, because today's video is brought to you by Folio Listen.",
+   "seg": "A",
+   "gap": 1.5
+  },
+  {
+   "t": "Folio Listen is an audiobook app with a library of over two hundred thousand titles, and a huge chunk of it is history.",
+   "seg": "A"
+  },
+  {
+   "t": "I listened to most of the Puleo book on Folio Listen while walking my dog, which is how half of my research happens these days.",
+   "seg": "A"
+  },
+  {
+   "t": "What I like is that you're not locked into one credit a month, you get a set number of listening hours and you spend them on whatever you want.",
+   "seg": "A"
+  },
+  {
+   "t": "It also syncs with the ebook, so you can switch to reading when you hit a map or a chart and pick the audio back up later.",
+   "seg": "A"
+  },
+  {
+   "t": "If you want to try it, go to foliolisten.com slash archive and your first month is completely free.",
+   "seg": "A"
+  },
+  {
+   "t": "Again, that's foliolisten.com slash archive.",
+   "seg": "A"
+  },
+  {
+   "t": "Until next time."
+  }
+ ],
+ "segments": {
+  "A": {
+   "expect": "skip",
+   "category": "sponsor",
+   "brand": "Folio Listen"
+  }
+ },
+ "noisy": {
+  "swaps": [
+   [
+    "Folio Listen",
+    "polio listen"
+   ]
+  ]
+ }
+}

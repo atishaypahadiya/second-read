@@ -1,0 +1,166 @@
+{
+ "id": "s12_h2",
+ "scenario": 12,
+ "split": "held",
+ "lang": "en",
+ "title": "The Rise and Fall of Quibi: How $1.75 Billion Vanished in Six Months",
+ "creator": "Noor Haddad",
+ "description": "Quibi had Hollywood's biggest names, a billion-dollar war chest and a launch party money can't buy. Six months later it was gone. Here's what happened.\n\nSources: press coverage from 2019 to 2020, the founders' own interviews, and app store data. Full list in the pinned comment.\n\nThis channel is supported by viewers. Thank you.",
+ "paid_promotion": null,
+ "sentences": [
+  {
+   "t": "In April of twenty twenty, an app launched with more money behind it than almost any startup in history."
+  },
+  {
+   "t": "By December it was dead."
+  },
+  {
+   "t": "This is the story of Quibi."
+  },
+  {
+   "t": "So, quick background.",
+   "gap": 1.0
+  },
+  {
+   "t": "Quibi was the idea of Jeffrey Katzenberg, the guy who ran Disney's film studio in its nineties golden age and then co-founded DreamWorks."
+  },
+  {
+   "t": "He teamed up with Meg Whitman, the former boss of eBay and Hewlett Packard."
+  },
+  {
+   "t": "And their pitch was simple."
+  },
+  {
+   "t": "People watch video on their phones, in little gaps of their day, so let's make Hollywood quality shows, but in chapters of ten minutes or less."
+  },
+  {
+   "t": "Quick bites, that's literally where the name comes from."
+  },
+  {
+   "t": "And investors loved it.",
+   "gap": 1.2
+  },
+  {
+   "t": "Quibi raised around one point seven five billion dollars before it launched a single show, from basically every major studio in Hollywood.",
+   "seg": "A"
+  },
+  {
+   "t": "Quibi signed deals with huge names, directors, movie stars, people who would never normally make something for a phone.",
+   "seg": "A"
+  },
+  {
+   "t": "Quibi even had a feature called Turnstyle, where a show would switch from horizontal to vertical as you rotated your phone, and they were very proud of it.",
+   "seg": "A"
+  },
+  {
+   "t": "The launch plan was a ninety-day free trial, and then Quibi would cost about five dollars a month with ads, or eight without.",
+   "seg": "A"
+  },
+  {
+   "t": "And Quibi spent a fortune on marketing, including a Super Bowl spot, before most people even knew what the app was.",
+   "seg": "A"
+  },
+  {
+   "t": "So what went wrong?",
+   "gap": 1.0
+  },
+  {
+   "t": "Well, the obvious answer is timing."
+  },
+  {
+   "t": "Quibi launched in April of twenty twenty, right as the whole world went into lockdown."
+  },
+  {
+   "t": "And the entire product was built for commuters, people on a train or waiting in line for coffee."
+  },
+  {
+   "t": "Suddenly nobody was commuting."
+  },
+  {
+   "t": "Everyone was at home, with a big TV right in front of them."
+  },
+  {
+   "t": "But honestly, I don't think the pandemic is the whole story.",
+   "gap": 0.9
+  },
+  {
+   "t": "Here's the thing that gets me."
+  },
+  {
+   "t": "You couldn't share clips."
+  },
+  {
+   "t": "In twenty twenty, an app for short videos on your phone didn't let you screenshot or share anything to social media."
+  },
+  {
+   "t": "So nothing went viral, because nothing could."
+  },
+  {
+   "t": "Meanwhile a free app full of short videos made by teenagers in their bedrooms was exploding at exactly the same time."
+  },
+  {
+   "t": "And then there's the content itself.",
+   "gap": 1.0
+  },
+  {
+   "t": "A lot of the shows were fine."
+  },
+  {
+   "t": "Some were even good."
+  },
+  {
+   "t": "But nobody could tell you what Quibi was for, or why you'd pay for it instead of everything else you already paid for."
+  },
+  {
+   "t": "After the free trial ended, most people just didn't convert."
+  },
+  {
+   "t": "By October, the founders wrote an open letter saying they were shutting down.",
+   "gap": 1.1
+  },
+  {
+   "t": "They said the idea wasn't strong enough to justify a standalone service, or that the timing was wrong, and they couldn't tell which."
+  },
+  {
+   "t": "And I actually respect that honesty a little bit."
+  },
+  {
+   "t": "They gave a lot of the money back to investors instead of burning all of it."
+  },
+  {
+   "t": "The content library was later sold to another streaming company for a tiny fraction of what it cost."
+  },
+  {
+   "t": "So what's the lesson?",
+   "gap": 1.0
+  },
+  {
+   "t": "I think it's that money can't buy you a reason to exist."
+  },
+  {
+   "t": "You can hire every star in Hollywood, but if the product fights how people actually behave, they'll just go somewhere else."
+  },
+  {
+   "t": "Next time I'm looking at another huge flop from the same year, so subscribe if you don't want to miss it."
+  }
+ ],
+ "segments": {
+  "A": {
+   "expect": "none",
+   "category": "sponsor",
+   "brand": "Quibi"
+  }
+ },
+ "noisy": {
+  "swaps": [
+   [
+    "Quibi",
+    "quibby"
+   ],
+   [
+    "Katzenberg",
+    "cats and berg"
+   ]
+  ]
+ }
+}

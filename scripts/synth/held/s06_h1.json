@@ -1,0 +1,141 @@
+{
+ "id": "s06_h1",
+ "scenario": 6,
+ "split": "held",
+ "lang": "en",
+ "title": "Nonna's Focaccia, Finally Cracked (48-Hour Cold Proof)",
+ "creator": "Teo Marchetti",
+ "description": "I've been chasing my nonna's focaccia for three years. This is the one.\n\nRecipe (grams): 500 bread flour, 400 water, 10 salt, 4 instant yeast, a frankly irresponsible amount of olive oil.\n\nThis video is sponsored by Kestrel Knives: 15% off your first knife with code TEO15 at https://kestrelknives.com/teo\n\nInstagram: @teocooks",
+ "paid_promotion": true,
+ "sentences": [
+  {
+   "t": "Okay, the focaccia is out of the oven, and I need you to just listen to this crust for a second."
+  },
+  {
+   "t": "Hear that?"
+  },
+  {
+   "t": "That crackle is the entire reason we did a forty-eight hour cold proof in the fridge."
+  },
+  {
+   "t": "I'm going to cut into it while it's still way too hot, which, yes, I know, everyone says let it rest."
+  },
+  {
+   "t": "I never let it rest."
+  },
+  {
+   "t": "Life is short, and focaccia is best when it burns your fingers a little bit."
+  },
+  {
+   "t": "Look at that crumb, look at those holes, that's what all the folding on day one was for."
+  },
+  {
+   "t": "So let's do a quick recap of what actually mattered here, because I threw a lot at you."
+  },
+  {
+   "t": "Number one, the hydration."
+  },
+  {
+   "t": "We went to about eighty percent, which feels like soup when you first mix it, and that's fine, trust the soup."
+  },
+  {
+   "t": "Number two, the oil."
+  },
+  {
+   "t": "Don't be shy with it, you want the bottom of that pan basically shallow frying the dough."
+  },
+  {
+   "t": "My nonna used so much oil that my grandfather used to joke she was building a boat, not baking bread."
+  },
+  {
+   "t": "Number three, the dimpling."
+  },
+  {
+   "t": "Push your fingers all the way down until you feel the pan, and don't be gentle, this is the one time you get to be aggressive with dough."
+  },
+  {
+   "t": "And number four, the cold proof, which is the step people skip and then wonder why their focaccia tastes like a kitchen sponge."
+  },
+  {
+   "t": "Time is the ingredient you can't buy, as my nonna would say, usually while doing something I wasn't allowed to help with."
+  },
+  {
+   "t": "Okay, taste test."
+  },
+  {
+   "t": "Mmm."
+  },
+  {
+   "t": "Oh, that's salty in the best possible way."
+  },
+  {
+   "t": "The rosemary went crispy on top, the cherry tomatoes kind of collapsed into jam, and the bottom is basically one giant crouton."
+  },
+  {
+   "t": "I'm actually a little emotional, this is the closest I've ever gotten to hers."
+  },
+  {
+   "t": "If you make this, please tag me, I want to see your dimples, and I mean the bread ones."
+  },
+  {
+   "t": "And if yours comes out flat, don't panic, it's almost always old yeast or a fridge that's too cold, and I'll pin a comment about that."
+  },
+  {
+   "t": "Next week we're doing fresh pasta with no machine, just a rolling pin and a lot of patience."
+  },
+  {
+   "t": "Thank you so much for watching, seriously, this channel is just me and a very small kitchen, so every view means a lot."
+  },
+  {
+   "t": "See you next week, ciao ciao."
+  },
+  {
+   "t": "Oh, wait, before you go, one more thing, this video was sponsored by Kestrel Knives.",
+   "seg": "A",
+   "gap": 1.0
+  },
+  {
+   "t": "Kestrel makes chef's knives that ship straight to you, so you're not paying a department store markup.",
+   "seg": "A"
+  },
+  {
+   "t": "The blade is one solid piece of German steel, it's balanced right at the bolster, and it holds an edge for months instead of weeks.",
+   "seg": "A"
+  },
+  {
+   "t": "They also have a lifetime sharpening program, where you mail the knife back and they return it razor sharp, for free, forever.",
+   "seg": "A"
+  },
+  {
+   "t": "And every knife comes with a hundred day trial, so if it's not for you, you just send it back.",
+   "seg": "A"
+  },
+  {
+   "t": "Head to kestrelknives.com slash teo and use code TEO15 to get fifteen percent off your first knife.",
+   "seg": "A"
+  },
+  {
+   "t": "That's kestrelknives.com slash teo, and the link is down in the description.",
+   "seg": "A"
+  }
+ ],
+ "segments": {
+  "A": {
+   "expect": "skip",
+   "category": "sponsor",
+   "brand": "Kestrel Knives"
+  }
+ },
+ "noisy": {
+  "swaps": [
+   [
+    "Kestrel",
+    "kestral"
+   ],
+   [
+    "TEO15",
+    "teo 15"
+   ]
+  ]
+ }
+}

@@ -1,0 +1,136 @@
+{
+ "id": "s25_h3",
+ "scenario": 25,
+ "split": "held",
+ "lang": "en",
+ "title": "My Lazy Sourdough Schedule (Works With a Full-Time Job)",
+ "creator": "Margot Bakes at Home",
+ "description": "A sourdough schedule for people who leave the house at 8 and get back at 6. Two loaves, minimal hands-on time, no 3am alarms.\n\nRecipe (per loaf):\n500g bread flour\n375g water\n100g active starter\n10g salt\n\nOven: 250C with lid, 230C without",
+ "paid_promotion": false,
+ "sentences": [
+  {
+   "t": "Hi everyone, welcome back to my kitchen."
+  },
+  {
+   "t": "Today I'm sharing the sourdough schedule I actually use, because I work full time and I refuse to wake up at three in the morning for bread."
+  },
+  {
+   "t": "Just so you know, part of this video is sponsored by Wayfair.",
+   "seg": "A",
+   "gap": 0.5
+  },
+  {
+   "t": "Okay, so the whole idea is to let the fridge do most of the work.",
+   "gap": 0.7
+  },
+  {
+   "t": "It starts the night before, around nine p m, when I feed my starter."
+  },
+  {
+   "t": "This is Gerald, he's four years old, and he's very dramatic."
+  },
+  {
+   "t": "I'm feeding him one to one to one, starter, flour and water, and he'll be bubbly and doubled by the morning."
+  },
+  {
+   "t": "Morning, about seven thirty, before I leave for work."
+  },
+  {
+   "t": "Gerald has doubled, look at all those bubbles, good boy."
+  },
+  {
+   "t": "I'm mixing the flour and most of the water together, and then the starter, and squishing it all with my hand."
+  },
+  {
+   "t": "No fancy mixer, just a big bowl and a wet hand."
+  },
+  {
+   "t": "Then I add the salt with the last splash of water and squish again until it's all absorbed."
+  },
+  {
+   "t": "Here's the lazy part, I cover the bowl and put it in the fridge, and I go to work."
+  },
+  {
+   "t": "The cold slows the fermentation way down, so it's fine to sit there all day."
+  },
+  {
+   "t": "Okay, it's about six fifteen, I'm home, and I'm taking the dough out of the fridge."
+  },
+  {
+   "t": "It's risen a little, maybe twenty percent, and it feels a lot stronger than this morning."
+  },
+  {
+   "t": "I'm leaving it on the counter for about two hours to warm up and keep fermenting."
+  },
+  {
+   "t": "In that time I'll do two sets of stretch and folds, which takes maybe a minute each."
+  },
+  {
+   "t": "You grab one side, stretch it up, fold it over, turn the bowl, and repeat four times."
+  },
+  {
+   "t": "That's it, that's all the kneading this bread ever gets."
+  },
+  {
+   "t": "By about eight fifteen, it's jiggly, it's domed, and there are bubbles on the sides of the bowl."
+  },
+  {
+   "t": "Now I'm shaping, which I know scares people, but it's honestly fine if it's not perfect."
+  },
+  {
+   "t": "I tip it out, fold the edges into the middle, flip it, and drag it toward me to build tension on the top."
+  },
+  {
+   "t": "Into the banneton, seam side up, and a sprinkle of rice flour so it doesn't stick."
+  },
+  {
+   "t": "And then, you guessed it, back into the fridge overnight."
+  },
+  {
+   "t": "Next morning, oven on at two fifty with the Dutch oven inside, and I let it heat for a good forty five minutes."
+  },
+  {
+   "t": "I tip the dough out onto some parchment, score it with a razor, and in it goes, lid on."
+  },
+  {
+   "t": "Twenty minutes with the lid on, then lid off, down to two thirty, for another twenty five."
+  },
+  {
+   "t": "And here it is."
+  },
+  {
+   "t": "Listen to that crust crackle."
+  },
+  {
+   "t": "The hardest part, I promise, is waiting an hour before you cut it."
+  },
+  {
+   "t": "Look at that crumb, open, glossy, and it tastes slightly sour in the best way."
+  },
+  {
+   "t": "So that's the schedule, fifteen minutes of actual work spread over a day and a half."
+  },
+  {
+   "t": "Let me know if you try it, and tell me your starter's name, I want to know."
+  }
+ ],
+ "segments": {
+  "A": {
+   "expect": "noskip",
+   "category": "sponsor",
+   "brand": "Wayfair"
+  }
+ },
+ "noisy": {
+  "swaps": [
+   [
+    "banneton",
+    "band it on"
+   ],
+   [
+    "Wayfair",
+    "way fair"
+   ]
+  ]
+ }
+}

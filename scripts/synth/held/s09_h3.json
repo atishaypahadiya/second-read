@@ -1,0 +1,252 @@
+{
+ "id": "s09_h3",
+ "scenario": 9,
+ "split": "held",
+ "lang": "en",
+ "title": "Our First Winter Living in a Van (No Hookups)",
+ "creator": "Wren Callaway",
+ "description": "Six weeks of snow, one van, two people and a dog. What worked, what froze, and what we'd change.\n\n(ad) Voltera portable power: $150 off the Voltera Base 2 with code WREN at https://voltera.com/wren\n\nVan build playlist on the channel.",
+ "paid_promotion": false,
+ "sentences": [
+  {
+   "t": "It's minus twelve outside, there's about a foot of fresh snow on the roof, and inside the van it's a toasty nineteen degrees."
+  },
+  {
+   "t": "We've been living in here through the winter for six weeks now, and a lot of you asked how that's even possible with no campground hookups."
+  },
+  {
+   "t": "So today I'm going to walk you through everything, what's worked, what's frozen, and the one night we almost gave up and got a hotel."
+  },
+  {
+   "t": "Let's start with the boring but important stuff, insulation."
+  },
+  {
+   "t": "When we built the van, we put wool insulation in the walls and the ceiling, and closed cell foam under the floor."
+  },
+  {
+   "t": "At the time it felt like overkill for a van we mostly used in summer."
+  },
+  {
+   "t": "Now I'm extremely grateful past us did that."
+  },
+  {
+   "t": "The windows were the weak spot, though."
+  },
+  {
+   "t": "The cab windows especially just pour cold air into the van at night."
+  },
+  {
+   "t": "So we made these insulated window covers out of reflective foam and black fabric, and they snap in with little magnets."
+  },
+  {
+   "t": "They are ugly, they are amazing, and they made a bigger difference than anything else we did."
+  },
+  {
+   "t": "Next is heat."
+  },
+  {
+   "t": "We have a small diesel heater mounted under the passenger seat, and it pulls fuel straight from the van's tank."
+  },
+  {
+   "t": "It uses a tiny amount of diesel, something like a liter every ten hours on low, and it keeps the van warm all night."
+  },
+  {
+   "t": "We also carry a little backup propane heater, but honestly we've only turned it on once, during a fuel line hiccup."
+  },
+  {
+   "t": "The big enemy in winter isn't actually the cold, it's condensation."
+  },
+  {
+   "t": "Two people and a dog breathing all night in a small metal box produces a shocking amount of moisture."
+  },
+  {
+   "t": "Our dog, Pepper, doesn't help, because she sleeps right up against the window and breathes on it all night."
+  },
+  {
+   "t": "On our first cold night, we woke up to water literally dripping off the ceiling onto our faces."
+  },
+  {
+   "t": "The fix was ventilation, even when it feels wrong."
+  },
+  {
+   "t": "We crack the roof fan open about an inch all night, and we run a little dehumidifier during the day."
+  },
+  {
+   "t": "Water was the next problem."
+  },
+  {
+   "t": "Our fresh water tank is inside the van, so that's fine, but the drain line runs underneath, and it froze solid on night three."
+  },
+  {
+   "t": "Now we keep a bucket under the sink and empty it every morning, which isn't glamorous, but it works."
+  },
+  {
+   "t": "And we fill our water jugs at gas stations and grocery stores, which means we've gotten very good at asking strangers if we can use their tap."
+  },
+  {
+   "t": "Now, have you ever wondered how we keep the fridge, the heater fan, the lights, and two laptops running out here, with no hookup and almost no sun?",
+   "seg": "A",
+   "gap": 0.8
+  },
+  {
+   "t": "The answer is a Voltera power station, and they're the sponsor of today's video, which made me very happy, because we were already using one.",
+   "seg": "A"
+  },
+  {
+   "t": "This is the Voltera Base 2, and it sits right here under the bench, wired into the van's twelve volt system.",
+   "seg": "A"
+  },
+  {
+   "t": "It's a lithium iron phosphate battery, which means it can be charged and discharged thousands of times without wearing out, and it's way safer than older lithium batteries.",
+   "seg": "A"
+  },
+  {
+   "t": "That matters a lot when the battery lives a few feet from where you sleep.",
+   "seg": "A"
+  },
+  {
+   "t": "It stores just over two kilowatt hours, which for us is about two full days of normal use without charging at all.",
+   "seg": "A"
+  },
+  {
+   "t": "And there are enough outlets on the front for everything, four regular plugs, a couple of fast-charging USB-C ports, and a car-style socket for the fridge.",
+   "seg": "A"
+  },
+  {
+   "t": "And in winter, charging is the real challenge.",
+   "seg": "A"
+  },
+  {
+   "t": "Our solar panels are covered in snow half the time, and even when they're clear, the days are so short we're lucky to get a third of our summer input.",
+   "seg": "A"
+  },
+  {
+   "t": "So the feature that saved us is that the Voltera can charge from the van's alternator while we drive.",
+   "seg": "A"
+  },
+  {
+   "t": "An hour of driving puts back most of what we use in a day, so on cloudy weeks, we plan a short drive into town for groceries and that tops us up.",
+   "seg": "A"
+  },
+  {
+   "t": "It can also take wall power, so if we stop at a friend's house or a cafe with an outlet, it charges from empty to full in about an hour and a half.",
+   "seg": "A"
+  },
+  {
+   "t": "You can also chain an extra battery onto it later, which is what we're planning to do before next winter, so you're never stuck with the size you started with.",
+   "seg": "A"
+  },
+  {
+   "t": "The other thing I love is the app.",
+   "seg": "A"
+  },
+  {
+   "t": "I can check the battery level from bed, see exactly how much the fridge and the heater fan are pulling, and get a warning if something is drawing more than it should.",
+   "seg": "A"
+  },
+  {
+   "t": "That actually caught a problem for us, when our water pump's switch got stuck and it was running all night, and I got a notification at two in the morning.",
+   "seg": "A"
+  },
+  {
+   "t": "Annoying, but much better than waking up to a dead battery in a snowstorm.",
+   "seg": "A"
+  },
+  {
+   "t": "It works fine in the cold, too, as long as it's inside the heated space, and it has a built-in heater for the battery cells so it can charge safely below freezing.",
+   "seg": "A"
+  },
+  {
+   "t": "It's also quiet, with no fan noise at night, which matters a lot when your bedroom is also your living room and your kitchen.",
+   "seg": "A"
+  },
+  {
+   "t": "It comes with a five year warranty, which was a big deal for us, because this is the one piece of gear in the van we really can't live without.",
+   "seg": "A"
+  },
+  {
+   "t": "We've had ours for a little over a year now, through a whole summer of solar and now this winter, and it hasn't missed a beat.",
+   "seg": "A"
+  },
+  {
+   "t": "If you're building a van, or you just want backup power for your house when the grid goes down, I genuinely think this is the one to get.",
+   "seg": "A"
+  },
+  {
+   "t": "Voltera is giving our viewers a hundred and fifty dollars off the Base 2 with code WREN at voltera.com slash wren.",
+   "seg": "A"
+  },
+  {
+   "t": "That's voltera.com slash wren, code WREN, and it's linked first thing in the description.",
+   "seg": "A"
+  },
+  {
+   "t": "Thanks so much to Voltera for supporting what we do out here.",
+   "seg": "A"
+  },
+  {
+   "t": "So, cooking in winter."
+  },
+  {
+   "t": "We cook on a single induction plate, which runs off the battery, and in summer we cook outside a lot, but in winter everything happens inside."
+  },
+  {
+   "t": "That means more condensation, so the roof fan goes up to full whenever a pot is boiling."
+  },
+  {
+   "t": "Our winter go-to is a big pot of lentil soup that lasts us two or three days, because nobody wants to do dishes with half-frozen water."
+  },
+  {
+   "t": "Okay, the night we almost gave up."
+  },
+  {
+   "t": "About three weeks in, a storm came through with winds over eighty kilometers an hour, and the whole van was rocking side to side."
+  },
+  {
+   "t": "The dog was terrified, I was terrified, and at one point a branch came down right next to us."
+  },
+  {
+   "t": "We moved the van at midnight to a sheltered spot behind a grocery store, and we sat there with tea, not sleeping, until the wind died down at five."
+  },
+  {
+   "t": "And in the morning, the sun came up over the snow and it was the most beautiful thing I've ever seen, so, we stayed."
+  },
+  {
+   "t": "Would we do another winter?"
+  },
+  {
+   "t": "Yes, but we'd change a few things."
+  },
+  {
+   "t": "We'd add a second roof vent, we'd insulate the drain line properly, and we'd get proper snow tires before the first storm instead of after."
+  },
+  {
+   "t": "If you're thinking about winter van life, start with short trips, and learn what fails before you're far from help."
+  },
+  {
+   "t": "Next week we're heading north to try and see the northern lights, so stay tuned for that."
+  },
+  {
+   "t": "Thanks for watching, and stay warm out there."
+  }
+ ],
+ "segments": {
+  "A": {
+   "expect": "skip",
+   "category": "sponsor",
+   "brand": "Voltera"
+  }
+ },
+ "noisy": {
+  "swaps": [
+   [
+    "Voltera",
+    "volterra"
+   ],
+   [
+    "WREN",
+    "ren"
+   ]
+  ]
+ }
+}

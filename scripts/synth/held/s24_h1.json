@@ -1,0 +1,163 @@
+{
+ "id": "s24_h1",
+ "scenario": 24,
+ "split": "held",
+ "lang": "en",
+ "title": "The Fish That Live Where Sunlight Dies",
+ "creator": "Abyssal",
+ "description": "Between 200 and 1000 meters down lies the twilight zone, home to more fish than the rest of the ocean combined. Here's how they survive.\n\nThanks to Skillshare for sponsoring this video! The first 500 people to use my link get a free month: skl.sh/abyssal\n\nSources and further reading in the pinned comment.\nMusic: Epidemic Sound",
+ "paid_promotion": true,
+ "sentences": [
+  {
+   "t": "Two hundred meters below the surface of the ocean, the sunlight starts to give up."
+  },
+  {
+   "t": "By a thousand meters, it's gone completely, and in between is a place scientists call the twilight zone."
+  },
+  {
+   "t": "It's dim, it's cold, and it might hold more fish, by weight, than every other part of the ocean put together."
+  },
+  {
+   "t": "And almost nobody has heard of the animals that live there."
+  },
+  {
+   "t": "Take the bristlemouth, a little fish about the size of your finger."
+  },
+  {
+   "t": "There are so many bristlemouths that it's probably the most common vertebrate on the entire planet."
+  },
+  {
+   "t": "More common than chickens, more common than rats, more common than us."
+  },
+  {
+   "t": "And yet, until fairly recently, we barely knew they existed, because they live in a place we almost never go."
+  },
+  {
+   "t": "So how do you survive somewhere that dark?"
+  },
+  {
+   "t": "The first trick is light itself."
+  },
+  {
+   "t": "Around three quarters of the animals in the twilight zone can make their own light, a process called bioluminescence."
+  },
+  {
+   "t": "Some use it to find a mate, some use it to lure in dinner, and some use it to vanish."
+  },
+  {
+   "t": "And speaking of things that are hard to learn on your own, this video is sponsored by Skillshare.",
+   "seg": "A",
+   "gap": 0.9
+  },
+  {
+   "t": "Skillshare is an online learning community with thousands of classes taught by people who actually do the thing for a living.",
+   "seg": "A"
+  },
+  {
+   "t": "A lot of you ask how I make the animations for this channel, and the honest answer is that I learned most of it from a motion graphics class on Skillshare.",
+   "seg": "A"
+  },
+  {
+   "t": "The classes are short and project based, so you're actually making something by the end of the first evening instead of just watching.",
+   "seg": "A"
+  },
+  {
+   "t": "There's illustration, video editing, photography, even a whole category on running a small business.",
+   "seg": "A"
+  },
+  {
+   "t": "The first five hundred people to click the link in my description will get a one month free trial of Skillshare.",
+   "seg": "A"
+  },
+  {
+   "t": "So if there's something you've been meaning to learn, this is a pretty good excuse to start.",
+   "seg": "A"
+  },
+  {
+   "t": "Okay, back to vanishing.",
+   "gap": 1.0
+  },
+  {
+   "t": "Many twilight zone fish have rows of tiny lights along their bellies, called photophores."
+  },
+  {
+   "t": "From below, a predator looks up and sees a silhouette against the faint light from above."
+  },
+  {
+   "t": "So these fish match that light exactly, brightness and colour, and their silhouette basically disappears."
+  },
+  {
+   "t": "It's called counter-illumination, and it's one of the cleverest pieces of camouflage in nature."
+  },
+  {
+   "t": "The second trick is moving, and moving a lot."
+  },
+  {
+   "t": "Every night, as the sun sets, billions of these animals swim up toward the surface to feed in the dark, and then swim back down before dawn."
+  },
+  {
+   "t": "It's called the diel vertical migration, and it's the largest migration on Earth, happening every single night."
+  },
+  {
+   "t": "For a fish the size of a finger, that can mean swimming several hundred meters up and back, every day."
+  },
+  {
+   "t": "That's like you jogging a marathon before breakfast, and then another one before bed."
+  },
+  {
+   "t": "And this daily trip matters to all of us, not just the fish."
+  },
+  {
+   "t": "When they feed near the surface and swim back down, they carry carbon with them, into the deep ocean."
+  },
+  {
+   "t": "Some researchers think this is a big part of how the ocean pulls carbon out of the air."
+  },
+  {
+   "t": "Which is why it's worrying that there's growing interest in fishing the twilight zone for fishmeal and supplements."
+  },
+  {
+   "t": "We don't yet know how much we can take before we break something we don't understand."
+  },
+  {
+   "t": "That's all for this one, and thanks again to Skillshare for supporting the channel, remember the first five hundred people to use my link in the description get a free month.",
+   "seg": "B",
+   "gap": 1.2
+  },
+  {
+   "t": "It's a big part of why I can keep making these.",
+   "seg": "B"
+  },
+  {
+   "t": "If you want to go deeper, the sources are in the pinned comment.",
+   "gap": 0.6
+  },
+  {
+   "t": "See you down there."
+  }
+ ],
+ "segments": {
+  "A": {
+   "expect": "skip",
+   "category": "sponsor",
+   "brand": "Skillshare"
+  },
+  "B": {
+   "expect": "skip",
+   "category": "sponsor",
+   "brand": "Skillshare"
+  }
+ },
+ "noisy": {
+  "swaps": [
+   [
+    "bristlemouth",
+    "bristle mouth"
+   ],
+   [
+    "Skillshare",
+    "skill share"
+   ]
+  ]
+ }
+}

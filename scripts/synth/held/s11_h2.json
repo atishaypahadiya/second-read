@@ -1,0 +1,186 @@
+{
+ "id": "s11_h2",
+ "scenario": 11,
+ "split": "held",
+ "lang": "en",
+ "title": "A Real Day as a Food Stylist (it's not glamorous)",
+ "creator": "Priya Venkataraman",
+ "description": "What a commercial food styling day actually looks like: tweezers, fake ice, and twelve versions of the same salad.\n\nI'm a freelance food stylist based in Melbourne. Questions about getting into the industry? Leave them in the comments and I'll answer a few in the next video.\n\nFilmed on my phone between takes, sorry about the audio.",
+ "paid_promotion": null,
+ "sentences": [
+  {
+   "t": "Good morning, it is six forty and I'm already in the studio, which is a warehouse in Collingwood that smells like burnt toast."
+  },
+  {
+   "t": "People always ask me what a food stylist actually does all day, so today I'm just going to show you."
+  },
+  {
+   "t": "Spoiler, it's mostly waiting and tweezers."
+  },
+  {
+   "t": "Let me set up the job first.",
+   "gap": 1.0
+  },
+  {
+   "t": "So today's client is Ceralune, which is an olive oil brand, and they hired our studio to shoot the photos for their new recipe cards.",
+   "seg": "A"
+  },
+  {
+   "t": "The ones that come tucked in the box when you buy the bottle, you know the little cards.",
+   "seg": "A"
+  },
+  {
+   "t": "There are eight recipes, and I'm responsible for making every single dish look perfect on set, while the photographer, Dan, shoots them.",
+   "seg": "A"
+  },
+  {
+   "t": "Their brand manager Lucia is here too, and she has very strong opinions about how shiny the oil should look, which, fair, it's literally their product.",
+   "seg": "A"
+  },
+  {
+   "t": "Honestly this is one of my favourite clients, because they actually let us cook real food instead of faking everything.",
+   "seg": "A"
+  },
+  {
+   "t": "Okay so first up is a panzanella salad.",
+   "gap": 1.0
+  },
+  {
+   "t": "This is the hero bowl."
+  },
+  {
+   "t": "And this here is the stand-in bowl, which is the one we use while Dan sorts out the lighting."
+  },
+  {
+   "t": "Nobody eats the stand-in."
+  },
+  {
+   "t": "The stand-in has been under hot lights for an hour and it is sad."
+  },
+  {
+   "t": "For the hero, I'm picking out every single cube of bread one by one."
+  },
+  {
+   "t": "I want the ones with the crispiest edges facing the camera."
+  },
+  {
+   "t": "This is the tweezers part."
+  },
+  {
+   "t": "I'm not joking, I own about fifteen pairs of tweezers."
+  },
+  {
+   "t": "Now the oil.",
+   "gap": 0.8
+  },
+  {
+   "t": "So you'd think you just pour oil on a salad."
+  },
+  {
+   "t": "No."
+  },
+  {
+   "t": "If you pour it, it soaks into the bread and goes dark and patchy within like two minutes."
+  },
+  {
+   "t": "So what I do is I brush it on right before the shot, with a little paint brush, only on the tomatoes and the top layer."
+  },
+  {
+   "t": "That gives you that glossy look without everything going soggy."
+  },
+  {
+   "t": "Lucia is nodding, so I think we're good."
+  },
+  {
+   "t": "It's now eleven o'clock, and we have shot two out of eight.",
+   "gap": 1.2
+  },
+  {
+   "t": "That's normal, by the way."
+  },
+  {
+   "t": "The first one always takes forever, because that's when we lock in the lighting and the angle and the props."
+  },
+  {
+   "t": "After that it speeds up."
+  },
+  {
+   "t": "Dan wants to try a top-down for the soup, so I'm going to swap the spoon for a smaller one, because a big spoon in a top-down looks like a shovel."
+  },
+  {
+   "t": "These are the things nobody tells you in culinary school."
+  },
+  {
+   "t": "Lunch break.",
+   "gap": 1.0
+  },
+  {
+   "t": "And no, we don't eat the props."
+  },
+  {
+   "t": "Okay, sometimes we eat the props."
+  },
+  {
+   "t": "The roast potatoes from recipe four are honestly incredible and I have eaten three of them."
+  },
+  {
+   "t": "Right, afternoon.",
+   "gap": 0.9
+  },
+  {
+   "t": "This is the hard one, which is a lemon tart."
+  },
+  {
+   "t": "The problem with a tart is the slice."
+  },
+  {
+   "t": "You need one perfectly clean slice coming out, with a sharp edge, no crumbs, no cracks."
+  },
+  {
+   "t": "So I've made three tarts."
+  },
+  {
+   "t": "I'm cutting with a knife that I'm heating under hot water and wiping between every cut."
+  },
+  {
+   "t": "Ooh, okay, that one's good."
+  },
+  {
+   "t": "Don't touch it, nobody breathe."
+  },
+  {
+   "t": "And that's a wrap, it's six in the evening, and we got all eight.",
+   "gap": 1.0
+  },
+  {
+   "t": "My feet are destroyed."
+  },
+  {
+   "t": "If you want to get into food styling, my honest advice is, assist someone first."
+  },
+  {
+   "t": "You learn more in one week on set than in a year of watching videos, including this one."
+  },
+  {
+   "t": "I'll be back next week with a full tour of my styling kit, including all fifteen tweezers."
+  },
+  {
+   "t": "Bye!"
+  }
+ ],
+ "segments": {
+  "A": {
+   "expect": "none",
+   "category": "sponsor",
+   "brand": "Ceralune"
+  }
+ },
+ "noisy": {
+  "swaps": [
+   [
+    "Ceralune",
+    "sarah loon"
+   ]
+  ]
+ }
+}

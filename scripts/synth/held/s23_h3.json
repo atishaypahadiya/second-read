@@ -1,0 +1,139 @@
+{
+ "id": "s23_h3",
+ "scenario": 23,
+ "split": "held",
+ "lang": "en",
+ "title": "How I Budget on a $41k Salary (Real Numbers, No Shame)",
+ "creator": "Priya Talks Money",
+ "description": "My actual budget for October: rent, groceries, the car, savings, and the fun money I refuse to give up.\n\nI use Tallyway to track everything. Try it free for 60 days with code PRIYA60 at tallyway.com/priya\n\nFree budget template: priyatalksmoney.com/template\nI'm not a financial advisor, this is just what works for me.",
+ "paid_promotion": false,
+ "sentences": [
+  {
+   "t": "Hi friends, so a lot of you asked me to show my real budget, with real numbers, so that's what we're doing today."
+  },
+  {
+   "t": "I make forty one thousand a year before tax, I live in Columbus, and I'm going to show you every single dollar from October."
+  },
+  {
+   "t": "After taxes and my retirement contribution, my take-home is about twenty seven hundred a month."
+  },
+  {
+   "t": "Rent is the big one, it's nine hundred and fifty, and I have a roommate, which is how it's that low."
+  },
+  {
+   "t": "Some people say I'm too old for roommates, and to those people I say, have you seen rent?"
+  },
+  {
+   "t": "So the way I actually track all this is in Tallyway, and I'll just pull it up on screen so you can see.",
+   "seg": "A",
+   "gap": 0.6
+  },
+  {
+   "t": "Every transaction from my checking account and my credit card comes in automatically, and I go through them every Sunday with a coffee.",
+   "seg": "A"
+  },
+  {
+   "t": "See this one, it marked a Target run as groceries, but half of it was a lamp, so I'm just going to split it, sixty dollars groceries, forty home stuff.",
+   "seg": "A"
+  },
+  {
+   "t": "And this little bar at the top shows me I've spent two eighty out of my three hundred grocery budget, with four days to go.",
+   "seg": "A"
+  },
+  {
+   "t": "So that's a little tight, which tells me this week is pasta week.",
+   "seg": "A"
+  },
+  {
+   "t": "I've also got a rule set up, anything from the gas station near my work automatically goes into the car category, so I don't have to touch those.",
+   "seg": "A"
+  },
+  {
+   "t": "And when I scroll down, here's the whole month as a pie chart, rent, car, groceries, savings, and that sad little slice called fun.",
+   "seg": "A"
+  },
+  {
+   "t": "Okay, so fun money, let's talk about it.",
+   "gap": 1.0
+  },
+  {
+   "t": "Oh, and before I forget, Tallyway is actually sponsoring this video, which I was really excited about because I've used it for two years.",
+   "seg": "B",
+   "gap": 0.6
+  },
+  {
+   "t": "If you want to try it, you get sixty days free with my code PRIYA60, and the link is right down in the description.",
+   "seg": "B"
+  },
+  {
+   "t": "That's tallyway dot com slash priya, it works with pretty much every bank, and you can cancel any time.",
+   "seg": "B"
+  },
+  {
+   "t": "Alright, fun money.",
+   "gap": 0.8
+  },
+  {
+   "t": "I give myself a hundred and fifty a month, and I don't feel guilty about any of it."
+  },
+  {
+   "t": "In October that was a concert, two dinners out with friends, and a very ugly sweater I'm wearing right now."
+  },
+  {
+   "t": "The car is the next big one, my payment is two hundred and ten, insurance is a hundred and five, and gas is usually around a hundred."
+  },
+  {
+   "t": "I know a lot of finance people say never have a car payment, but there's no real bus to my job, so this is a need, not a want."
+  },
+  {
+   "t": "Then savings, I put three hundred a month into a high yield savings account, automatically, the day after I get paid."
+  },
+  {
+   "t": "That's my emergency fund, and it's at about four months of expenses right now, which is the most I've ever had."
+  },
+  {
+   "t": "The rest is phone, internet, a couple of subscriptions, and a little buffer for things I always forget, like birthday presents."
+  },
+  {
+   "t": "So all in, I end most months with somewhere between fifty and a hundred dollars left over."
+  },
+  {
+   "t": "That's not a lot, I know."
+  },
+  {
+   "t": "But two years ago I was ending every month negative and putting groceries on a credit card, so this feels like a big deal to me."
+  },
+  {
+   "t": "If you're in a similar spot, start with tracking, honestly, before you change anything."
+  },
+  {
+   "t": "Just look at where it goes for a month, no judgment, and the patterns will jump out at you."
+  },
+  {
+   "t": "Let me know in the comments what your biggest category is, I'm nosy."
+  },
+  {
+   "t": "And I'll see you in the next one."
+  }
+ ],
+ "segments": {
+  "A": {
+   "expect": "keep",
+   "category": "sponsor",
+   "brand": "Tallyway"
+  },
+  "B": {
+   "expect": "skip",
+   "category": "sponsor",
+   "brand": "Tallyway"
+  }
+ },
+ "noisy": {
+  "swaps": [
+   [
+    "Tallyway",
+    "tally way"
+   ]
+  ]
+ }
+}

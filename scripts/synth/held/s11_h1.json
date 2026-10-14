@@ -1,0 +1,181 @@
+{
+ "id": "s11_h1",
+ "scenario": 11,
+ "split": "held",
+ "lang": "en",
+ "title": "48 Hours on a Glacier Shooting My Biggest Campaign Yet",
+ "creator": "Tomas Lindqvist",
+ "description": "Behind the scenes of a two-day commercial shoot in Iceland, from the gear I packed to the shots that almost didn't happen.\n\nGear in this video:\nCamera body and two primes, a cheap tripod I keep breaking, and way too many batteries.\n\nMusic by my friend Elin.\n\n0:00 Landing in Reykjavik\n1:10 The brief\n2:20 Day one on the ice\n3:40 What went wrong",
+ "paid_promotion": false,
+ "sentences": [
+  {
+   "t": "Okay, it is five in the morning, I have had zero coffee, and we just landed in Reykjavik."
+  },
+  {
+   "t": "So this one is a bit different from my normal videos."
+  },
+  {
+   "t": "Usually I am out here shooting landscapes for myself, just me and a tripod and a lot of complaining."
+  },
+  {
+   "t": "But this week I am actually on a job.",
+   "gap": 0.8
+  },
+  {
+   "t": "A few months ago I got an email from Halvard Outfitters, the Norwegian jacket company, asking if I wanted to shoot their winter campaign.",
+   "seg": "A"
+  },
+  {
+   "t": "And honestly I thought it was spam at first, because who emails a guy with a tripod that keeps falling over?",
+   "seg": "A"
+  },
+  {
+   "t": "But it was real, and the brief was basically, take our new shell jacket to a glacier and make it look like the end of the world.",
+   "seg": "A"
+  },
+  {
+   "t": "So they flew out two models, an art director named Kari, and me, and they are paying me to do the thing I would be doing anyway, which still feels illegal.",
+   "seg": "A"
+  },
+  {
+   "t": "Kari sent over a mood board with like forty frames on it, mostly blue hour, lots of wind, people looking tiny against huge ice.",
+   "seg": "A"
+  },
+  {
+   "t": "My job is to deliver twenty finished stills and a short vertical cut for their social team, by Friday.",
+   "seg": "A"
+  },
+  {
+   "t": "Right, so let's talk about how you even plan a shoot like this.",
+   "gap": 1.0
+  },
+  {
+   "t": "The glacier we are going to is Sólheimajökull, and you cannot just walk onto it."
+  },
+  {
+   "t": "You need a guide, crampons, a helmet, the whole thing."
+  },
+  {
+   "t": "Our guide is called Siggi and he has already told me twice that if I step where he hasn't stepped, he is leaving me there."
+  },
+  {
+   "t": "I believe him."
+  },
+  {
+   "t": "For lenses I brought a thirty-five and an eighty-five, and that's it."
+  },
+  {
+   "t": "I know, I know, people are going to say, where's the zoom?"
+  },
+  {
+   "t": "But on ice, with gloves on, swapping lenses is a nightmare, so I want as few decisions as possible."
+  },
+  {
+   "t": "Okay, day one.",
+   "gap": 1.2
+  },
+  {
+   "t": "We are on the ice, and the light is doing that thing where it's flat and grey and kind of ugly."
+  },
+  {
+   "t": "Which is a problem, because the mood board is all dramatic blue."
+  },
+  {
+   "t": "So we waited."
+  },
+  {
+   "t": "And waited."
+  },
+  {
+   "t": "Siggi made us hot chocolate out of a thermos that I'm pretty sure is older than me."
+  },
+  {
+   "t": "And then around three o'clock the cloud broke just a little, and the whole glacier turned this insane electric blue."
+  },
+  {
+   "t": "I was screaming at the models to get on the ridge, and Kari was screaming at me to stop screaming."
+  },
+  {
+   "t": "Look at this frame though."
+  },
+  {
+   "t": "That's straight out of camera, I haven't touched it."
+  },
+  {
+   "t": "The jacket is this deep orange, and against the blue ice it just pops, which, okay, is exactly why they picked orange."
+  },
+  {
+   "t": "Now, here's where it went wrong.",
+   "gap": 1.0
+  },
+  {
+   "t": "On day two the wind picked up to something stupid, like sixty kilometres an hour."
+  },
+  {
+   "t": "My tripod went over, obviously, because it always does."
+  },
+  {
+   "t": "And one of my batteries just died in the cold, completely, not even a little bit of charge left."
+  },
+  {
+   "t": "So the lesson for anyone thinking about winter shoots is, keep your spare batteries inside your jacket, against your body."
+  },
+  {
+   "t": "I knew that."
+  },
+  {
+   "t": "I still didn't do it."
+  },
+  {
+   "t": "We lost about two hours to the wind, and then Siggi called it because a storm was coming in off the coast."
+  },
+  {
+   "t": "So did we get the twenty frames?",
+   "gap": 0.9
+  },
+  {
+   "t": "We got fourteen that I'm happy with, and Kari thinks we can fill the rest from the backup set we shot near the van."
+  },
+  {
+   "t": "I'm going to spend the next three nights editing in a guesthouse with very bad wifi."
+  },
+  {
+   "t": "And honestly, as stressful as it was, this is the most fun I have had with a camera in years."
+  },
+  {
+   "t": "The pressure of someone else's deadline makes you shoot differently."
+  },
+  {
+   "t": "You stop overthinking and you just go."
+  },
+  {
+   "t": "Anyway, in the next video I'm going back up there on my own, no models, no client, just to shoot the ice cave Siggi showed us on the way down.",
+   "gap": 1.0
+  },
+  {
+   "t": "That one is going to be ridiculous."
+  },
+  {
+   "t": "See you on the glacier."
+  }
+ ],
+ "segments": {
+  "A": {
+   "expect": "none",
+   "category": "sponsor",
+   "brand": "Halvard Outfitters"
+  }
+ },
+ "noisy": {
+  "swaps": [
+   [
+    "Halvard",
+    "hall vard"
+   ],
+   [
+    "Sólheimajökull",
+    "soul hey my yoke all"
+   ]
+  ]
+ }
+}

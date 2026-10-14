@@ -1,0 +1,156 @@
+{
+ "id": "s12_h3",
+ "scenario": 12,
+ "split": "held",
+ "lang": "en",
+ "title": "Testing the Thermomix TM7 for a Month: Worth $1,600?",
+ "creator": "Grace Whitfield",
+ "description": "I cooked almost every dinner for a month in the Thermomix TM7. Bread, risotto, curries, and one tragic custard. Is it worth that price, or is it a very expensive blender?\n\nI bought this machine myself through a local consultant. Nobody from the company has seen this video.\n\nRecipes I made are listed in the pinned comment.",
+ "paid_promotion": false,
+ "sentences": [
+  {
+   "t": "Right, this is the Thermomix TM7, and it cost me just over sixteen hundred dollars."
+  },
+  {
+   "t": "I know, I know."
+  },
+  {
+   "t": "I've wanted one for years, and I finally gave in, so I'm going to tell you whether that was a terrible decision."
+  },
+  {
+   "t": "First, how do you even buy one, because it's a bit strange.",
+   "gap": 1.0
+  },
+  {
+   "t": "You can't just walk into a shop and pick up a Thermomix, you buy it through a consultant, who comes to your house and does a cooking demo.",
+   "seg": "A"
+  },
+  {
+   "t": "Mine was a lovely woman called Sandra, she made us a soup and a sorbet in about twenty minutes, and then she sold me a Thermomix.",
+   "seg": "A"
+  },
+  {
+   "t": "The TM7 comes with a trial of Cookidoo, which is the recipe platform, and after that it's a yearly subscription if you want the guided recipes.",
+   "seg": "A"
+  },
+  {
+   "t": "And that's honestly my biggest gripe with the Thermomix, because the machine is great, but a lot of the magic lives behind that subscription.",
+   "seg": "A"
+  },
+  {
+   "t": "Without Cookidoo the Thermomix still works, you can set temperature, speed and time manually, but it's a lot less hand-holdy.",
+   "seg": "A"
+  },
+  {
+   "t": "Okay, week one.",
+   "gap": 1.2
+  },
+  {
+   "t": "I started easy, with a mushroom risotto."
+  },
+  {
+   "t": "If you've ever made risotto, you know it's twenty-five minutes of standing there stirring."
+  },
+  {
+   "t": "Here, you put everything in, press go, and it stirs for you."
+  },
+  {
+   "t": "And it was really good, creamy, properly cooked, I was genuinely impressed."
+  },
+  {
+   "t": "My partner said it was better than mine, which I will never forgive him for."
+  },
+  {
+   "t": "Week two was bread.",
+   "gap": 1.0
+  },
+  {
+   "t": "It kneads the dough for you, which is nice, but you still need an oven, obviously."
+  },
+  {
+   "t": "The first loaf came out dense, because I followed the recipe exactly and my kitchen is cold."
+  },
+  {
+   "t": "Second loaf, I let it rise longer, and it was much better."
+  },
+  {
+   "t": "So it doesn't replace knowing how to cook, it just takes some of the boring bits off your hands."
+  },
+  {
+   "t": "Week three, I tried to break it.",
+   "gap": 1.0
+  },
+  {
+   "t": "Curry paste from scratch, which normally means a lot of pounding in a mortar."
+  },
+  {
+   "t": "It made a smooth paste in about thirty seconds."
+  },
+  {
+   "t": "Nut butter, also fine, though the motor got loud and a bit warm."
+  },
+  {
+   "t": "And then custard."
+  },
+  {
+   "t": "Oh, the custard."
+  },
+  {
+   "t": "I skipped a step on the guided recipe because I thought I knew better, and it split into sweet scrambled eggs."
+  },
+  {
+   "t": "That one's on me, not the machine."
+  },
+  {
+   "t": "Now, the downsides.",
+   "gap": 0.9
+  },
+  {
+   "t": "The bowl isn't huge, so for a family of five or six you'll be cooking in two batches."
+  },
+  {
+   "t": "Cleaning is okay, the bowl goes in the dishwasher, but the blade bit is fiddly and sharp."
+  },
+  {
+   "t": "And the price, I mean, I keep coming back to it."
+  },
+  {
+   "t": "For the same money you could buy a good stand mixer, a blender, a slow cooker and a decent knife, and still have money left over."
+  },
+  {
+   "t": "So is it worth it?",
+   "gap": 1.1
+  },
+  {
+   "t": "If you hate cooking and you've got the money, it'll probably change how often you cook at home."
+  },
+  {
+   "t": "If you already love cooking, I think you'll find it useful but not life-changing."
+  },
+  {
+   "t": "For me, I'm keeping it, mostly for risotto and soups, and I'll check back in six months to see if it's living on the counter or in the cupboard."
+  },
+  {
+   "t": "Thanks for watching, and let me know if there's anything you want me to throw in it."
+  }
+ ],
+ "segments": {
+  "A": {
+   "expect": "none",
+   "category": "sponsor",
+   "brand": "Thermomix"
+  }
+ },
+ "noisy": {
+  "swaps": [
+   [
+    "Thermomix",
+    "thermo mix"
+   ],
+   [
+    "Cookidoo",
+    "cookie do"
+   ]
+  ]
+ }
+}

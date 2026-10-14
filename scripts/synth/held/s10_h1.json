@@ -1,0 +1,138 @@
+{
+ "id": "s10_h1",
+ "scenario": 10,
+ "split": "held",
+ "lang": "en",
+ "title": "How I Edited My Iceland Travel Film (Start to Finish)",
+ "creator": "Jonah Pike",
+ "description": "Shooting tips, the edit, and the color grade for my 3-minute Iceland film.\n\nThanks to Framecut for sponsoring the editing section of this video.\n\nGear: one mirrorless body, a 24-70, a cheap ND filter, and a lot of hand warmers.",
+ "paid_promotion": true,
+ "sentences": [
+  {
+   "t": "A lot of you asked how I made the little Iceland film I posted last month, so today I'm breaking down the whole process, from shooting to export."
+  },
+  {
+   "t": "And I want to be upfront, this was shot on one camera, one lens, by one very cold person."
+  },
+  {
+   "t": "Let's start with the shooting, because no edit can save footage you didn't get."
+  },
+  {
+   "t": "The first rule I gave myself was, every shot has to move."
+  },
+  {
+   "t": "Either the camera moves, or something in the frame moves, like waves, steam, a bird, my friend's ridiculous orange hat."
+  },
+  {
+   "t": "Static shots of landscapes look amazing in person and incredibly boring on a screen."
+  },
+  {
+   "t": "The second rule was, shoot the same thing three ways, wide, medium, and close."
+  },
+  {
+   "t": "So for the black sand beach, I've got the wide shot of the whole coastline, a medium of the waves hitting the rocks, and a close-up of the foam on the sand."
+  },
+  {
+   "t": "That gives you options in the edit, and it's the secret behind that cut-cut-cut rhythm you see in travel films."
+  },
+  {
+   "t": "And the third rule, record way more ambient sound than you think you need."
+  },
+  {
+   "t": "Wind, gravel crunching, the hiss of a hot spring, those sounds are half the feeling of the film."
+  },
+  {
+   "t": "Okay, so I came home with about four hours of footage for a three minute video."
+  },
+  {
+   "t": "This is where I jump into the edit, and Framecut is sponsoring this part of the video, so thank you to them.",
+   "seg": "A",
+   "gap": 0.8
+  },
+  {
+   "t": "I've got all my clips dropped into a new Framecut project, and the first thing I do is let it sort them by scene.",
+   "seg": "A"
+  },
+  {
+   "t": "It groups the beach shots together, the waterfall shots together, and the driving shots together, which already saves me an hour of scrubbing.",
+   "seg": "A"
+  },
+  {
+   "t": "Now I'm building the rough cut on the timeline, and I'm doing it to the music first, so I find the beat and just tap the M key on every downbeat to drop markers.",
+   "seg": "A"
+  },
+  {
+   "t": "Then I drag clips onto the timeline and they snap right to those markers, which is how I get the cuts landing on the beat.",
+   "seg": "A"
+  },
+  {
+   "t": "For the waterfall section, I want a speed ramp, so I select the clip, open the speed curve, and drag the middle down to about twenty percent.",
+   "seg": "A"
+  },
+  {
+   "t": "See how the water slows down right as the music drops, and then snaps back to normal speed.",
+   "seg": "A"
+  },
+  {
+   "t": "Next I'm layering the ambient sound underneath, so the wind track goes on its own audio lane, and I pull the volume down until you feel it more than hear it.",
+   "seg": "A"
+  },
+  {
+   "t": "The last thing I do in here is color.",
+   "seg": "A"
+  },
+  {
+   "t": "I put one adjustment layer over the whole timeline, add a little contrast, cool the shadows, and warm the highlights, so everything feels like the same trip.",
+   "seg": "A"
+  },
+  {
+   "t": "Then I go clip by clip and match the exposure, because Iceland changes from bright sun to fog in about forty seconds.",
+   "seg": "A"
+  },
+  {
+   "t": "Okay, so that's the edit, and here's what I learned from it."
+  },
+  {
+   "t": "The film got so much better when I cut the shots I loved but that didn't fit."
+  },
+  {
+   "t": "I had this gorgeous long shot of a glacier lagoon, and it slowed everything down, so it's gone, and it hurt."
+  },
+  {
+   "t": "The other big lesson is that the sound design carried way more of the emotion than the visuals did."
+  },
+  {
+   "t": "People keep telling me the film felt cold, and honestly that's the wind track, not the footage."
+  },
+  {
+   "t": "If I did it again, I'd shoot more of the people, because the shots of my friends laughing in the car are the ones everyone remembers."
+  },
+  {
+   "t": "Landscapes are beautiful, but people are the story."
+  },
+  {
+   "t": "If you've got questions about any of this, drop them below, I'll answer as many as I can."
+  },
+  {
+   "t": "And next time, I'm doing the same breakdown for a city, which is a completely different challenge."
+  },
+  {
+   "t": "See you then."
+  }
+ ],
+ "segments": {
+  "A": {
+   "expect": "keep",
+   "category": "sponsor",
+   "brand": "Framecut"
+  }
+ },
+ "noisy": {
+  "swaps": [
+   [
+    "Framecut",
+    "frame cut"
+   ]
+  ]
+ }
+}

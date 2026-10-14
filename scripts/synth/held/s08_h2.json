@@ -1,0 +1,121 @@
+{
+ "id": "s08_h2",
+ "scenario": 8,
+ "split": "held",
+ "lang": "en",
+ "title": "My Slow Morning Routine (The Realistic Version)",
+ "creator": "Dee Okonkwo",
+ "description": "No 5am ice baths here. Just daylight, a screaming cat, overnight oats and a journal.\n\nThis video is sponsored by MUD\\WTR. Get 15% off your first order plus a free frother at https://mudwtr.com/dee\n\nOvernight oats recipe in the pinned comment.",
+ "paid_promotion": null,
+ "sentences": [
+  {
+   "t": "Good morning, it's six forty-five, and I'm going to be honest with you, I hit snooze twice."
+  },
+  {
+   "t": "This is my realistic morning routine, not the five a.m. ice bath version, the version where I'm a person with a job and a cat who screams."
+  },
+  {
+   "t": "First thing, I open the blinds, and I try to get some daylight in my eyes before I look at my phone."
+  },
+  {
+   "t": "I don't always manage that, but on the days I do, I genuinely feel more awake by eight."
+  },
+  {
+   "t": "Next, I feed Biscuit, because she will not let me do anything else until she's eaten."
+  },
+  {
+   "t": "She's been sitting by the bowl since six, judging me."
+  },
+  {
+   "t": "Then I put the kettle on, and while it boils I do about five minutes of stretching on the kitchen floor."
+  },
+  {
+   "t": "Nothing fancy, just a few cat-cows, a hamstring stretch, and some neck rolls, because I sleep like a pretzel."
+  },
+  {
+   "t": "Breakfast is usually overnight oats that I made the night before, with frozen berries, a spoon of peanut butter, and a little bit of honey."
+  },
+  {
+   "t": "Making them the night before is the single best thing I've done for my mornings, because the version of me at seven a.m. is not going to cook."
+  },
+  {
+   "t": "Okay, the kettle's done, and this next part is something I've been wanting to tell you about, because today's video is sponsored by Mud Water.",
+   "seg": "A"
+  },
+  {
+   "t": "Mud Water is a coffee alternative made from cacao, mushrooms like lion's mane and chaga, and spices like cinnamon and turmeric.",
+   "seg": "A"
+  },
+  {
+   "t": "It has about a seventh of the caffeine of a cup of coffee, so I get a gentle lift without the jitters and without the two p.m. crash.",
+   "seg": "A"
+  },
+  {
+   "t": "I used to be a three-coffee-a-day person, and switching my first cup to this has made my mornings so much calmer.",
+   "seg": "A"
+  },
+  {
+   "t": "I make it with hot water and a splash of oat milk, give it a quick froth, and it tastes kind of like a spiced hot chocolate, but earthier.",
+   "seg": "A"
+  },
+  {
+   "t": "If you want to try it, go to Mud Water dot com slash dee and you'll get fifteen percent off your first order, plus a free frother.",
+   "seg": "A"
+  },
+  {
+   "t": "Then I sit by the window for ten minutes with my drink and my journal."
+  },
+  {
+   "t": "I write down three things, what I'm worried about, what I'm looking forward to, and one thing I want to get done no matter what."
+  },
+  {
+   "t": "Some days the worry list is long, and that's fine, it's better on paper than in my head."
+  },
+  {
+   "t": "Then I shower, get dressed, and do the bare minimum of makeup, which is honestly just sunscreen and mascara."
+  },
+  {
+   "t": "At about seven forty, I check my phone for the first time, and I try to answer messages before opening anything with a feed."
+  },
+  {
+   "t": "That's the part I fail at most, I'm not going to pretend otherwise."
+  },
+  {
+   "t": "Then I pack my lunch, give Biscuit one last head scratch, and leave by eight fifteen."
+  },
+  {
+   "t": "So that's it, my realistic morning."
+  },
+  {
+   "t": "It's not perfect, it's not aesthetic, and I definitely didn't wake up at five."
+  },
+  {
+   "t": "But it's the first routine I've actually stuck to for more than a month, and I think that's because it's built around things I like."
+  },
+  {
+   "t": "Let me know what your mornings look like down in the comments, especially if you've got a screaming cat too."
+  },
+  {
+   "t": "See you in the next one."
+  }
+ ],
+ "segments": {
+  "A": {
+   "expect": "skip",
+   "category": "sponsor",
+   "brand": "MUD\\WTR"
+  }
+ },
+ "noisy": {
+  "swaps": [
+   [
+    "Mud Water",
+    "mudwater"
+   ],
+   [
+    "turmeric",
+    "to merrick"
+   ]
+  ]
+ }
+}
