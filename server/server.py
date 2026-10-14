@@ -76,7 +76,7 @@ KEEP_ALIVE = -1                                       # keep the model loaded be
 # Rubric changes in SYSTEM_PROMPT affect both passes: bump DETECT and REFINE.
 DETECT_VERSION = 3
 REFINE_VERSION = 3
-POST_VERSION = 22
+POST_VERSION = 23
 LEADIN_VERSION = 2   # the lead-in check: LEADIN_PROMPT / LEADIN_SYSTEM, the sentences it is shown, its caps
 NUM_CTX = 8192
 LLM_TIMEOUT_S = 600
@@ -2368,6 +2368,12 @@ def finalize(job, verbose):
             if verbose:
                 log(f"  filter: {fmt_time(x['start'])}-{fmt_time(x['end'])} {x.get('brand')!r} {why}: a disclosure line, "
                     f"labeled instead of skipped")
+            # A label now, so the label filters apply (they never look at skips): a 4.7 s 'skip' on "Google has a lot of
+            # servers" in a video about Google Maps (kS-CGkiPetQ) became a sponsor label on the video's own subject.
+            # Filtered before the note is added: the disclaimer filter would read "disclosure" in it.
+            if not post_filter([{**x, "action": "show"}], job["title"], job["alines"], verbose, job.get("terms") or (),
+                               job.get("paid_promotion")):
+                continue
             x = {**x, "action": "show", "reason": f"[disclosure, not a read: {why}] {x.get('reason', '')}"[:1000]}
         x.pop("undisclosed", None)
         if x.get("category") == "sponsor" and x.get("style") == "read":

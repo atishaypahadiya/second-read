@@ -398,7 +398,13 @@
       "meta": "cached",
       "verified": false,
       "source": "pipeline-snapshot",
-      "note": "Google Maps is unreasonably fast. Let me explain. Boot.dev read. Manual captions (no word timing): the cut is on estimated word times. The end reminder 29:25-29:37 ('Before we go, I just wanted to say thanks again to Boot.dev for sponsoring this video ... use that checkout code for 25% off.') was added when the repeat pass found it (post v22); the first snapshot had missed it.",
+      "note": "Google Maps is unreasonably fast. Let me explain. Boot.dev read. Manual captions (no word timing): the cut is on estimated word times. The end reminder 29:25-29:37 ('Before we go, I just wanted to say thanks again to Boot.dev for sponsoring this video ... use that checkout code for 25% off.') was added when the repeat pass found it (post v22); the first snapshot had missed it. Forbid 10:40-10:50: a 4.7 s 'skip' on 'Google has a lot of servers' became a sponsor label on the video's own subject when short skips turned into labels (post v15-v22); labels now pass the label filters (post v23).",
+      "forbid": [
+        {
+          "start": 640.0,
+          "end": 650.0
+        }
+      ],
       "expect": [
         {
           "action": "skip",
