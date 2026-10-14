@@ -576,10 +576,16 @@
       "creator": "RAINBOLT",
       "meta": "cached",
       "verified": false,
-      "source": "needs-label",
-      "question": "Is there any ad here? Post v6 still KEEPS 'sponsors' 61:42-62:02 (sponsor/integration 0.80): the interviewee's Halloween walk 'got all kinds of uh sponsors', which is the story. The word 'sponsors' in the evidence counts as its own ad marker. No sponsor line in the description, paid flag false.",
-      "note": "solving a 4 year internet mystery. Replay at snapshot time: show recap 25:03.0-25:10.2 ''; keep sponsor 61:42.6-62:02.5 'sponsors'.",
-      "expect": []
+      "source": "transcript-labeled",
+      "note": "solving a 4 year internet mystery. Labeled from the transcript: no ad anywhere. 61:42-62:02 is an interviewee telling how his Halloween haunted walk grew ('We got all kinds of uh sponsors and got everybody involved. It was a great community project.'): story. No sponsor line in the description, paid flag false. Before post v9 the bare word 'sponsors' counted as an ad marker and the line was kept as a 'Sponsors' integration.",
+      "must_not_skip": true,
+      "expect": [],
+      "forbid": [
+        {
+          "start": 3698.72,
+          "end": 3729.12
+        }
+      ]
     },
     {
       "video": "lyMTD1eAZAw",

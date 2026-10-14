@@ -317,6 +317,11 @@ def unit_checks():
         labeled(with_line(0, "this part of the vlog is sponsored by fossil and")),
         labeled(story, terms=["Fossil", "fossil"]),
         labeled(with_line(3, "thanks to fossil for sponsoring, use code CHIRAG for 10% off"))], [["keep"]] * 4)
+    eq("filter: the word 'sponsors' in the story is not an ad marker; sponsorship of this video is (FBeMrUWX73s)",
+       [labeled(with_line(1, "we got all kinds of uh sponsors and got everybody involved, it was a community project"),
+                evidence="got all kinds of uh sponsors and got everybody involved"),
+        labeled(with_line(1, "the sponsor of this video is fossil and we are shooting for their new watch"),
+                evidence="the sponsor of this video is fossil")], [[], ["keep"]])
     eq("filter: YouTube's paid-promotion flag is an ad marker only when received and true",
        [labeled(story, paid=True), labeled(story, paid=False), labeled(story, paid=None)], [["keep"], [], []])
     eq("filter: skips and other categories are not touched by it",

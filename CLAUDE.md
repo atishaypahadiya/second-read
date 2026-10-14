@@ -43,8 +43,8 @@ everything runs on Atishay's M4 Pro MacBook.
   video is seen: YouTube does not always return the same captions for a video, and re-watching a test video
   rewrites its cache file, which moved an expectation once (`vGoRpjE-svI`, first line at 0:11 instead of 0:15).
   Delete a video's entry from that file to re-freeze it from the cache.
-  **Four kinds of rows**, reported separately (`video rows: 13/13 verified, 2/2 transcript-labeled, 12/12 snapshot,
-  2 need a label`): verified (a person checked the expectations against the video; the default), `"verified": false,
+  **Four kinds of rows**, reported separately (`video rows: 13/13 verified, 3/3 transcript-labeled, 12/12 snapshot,
+  1 needs a label`): verified (a person checked the expectations against the video; the default), `"verified": false,
   "source": "transcript-labeled"` (labeled from a reading of the transcript, independent of the pipeline's output, not
   checked by a person), `"verified": false, "source": "pipeline-snapshot"` (the pipeline's output when the row was
   added: catches changes, not errors) and `"source": "needs-label"` (replayed and printed with its `question`, never
@@ -402,7 +402,8 @@ Every GET/POST for a video counts as a poll.
     a sponsor disclaimer; drop if the brand appears in the video title or is mentioned in ≥ 3 transcript lines
     outside the segment (it's the subject); **drop a `sponsor` keep/show that has no ad marker**; drop `show` below
     `SHOW_THRESHOLD` (0.7). Logged once, at the end.
-    **Ad markers** (`AD_MARKER_RE`, `ad_markers()`): sponsorship language, a code, an offer, a link or a call to
+    **Ad markers** (`AD_MARKER_RE`, `ad_markers()`): sponsorship language about this video (not the bare word
+    "sponsor": "we got all kinds of sponsors" in an interview is story, FBeMrUWX73s, post v9), a code, an offer, a link or a call to
     action, or a description hint, in the evidence quote or the segment's lines ± 1, or next to the same brand
     elsewhere in the video ("sponsored by X" at the top, X used later); or YouTube's paid-promotion flag, when it
     was received and is true (false or not received changes nothing). A creator narrating their own brand work as
