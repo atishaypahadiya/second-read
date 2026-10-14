@@ -1,0 +1,273 @@
+{
+ "id": "s21_h2",
+ "scenario": 21,
+ "split": "held",
+ "lang": "en",
+ "title": "The Lighthouse Keeper Who Vanished (with Dr. Helen Marsh) | Undertow Ep. 58",
+ "creator": "Undertow Podcast",
+ "description": "In December 1900, three lighthouse keepers disappeared from the Flannan Isles. Historian Dr. Helen Marsh joins Tom to separate the logbook from the legend.\n\nThanks to our partners:\nMint Mobile: get premium wireless for $15 a month at mintmobile.com/undertow\nFactor: use code UNDERTOW50 for 50% off your first box at factormeals.com/undertow50\nRocket Money: cancel unwanted subscriptions at rocketmoney.com/undertow\n\nDr. Marsh's book, The Sea Keeps Its Own, is out now.\nSupport the show on Patreon: patreon.com/undertowpod",
+ "paid_promotion": null,
+ "sentences": [
+  {
+   "t": "This is Undertow, I'm Tom Reyes."
+  },
+  {
+   "t": "Before we start, Undertow is supported by Mint Mobile.",
+   "seg": "A",
+   "gap": 0.5
+  },
+  {
+   "t": "I switched to Mint about a year ago, mostly because I was paying something like ninety dollars a month for a phone I use to look up old shipwreck records.",
+   "seg": "A"
+  },
+  {
+   "t": "Mint is the same coverage on the same network, but because they sell online and skip the stores, plans start at fifteen bucks a month.",
+   "seg": "A"
+  },
+  {
+   "t": "You keep your number, you keep your phone, and the switch took me maybe ten minutes in a parking lot.",
+   "seg": "A"
+  },
+  {
+   "t": "Go to mint mobile dot com slash undertow to get your new wireless plan for fifteen dollars a month.",
+   "seg": "A"
+  },
+  {
+   "t": "That's mint mobile dot com slash undertow.",
+   "seg": "A"
+  },
+  {
+   "t": "Okay, today's story is one I've wanted to do since we started the show.",
+   "gap": 1.0
+  },
+  {
+   "t": "December nineteen hundred, the Flannan Isles, off the west coast of Scotland."
+  },
+  {
+   "t": "A relief boat shows up at the lighthouse and nobody comes down to meet it."
+  },
+  {
+   "t": "And my guest today has spent, what, six years on this?"
+  },
+  {
+   "t": "Closer to eight if you count the bits where I swore I was done with it."
+  },
+  {
+   "t": "Doctor Helen Marsh, welcome to Undertow."
+  },
+  {
+   "t": "Thanks for having me, Tom, I've been a listener for ages, so this is a bit surreal."
+  },
+  {
+   "t": "So walk me through it, what did the relief crew actually find?"
+  },
+  {
+   "t": "Right, so the first thing people get wrong is the famous detail about the half-eaten meal on the table and the overturned chair."
+  },
+  {
+   "t": "That's in every retelling."
+  },
+  {
+   "t": "It's in every retelling, and it's not in any of the original reports."
+  },
+  {
+   "t": "Wait, really?"
+  },
+  {
+   "t": "Really, it shows up in a ballad written about twelve years later, and then everyone just kind of absorbed it."
+  },
+  {
+   "t": "Huh, okay, so what is in the reports?"
+  },
+  {
+   "t": "The clock had stopped, the beds were unmade, and two of the three oilskin coats were gone."
+  },
+  {
+   "t": "Which tells you two men went out in foul weather gear, and one went out in his shirtsleeves."
+  },
+  {
+   "t": "And that's the bit that has always bugged me."
+  },
+  {
+   "t": "Why would the third man run out without his coat?"
+  },
+  {
+   "t": "Exactly, and that's where it gets interesting, because the west landing was badly damaged that week."
+  },
+  {
+   "t": "There's a crane that had its ropes torn out, and turf ripped up from a cliff that's something like two hundred feet above sea level."
+  },
+  {
+   "t": "Two hundred feet, so these were enormous waves."
+  },
+  {
+   "t": "Enormous, and the theory I find most convincing is that two of them went down to secure equipment, and the third saw something coming from the window and ran down to warn them."
+  },
+  {
+   "t": "Oh, that's horrible."
+  },
+  {
+   "t": "It's horrible, and it's also, I think, much more human than the sea monster versions."
+  },
+  {
+   "t": "We're going to get to the logbook in a second, because there's a whole controversy there, but first a quick word from Factor.",
+   "seg": "B",
+   "gap": 0.8
+  },
+  {
+   "t": "I record most of this show late at night, and for years dinner was whatever was in the cupboard, which was usually crackers.",
+   "seg": "B"
+  },
+  {
+   "t": "Factor sends you fully prepared meals, chef-made, dietitian-approved, and they're ready in about two minutes.",
+   "seg": "B"
+  },
+  {
+   "t": "There's something like forty options a week, keto, calorie-smart, high protein, and I keep coming back to the salmon with lemon butter.",
+   "seg": "B"
+  },
+  {
+   "t": "Head to factor meals dot com slash undertow fifty and use code UNDERTOW fifty to get fifty percent off your first box.",
+   "seg": "B"
+  },
+  {
+   "t": "That's code UNDERTOW fifty at factor meals dot com slash undertow fifty.",
+   "seg": "B"
+  },
+  {
+   "t": "So, Helen, the logbook.",
+   "gap": 0.9
+  },
+  {
+   "t": "Yes, the infamous logbook."
+  },
+  {
+   "t": "The story people repeat is that the last entries describe a storm, and one keeper crying, and the men praying."
+  },
+  {
+   "t": "And then the final line, God is over all."
+  },
+  {
+   "t": "Right, it's chilling, and as far as anyone can tell, it was invented."
+  },
+  {
+   "t": "Come on."
+  },
+  {
+   "t": "I'm so sorry, Tom."
+  },
+  {
+   "t": "The official logbook entries that survive are dry and boring, the way logbooks should be."
+  },
+  {
+   "t": "The dramatic version turns up in a magazine story in the nineteen twenties with no source at all."
+  },
+  {
+   "t": "So why does the made-up version survive?"
+  },
+  {
+   "t": "Because it's a better story, honestly."
+  },
+  {
+   "t": "A wave taking three men is a tragedy, but a tragedy without a mystery doesn't get passed around a campfire."
+  },
+  {
+   "t": "That's a little bleak for my job description."
+  },
+  {
+   "t": "Ha, sorry, it applies to me too."
+  },
+  {
+   "t": "Alright, we'll come back for the part about the relief keeper who found them missing, and what happened to him, after one last break.",
+   "seg": "C",
+   "gap": 0.9
+  },
+  {
+   "t": "Undertow is brought to you by Rocket Money.",
+   "seg": "C"
+  },
+  {
+   "t": "Here's a confession, last spring I found out I'd been paying for three streaming services I hadn't opened in a year.",
+   "seg": "C"
+  },
+  {
+   "t": "Rocket Money finds all your subscriptions in one place and can cancel the ones you don't want with a couple of taps.",
+   "seg": "C"
+  },
+  {
+   "t": "It also tracks your spending and can negotiate some of your bills down for you, which still feels like a magic trick.",
+   "seg": "C"
+  },
+  {
+   "t": "Cancel your unwanted subscriptions and manage your money at rocket money dot com slash undertow.",
+   "seg": "C"
+  },
+  {
+   "t": "That's rocket money dot com slash undertow.",
+   "seg": "C"
+  },
+  {
+   "t": "So, Joseph Moore, the relief keeper.",
+   "gap": 1.0
+  },
+  {
+   "t": "He was the one who climbed up and found the place empty."
+  },
+  {
+   "t": "And he stayed on the island for weeks afterwards, didn't he?"
+  },
+  {
+   "t": "He did, and his letters from that time are, I think, the most moving documents in the whole case."
+  },
+  {
+   "t": "He writes about hearing their voices in the wind at night."
+  },
+  {
+   "t": "And you can dismiss that, but I don't think he was being dramatic, I think he was grieving."
+  },
+  {
+   "t": "That's a good place to land, actually."
+  },
+  {
+   "t": "Helen, where can people find your book?"
+  },
+  {
+   "t": "It's called The Sea Keeps Its Own, and it's in most bookshops now."
+  },
+  {
+   "t": "Thank you so much for doing this."
+  },
+  {
+   "t": "Thanks, Tom, this was lovely."
+  }
+ ],
+ "segments": {
+  "A": {
+   "expect": "skip",
+   "category": "sponsor",
+   "brand": "Mint Mobile"
+  },
+  "B": {
+   "expect": "skip",
+   "category": "sponsor",
+   "brand": "Factor"
+  },
+  "C": {
+   "expect": "skip",
+   "category": "sponsor",
+   "brand": "Rocket Money"
+  }
+ },
+ "noisy": {
+  "swaps": [
+   [
+    "Flannan",
+    "flannel"
+   ],
+   [
+    "Factor",
+    "fact or"
+   ]
+  ]
+ }
+}

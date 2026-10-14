@@ -1,0 +1,278 @@
+{
+ "id": "s21_h1",
+ "scenario": 21,
+ "split": "held",
+ "lang": "en",
+ "title": "Why Every Solo Founder Burns Out in Year Two | Ship It Weekly #142",
+ "creator": "Ship It Weekly",
+ "description": "Dana and Marcus dig into the year-two slump: pricing regret, support overload, and how to stop building features nobody asked for.\n\nThis episode is brought to you by:\nFieldnote - meeting notes that write themselves. Try it free for 30 days at fieldnote.app/shipit\nRidgeline Coffee - use code SHIPIT for 25% off your first bag at ridgelinecoffee.com\nLedgerly - bookkeeping for tiny businesses, first three months free at ledgerly.com/shipit\n\n00:00 Intro\n01:10 The year-two slump\n03:40 Support is eating the roadmap\n05:20 Pricing regret\n\nFollow Dana: @danaokafor\nFollow Marcus: @marcusbuilds",
+ "paid_promotion": true,
+ "sentences": [
+  {
+   "t": "Hey everybody, welcome back to Ship It Weekly, I'm Dana."
+  },
+  {
+   "t": "And I'm Marcus, and I have had exactly one coffee today, so manage your expectations."
+  },
+  {
+   "t": "Ha, noted."
+  },
+  {
+   "t": "Before we get going, this episode is brought to you by Fieldnote.",
+   "seg": "A"
+  },
+  {
+   "t": "So Fieldnote sits in on your calls, takes the notes for you, and pulls out the action items so you're not scrambling afterwards trying to remember who promised what.",
+   "seg": "A"
+  },
+  {
+   "t": "It works with Zoom, Meet, and Teams, and it sends you a clean summary like two minutes after the call ends.",
+   "seg": "A"
+  },
+  {
+   "t": "I've been using it for all my customer interviews and honestly it's the only reason my research doc exists.",
+   "seg": "A"
+  },
+  {
+   "t": "Go to fieldnote dot app slash shipit and you get thirty days free, no card needed.",
+   "seg": "A"
+  },
+  {
+   "t": "That's fieldnote dot app slash shipit.",
+   "seg": "A"
+  },
+  {
+   "t": "Okay so, the topic today.",
+   "gap": 0.8
+  },
+  {
+   "t": "We got a lot of emails after episode one thirty about what people kept calling the year-two slump."
+  },
+  {
+   "t": "Yeah, and I think the phrase came from one listener, Priya, who runs a little scheduling tool for dog groomers."
+  },
+  {
+   "t": "Which is the most specific business I have ever heard of, and I love it."
+  },
+  {
+   "t": "Right, and she wrote this long email basically saying year one was the most fun she's ever had, and year two she wants to throw her laptop into a lake."
+  },
+  {
+   "t": "And I felt that in my bones, Dana, because that was exactly me with the invoicing thing."
+  },
+  {
+   "t": "So what was it for you, what actually changed?"
+  },
+  {
+   "t": "Honestly, the customers."
+  },
+  {
+   "t": "Not in a bad way, but in year one you've got like forty people and they're all early adopters, they forgive everything."
+  },
+  {
+   "t": "In year two you've got four hundred and suddenly someone's furious that the export button is grey instead of blue."
+  },
+  {
+   "t": "Ha, the grey button guy."
+  },
+  {
+   "t": "I will never forget the grey button guy."
+  },
+  {
+   "t": "But I think there's something deeper there, which is that support starts eating the roadmap."
+  },
+  {
+   "t": "Yeah, like you sit down Monday morning to build the thing you're excited about, and by noon you've answered thirty tickets and you're just, you're cooked."
+  },
+  {
+   "t": "And the trap is that every ticket feels urgent, so you never get to the work that would actually make the tickets go away."
+  },
+  {
+   "t": "Exactly, it's like bailing water instead of patching the hole."
+  },
+  {
+   "t": "Okay, I want to get into how Priya fixed that, because she did."
+  },
+  {
+   "t": "But first, coffee number two, which is a great excuse to say today's episode is also supported by Ridgeline Coffee.",
+   "seg": "B",
+   "gap": 0.6
+  },
+  {
+   "t": "Ridgeline roasts small batches in Asheville and ships them within two days of roasting, so it actually tastes like something when it shows up.",
+   "seg": "B"
+  },
+  {
+   "t": "I'm on their dark sampler right now, and the one called Night Shift is basically what keeps this podcast on schedule.",
+   "seg": "B"
+  },
+  {
+   "t": "You pick how often you want it, every two weeks, every month, whatever, and you can pause or skip anytime.",
+   "seg": "B"
+  },
+  {
+   "t": "Use code SHIPIT at ridgelinecoffee dot com for twenty five percent off your first bag.",
+   "seg": "B"
+  },
+  {
+   "t": "Again, that's code SHIPIT at ridgelinecoffee dot com.",
+   "seg": "B"
+  },
+  {
+   "t": "Alright, Priya.",
+   "gap": 0.7
+  },
+  {
+   "t": "So what she did, and I think this is brilliant, is she started tagging every single ticket for two weeks."
+  },
+  {
+   "t": "Just tagging, no fixing."
+  },
+  {
+   "t": "And at the end she found that something like sixty percent were about the same three confusing screens."
+  },
+  {
+   "t": "Sixty percent, wow."
+  },
+  {
+   "t": "Yeah, so she spent one month on nothing but those three screens, and her ticket volume dropped by half."
+  },
+  {
+   "t": "See, that's the thing, nobody wants to spend a month on boring fixes because it doesn't feel like progress."
+  },
+  {
+   "t": "It doesn't make a good tweet, you know?"
+  },
+  {
+   "t": "Nobody's posting shipped a slightly clearer settings page, here's my revenue graph."
+  },
+  {
+   "t": "Ha, you would though."
+  },
+  {
+   "t": "I absolutely would, and I'd get four likes, all from my mom."
+  },
+  {
+   "t": "Okay, so the other part of the slump, and this is the one I personally struggle with, is pricing regret."
+  },
+  {
+   "t": "Oh, yeah, the we priced it way too low in year one problem."
+  },
+  {
+   "t": "Right, because you were nervous, you just wanted anybody to pay you, so you charged nine bucks a month."
+  },
+  {
+   "t": "And now you've got four hundred customers at nine bucks and raising it feels like betraying them."
+  },
+  {
+   "t": "So what do you tell people, because you've done this twice now."
+  },
+  {
+   "t": "Grandfather the old folks for a year, be totally honest in the email, and put the new price on new signups only."
+  },
+  {
+   "t": "And you'd be shocked how many people write back and say honestly I'm surprised it was that cheap."
+  },
+  {
+   "t": "That's real, I got a few of those."
+  },
+  {
+   "t": "Quick break, and then I want to talk about the dog groomer's actual numbers, because she sent them over.",
+   "seg": "C",
+   "gap": 0.9
+  },
+  {
+   "t": "This part of the show is brought to you by Ledgerly.",
+   "seg": "C"
+  },
+  {
+   "t": "If you run a tiny business and your bookkeeping is a spreadsheet with seven tabs and one of them is just called misc, Ledgerly is for you.",
+   "seg": "C"
+  },
+  {
+   "t": "It connects to your bank and Stripe, sorts your transactions automatically, and gives you a real profit and loss you can actually hand to an accountant.",
+   "seg": "C"
+  },
+  {
+   "t": "And when tax season shows up, everything's already categorized, which for me used to be a full lost weekend.",
+   "seg": "C"
+  },
+  {
+   "t": "Right now Ship It listeners get their first three months free at ledgerly dot com slash shipit.",
+   "seg": "C"
+  },
+  {
+   "t": "That's ledgerly dot com slash shipit, three months free.",
+   "seg": "C"
+  },
+  {
+   "t": "Okay, so Priya's numbers.",
+   "gap": 0.8
+  },
+  {
+   "t": "She raised from twelve to nineteen a month for new customers, and her signup rate barely moved."
+  },
+  {
+   "t": "Like it went from forty two a month to thirty nine."
+  },
+  {
+   "t": "That's basically noise."
+  },
+  {
+   "t": "Totally noise, and her monthly revenue from new signups went up by more than half."
+  },
+  {
+   "t": "So the lesson, again, is that we are all way too scared of our own prices."
+  },
+  {
+   "t": "Yeah, I think that's the episode, honestly."
+  },
+  {
+   "t": "Fix the boring screens and charge more money."
+  },
+  {
+   "t": "Put that on a mug."
+  },
+  {
+   "t": "Ha, okay, that's it for this week."
+  },
+  {
+   "t": "If you've got a year-two story, send it in, we read every email, even the long ones."
+  },
+  {
+   "t": "Especially the long ones."
+  },
+  {
+   "t": "See you next week, everybody."
+  }
+ ],
+ "segments": {
+  "A": {
+   "expect": "skip",
+   "category": "sponsor",
+   "brand": "Fieldnote"
+  },
+  "B": {
+   "expect": "skip",
+   "category": "sponsor",
+   "brand": "Ridgeline Coffee"
+  },
+  "C": {
+   "expect": "skip",
+   "category": "sponsor",
+   "brand": "Ledgerly"
+  }
+ },
+ "noisy": {
+  "swaps": [
+   [
+    "Fieldnote",
+    "field note"
+   ],
+   [
+    "Ledgerly",
+    "ledger lee"
+   ]
+  ]
+ }
+}

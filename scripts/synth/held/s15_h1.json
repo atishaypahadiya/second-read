@@ -1,0 +1,173 @@
+{
+ "id": "s15_h1",
+ "scenario": 15,
+ "split": "held",
+ "lang": "en",
+ "title": "Building a Workbench With Only Hand Tools (No Power, No Excuses)",
+ "creator": "Callum Price",
+ "description": "A full-size Roubo-style workbench built with nothing but hand saws, planes and chisels. It took eleven days and most of my patience.\n\nPlans for this bench are in my shop: callumpricewoodworks.com/plans\nUse code BENCH10 for 10% off any of my plans.\n\nTimber: reclaimed beech from a local school gym floor.\n\n0:00 The timber\n1:10 Flattening the top\n2:30 About the plans\n3:00 The leg joints\n4:20 Finishing",
+ "paid_promotion": false,
+ "sentences": [
+  {
+   "t": "Right, this pile of wood used to be the floor of a school gym, and in eleven days it's going to be a workbench."
+  },
+  {
+   "t": "And I'm doing the whole thing with hand tools, no table saw, no planer, nothing with a plug."
+  },
+  {
+   "t": "Mostly because I wanted to see if I could, and partly because my neighbours have complained about the noise."
+  },
+  {
+   "t": "So this is beech, and it's absolutely full of old nails and screw holes, which is the first problem.",
+   "gap": 1.0
+  },
+  {
+   "t": "I've gone over every board with a magnet, pulling out anything metal, because hitting a nail with a hand plane will ruin your week."
+  },
+  {
+   "t": "Found forty-one nails."
+  },
+  {
+   "t": "Missed one, as you'll see later."
+  },
+  {
+   "t": "Okay, the top.",
+   "gap": 1.2
+  },
+  {
+   "t": "I've glued up six boards into a slab about four inches thick, and now it needs to be flat."
+  },
+  {
+   "t": "Flat flat, not kind of flat."
+  },
+  {
+   "t": "So I'm using winding sticks, which are just two straight bits of wood, to see where the top is twisted."
+  },
+  {
+   "t": "Then I go across the grain with a big scrub plane to knock the high spots down."
+  },
+  {
+   "t": "This is about two full days of work, and my shoulders are not happy about it."
+  },
+  {
+   "t": "And there's the nail I missed.",
+   "gap": 0.8
+  },
+  {
+   "t": "You can hear it."
+  },
+  {
+   "t": "That's a big chunk out of my plane iron, so I'm going to have to grind that back before I can carry on."
+  },
+  {
+   "t": "Quick thing while I'm sharpening, because a lot of you asked last time.",
+   "seg": "A",
+   "gap": 1.0
+  },
+  {
+   "t": "I've drawn up full plans for this bench, with every measurement, a cut list, and step-by-step drawings for the joints.",
+   "seg": "A"
+  },
+  {
+   "t": "They're in my little online shop, the link is in the description, and if you use the code BENCH10 you get ten percent off.",
+   "seg": "A"
+  },
+  {
+   "t": "It's just me running it, no company, and honestly the plans are what let me spend eleven days making one video like this.",
+   "seg": "A"
+  },
+  {
+   "t": "Okay, back to the bench."
+  },
+  {
+   "t": "Now the legs.",
+   "gap": 1.2
+  },
+  {
+   "t": "The legs join the top with a mortise and tenon, and the tenons go all the way through."
+  },
+  {
+   "t": "I'm chopping the mortises with a big chisel and a mallet, about an inch at a time."
+  },
+  {
+   "t": "The trick is to keep checking the sides with a square, because it is so easy to drift sideways and end up with a leg that leans."
+  },
+  {
+   "t": "For the stretchers, the bits that connect the legs at the bottom, I'm using drawbore joints.",
+   "gap": 1.0
+  },
+  {
+   "t": "That means the hole in the tenon is drilled slightly off from the hole in the mortise."
+  },
+  {
+   "t": "When you hammer the peg in, it pulls the joint tight, no glue, no clamps."
+  },
+  {
+   "t": "This is a really old technique and it still blows my mind every time."
+  },
+  {
+   "t": "Listen to that, it just goes thunk and it's done."
+  },
+  {
+   "t": "Day nine, assembly.",
+   "gap": 1.0
+  },
+  {
+   "t": "The top weighs something like eighty kilos, so I had to get my brother over to help me lift it onto the legs."
+  },
+  {
+   "t": "He wasn't thrilled."
+  },
+  {
+   "t": "But it dropped on perfectly, first time, and the whole thing doesn't wobble at all."
+  },
+  {
+   "t": "Finishing.",
+   "gap": 1.1
+  },
+  {
+   "t": "I'm keeping it simple, just a couple of coats of boiled linseed oil and some paste wax."
+  },
+  {
+   "t": "You don't want a workbench too slippery, otherwise everything slides around when you're planing."
+  },
+  {
+   "t": "And then the last job is boring the dog holes, so I can clamp things flat to the top."
+  },
+  {
+   "t": "So, eleven days, no power tools, one missed nail and one very annoyed brother.",
+   "gap": 1.0
+  },
+  {
+   "t": "Would I do it again?"
+  },
+  {
+   "t": "Ask me in a month when my shoulders have recovered."
+  },
+  {
+   "t": "Next video, I'm building the leg vise for it, and that's going to involve a lot of threading by hand."
+  },
+  {
+   "t": "Cheers for watching."
+  }
+ ],
+ "segments": {
+  "A": {
+   "expect": "label",
+   "category": "selfpromo",
+   "brand": "Callum Price Woodworks"
+  }
+ },
+ "noisy": {
+  "swaps": [
+   [
+    "Roubo",
+    "ruby"
+   ],
+   [
+    "drawbore",
+    "draw boar"
+   ]
+  ]
+ }
+}

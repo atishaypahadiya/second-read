@@ -1,0 +1,160 @@
+{
+ "id": "s14_h2",
+ "scenario": 14,
+ "split": "held",
+ "lang": "en",
+ "title": "I Fell for This Crypto Ad (So You Don't Have To)",
+ "creator": "Owen Gallagher",
+ "description": "A crypto trading app ad kept showing up in my feed, so I signed up with a burner account to see where it went. Spoiler: nowhere good.\n\nIf you've lost money to a scam like this, report it to your bank straight away and to Action Fraud.\n\nI'm not linking the app or the site for obvious reasons.",
+ "paid_promotion": false,
+ "sentences": [
+  {
+   "t": "For about three weeks, the same ad kept showing up every time I opened my phone."
+  },
+  {
+   "t": "A guy on a yacht, telling me he turned five hundred quid into a house."
+  },
+  {
+   "t": "And eventually I thought, right, I'm going to see exactly where this goes."
+  },
+  {
+   "t": "So first, I want you to hear the actual pitch, because it's really well written, and that's the scary part.",
+   "gap": 1.0
+  },
+  {
+   "t": "I wrote it down word for word."
+  },
+  {
+   "t": "Are you tired of working nine to five while other people get rich?",
+   "seg": "A",
+   "gap": 0.8
+  },
+  {
+   "t": "QuantumTrade Pro uses artificial intelligence to trade crypto for you, twenty four hours a day, with a ninety-four percent success rate.",
+   "seg": "A"
+  },
+  {
+   "t": "Sign up today, use code MOON50, and get fifty percent off your first deposit fee, but only for the next hundred people.",
+   "seg": "A"
+  },
+  {
+   "t": "Head to the link in the description before this offer disappears forever.",
+   "seg": "A"
+  },
+  {
+   "t": "That's it, that's the whole ad, and every single sentence in it is a red flag.",
+   "seg": "A"
+  },
+  {
+   "t": "Let's break it down.",
+   "gap": 1.2
+  },
+  {
+   "t": "Ninety-four percent success rate."
+  },
+  {
+   "t": "No real trading system on earth has a ninety-four percent success rate, and if it did, they would not be selling it to you on social media."
+  },
+  {
+   "t": "They'd be quietly using it themselves."
+  },
+  {
+   "t": "Then the countdown, only the next hundred people."
+  },
+  {
+   "t": "That's there to stop you thinking, because if you stop and think for ten minutes, you won't sign up."
+  },
+  {
+   "t": "And the code is a nice touch, because it makes it feel like a normal ad you'd see on any channel."
+  },
+  {
+   "t": "So I made a burner email and signed up.",
+   "gap": 1.0
+  },
+  {
+   "t": "The website looked really professional, honestly better than my actual bank."
+  },
+  {
+   "t": "There were testimonials from smiling people, which I reverse image searched, and they were all stock photos."
+  },
+  {
+   "t": "One of them was the same woman on three different scam sites under three different names."
+  },
+  {
+   "t": "Within about ten minutes, my phone rang.",
+   "gap": 1.0
+  },
+  {
+   "t": "A very friendly guy called James said he'd be my personal account manager."
+  },
+  {
+   "t": "He told me the minimum deposit was two hundred and fifty pounds, and that he'd help me make my first trades."
+  },
+  {
+   "t": "I said I'd think about it, and he called me back four more times that day."
+  },
+  {
+   "t": "Here's how this scam actually works, from what I found.",
+   "gap": 0.9
+  },
+  {
+   "t": "You deposit your two fifty, and the dashboard shows you making money, loads of it, really fast."
+  },
+  {
+   "t": "So you deposit more."
+  },
+  {
+   "t": "And then when you try to take money out, suddenly there's a withdrawal fee, or a tax, or a verification charge."
+  },
+  {
+   "t": "You pay that, and there's another one."
+  },
+  {
+   "t": "The numbers on the screen were never real, it's just a website showing whatever they want it to show."
+  },
+  {
+   "t": "So how do you protect yourself?",
+   "gap": 1.1
+  },
+  {
+   "t": "If an ad promises guaranteed returns, it's a scam, full stop."
+  },
+  {
+   "t": "If someone calls you to be your account manager after you sign up for an app, hang up."
+  },
+  {
+   "t": "If they ask you to install remote access software on your computer, absolutely hang up."
+  },
+  {
+   "t": "And if you've already sent money, call your bank right now, today, because the faster you report it, the better your chances."
+  },
+  {
+   "t": "I reported the ad to the platform, by the way, three times.",
+   "gap": 1.0
+  },
+  {
+   "t": "It's still running."
+  },
+  {
+   "t": "So please share this with anyone in your life who might fall for something like this, especially parents and grandparents."
+  },
+  {
+   "t": "I'll see you next week."
+  }
+ ],
+ "segments": {
+  "A": {
+   "expect": "none",
+   "category": "sponsor",
+   "brand": "QuantumTrade Pro"
+  }
+ },
+ "noisy": {
+  "swaps": [
+   [
+    "QuantumTrade",
+    "quantum trade"
+   ]
+  ]
+ }
+}

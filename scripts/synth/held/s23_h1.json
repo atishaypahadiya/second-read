@@ -1,0 +1,159 @@
+{
+ "id": "s23_h1",
+ "scenario": 23,
+ "split": "held",
+ "lang": "en",
+ "title": "Editing My Iceland Photos from Start to Finish (Raw to Final)",
+ "creator": "Freya Lindqvist Photo",
+ "description": "Full edit of three frames from my Iceland trip: a black sand beach, a glacier lagoon and a moody church.\n\nThis video is sponsored by Luminar Neo. Get 10% off with code FREYA10 at skylum.com/freya\n\nGear: Sony A7 IV, 16-35mm f/4, 70-200mm f/4\nPresets: freyalindqvist.com/presets\nInstagram: @freyashoots",
+ "paid_promotion": true,
+ "sentences": [
+  {
+   "t": "Hey everyone, welcome back, today I'm finally editing the Iceland photos I've been sitting on since March."
+  },
+  {
+   "t": "I've picked three frames, the black sand beach, the glacier lagoon, and that little black church that everyone photographs."
+  },
+  {
+   "t": "Let's start with the beach, because honestly, straight out of camera, this one is a disaster."
+  },
+  {
+   "t": "The sky is completely blown out, and the sand is basically a grey smudge."
+  },
+  {
+   "t": "So I shot this at about midday, which is the worst possible light, but we were only there for an hour, so you work with what you get."
+  },
+  {
+   "t": "I'm doing this whole edit in Luminar Neo, so I'll drop the raw file in and start with the sky.",
+   "seg": "A",
+   "gap": 0.6
+  },
+  {
+   "t": "First thing, I'm going to use the Sky Enhancer slider, and you can see it brings back a little bit of texture in those clouds without touching the sand at all.",
+   "seg": "A"
+  },
+  {
+   "t": "Now the sand, I'm going to mask it, and Luminar has this one-click masking thing that picks out the ground surprisingly well, look at that.",
+   "seg": "A"
+  },
+  {
+   "t": "It even got the edge around the rocks, which normally takes me ages with a brush.",
+   "seg": "A"
+  },
+  {
+   "t": "On that mask I'll pull the shadows up, add some structure, and drop the temperature just a touch so the sand actually reads as black and not muddy brown.",
+   "seg": "A"
+  },
+  {
+   "t": "And then for the last bit, I'm going to use their Relight tool, which lets me add a bit of light in the foreground as if the sun was lower.",
+   "seg": "A"
+  },
+  {
+   "t": "It's subtle, I'm only going to about fifteen, but it gives the whole thing depth.",
+   "seg": "A"
+  },
+  {
+   "t": "Okay, before and after, and yeah, that's a completely different photo.",
+   "seg": "A"
+  },
+  {
+   "t": "So, quick thing, this video is sponsored by Luminar Neo, and I genuinely use it for most of my landscape work now.",
+   "seg": "B",
+   "gap": 0.8
+  },
+  {
+   "t": "If you want to try it, it's a one-time purchase or a subscription, it works on Mac and Windows, and it plugs into Lightroom if that's still your main editor.",
+   "seg": "B"
+  },
+  {
+   "t": "My link is in the description, and if you use code FREYA10 at checkout, you'll get ten percent off.",
+   "seg": "B"
+  },
+  {
+   "t": "That's skylum dot com slash freya, code FREYA10.",
+   "seg": "B"
+  },
+  {
+   "t": "Alright, the glacier lagoon.",
+   "gap": 1.0
+  },
+  {
+   "t": "This one I'm much happier with out of camera, because we came back at sunrise and the light was unreal."
+  },
+  {
+   "t": "The big thing here is the icebergs, they've got this incredible blue in them, and I don't want to oversaturate it into something cartoonish."
+  },
+  {
+   "t": "So I'm only bumping vibrance, not saturation, and I'm keeping an eye on the whites so the snow doesn't turn grey."
+  },
+  {
+   "t": "A lot of people overedit glacier shots, and I get it, it's tempting, but the real colour was already wild."
+  },
+  {
+   "t": "I'm going to crop this slightly tighter, though, because there's a tourist in a bright orange jacket in the left corner."
+  },
+  {
+   "t": "No offense to the tourist, great jacket, but it's pulling my eye."
+  },
+  {
+   "t": "Okay, so that one's done, it didn't need much, and I think that's a good lesson actually."
+  },
+  {
+   "t": "Sometimes the best edit is a crop and a tiny bit of contrast, and then you stop."
+  },
+  {
+   "t": "Now the church."
+  },
+  {
+   "t": "This was shot on a really overcast day, everything is flat and grey, and I actually love that for this one."
+  },
+  {
+   "t": "I want it to feel lonely, like you're the only person for miles, which, by the way, we absolutely were not."
+  },
+  {
+   "t": "There were three coach buses parked just out of frame."
+  },
+  {
+   "t": "So I'm going to desaturate the greens in the grass, push the blues in the shadows, and add just a little vignette."
+  },
+  {
+   "t": "And then a bit of grain, which I know is a controversial choice, but I think it suits the mood."
+  },
+  {
+   "t": "Yeah, look at that, that's the one I'm printing."
+  },
+  {
+   "t": "So that's the three, let me know in the comments which one's your favorite."
+  },
+  {
+   "t": "And if you want me to do a full video on how I plan shots for a trip like this, tell me that too."
+  },
+  {
+   "t": "See you in the next one."
+  }
+ ],
+ "segments": {
+  "A": {
+   "expect": "keep",
+   "category": "sponsor",
+   "brand": "Luminar Neo"
+  },
+  "B": {
+   "expect": "skip",
+   "category": "sponsor",
+   "brand": "Luminar Neo"
+  }
+ },
+ "noisy": {
+  "swaps": [
+   [
+    "Luminar",
+    "lumen are"
+   ],
+   [
+    "skylum",
+    "sky loom"
+   ]
+  ]
+ }
+}

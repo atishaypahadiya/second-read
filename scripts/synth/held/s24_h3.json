@@ -1,0 +1,158 @@
+{
+ "id": "s24_h3",
+ "scenario": 24,
+ "split": "held",
+ "lang": "en",
+ "title": "I Wrote One Sentence a Day for a Year. Here's What Changed.",
+ "creator": "Hollis Grey",
+ "description": "365 days, one sentence each. What I expected, what actually happened, and the entries I almost deleted.\n\nThe app I used for this whole project, Notebloom, sponsored this video. Get 30% off a year of Premium at notebloom.app/hollis\n\nBooks mentioned:\nThe Artist's Way\nRegister of Days (fiction)",
+ "paid_promotion": false,
+ "sentences": [
+  {
+   "t": "Last October I made a really small promise to myself."
+  },
+  {
+   "t": "Write one sentence a day, every day, for a year."
+  },
+  {
+   "t": "Not a journal, not a diary, just one sentence about the day I'd just had."
+  },
+  {
+   "t": "I figured I'd give up by December, like I give up on basically everything I start in the autumn."
+  },
+  {
+   "t": "But I didn't, and three hundred and sixty five sentences later, I want to talk about what that did to my head."
+  },
+  {
+   "t": "The first month was terrible, honestly."
+  },
+  {
+   "t": "My sentences were things like, went to work, it rained."
+  },
+  {
+   "t": "Tired, ate soup."
+  },
+  {
+   "t": "I'd write them at eleven fifty nine at night, half asleep, just so I didn't break the streak."
+  },
+  {
+   "t": "And then, somewhere in November, something shifted."
+  },
+  {
+   "t": "I started noticing things during the day and thinking, oh, that could be the sentence."
+  },
+  {
+   "t": "The man on the bus who was teaching his daughter to whistle."
+  },
+  {
+   "t": "The way the light hit the kitchen at four o'clock."
+  },
+  {
+   "t": "I wasn't writing more, but I was paying more attention, and that turned out to be the whole point."
+  },
+  {
+   "t": "I should mention that I did this whole thing in an app called Notebloom, and they're actually sponsoring this video.",
+   "seg": "A",
+   "gap": 1.0
+  },
+  {
+   "t": "I tried a paper notebook first and lost it in a week, so I needed something that lives on my phone and nags me gently at nine p m.",
+   "seg": "A"
+  },
+  {
+   "t": "Notebloom is a journaling app that's built for exactly this, short daily entries, streaks, and a little calendar where every day you write turns into a flower.",
+   "seg": "A"
+  },
+  {
+   "t": "By the end of the year my calendar looked like a garden, and I'm not ashamed to say that was very motivating.",
+   "seg": "A"
+  },
+  {
+   "t": "It also has a feature called on this day, so you can see what you wrote a month ago, or a year ago.",
+   "seg": "A"
+  },
+  {
+   "t": "You can try it free, and if you go to notebloom dot app slash hollis, you get thirty percent off a year of Premium.",
+   "seg": "A"
+  },
+  {
+   "t": "Again, that's notebloom dot app slash hollis.",
+   "seg": "A"
+  },
+  {
+   "t": "So, what changed?",
+   "gap": 0.9
+  },
+  {
+   "t": "The biggest one is memory."
+  },
+  {
+   "t": "I can now tell you something specific about almost every day of the past year, which I genuinely could not do before."
+  },
+  {
+   "t": "Before this, a whole month could vanish, and I'd only remember that it was February and I was cold."
+  },
+  {
+   "t": "The second thing is that bad days got smaller."
+  },
+  {
+   "t": "When you have to sum up a bad day in one sentence, it kind of forces you to put a frame around it."
+  },
+  {
+   "t": "Like, in March, I wrote, Got the rejection email, made pancakes anyway."
+  },
+  {
+   "t": "And reading that back, I'm proud of that person."
+  },
+  {
+   "t": "The third thing surprised me, which is that I started to like my own life more."
+  },
+  {
+   "t": "Not because anything big happened, it was a pretty ordinary year, but because I had proof that it was full of good small things."
+  },
+  {
+   "t": "There were a few entries I nearly deleted, I'll be honest."
+  },
+  {
+   "t": "There's a week in June that's just the word fine over and over, and I know exactly what that week was."
+  },
+  {
+   "t": "But I kept them, because that's true too."
+  },
+  {
+   "t": "I'm going to keep going, by the way, year two started last week."
+  },
+  {
+   "t": "And thanks again to Notebloom for sponsoring this, if you want to try your own year of sentences, you get thirty percent off Premium at notebloom dot app slash hollis.",
+   "seg": "B",
+   "gap": 1.3
+  },
+  {
+   "t": "If you do start, tell me your first sentence in the comments, I'd love to read them.",
+   "gap": 0.5
+  },
+  {
+   "t": "Bye for now."
+  }
+ ],
+ "segments": {
+  "A": {
+   "expect": "skip",
+   "category": "sponsor",
+   "brand": "Notebloom"
+  },
+  "B": {
+   "expect": "skip",
+   "category": "sponsor",
+   "brand": "Notebloom"
+  }
+ },
+ "noisy": {
+  "swaps": [
+   [
+    "Notebloom",
+    "note bloom"
+   ]
+  ]
+ }
+}

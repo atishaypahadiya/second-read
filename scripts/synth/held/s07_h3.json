@@ -1,0 +1,126 @@
+{
+ "id": "s07_h3",
+ "scenario": 7,
+ "split": "held",
+ "lang": "en",
+ "title": "Game Boy Color IPS Screen Mod: Worth It?",
+ "creator": "Solder & Pixels",
+ "description": "Putting an IPS backlit screen into a 1999 Game Boy Color. Shell trimming, ribbon cable, brightness wire.\n\nTorqit Mini driver kit: 10% off with code OWEN10 at https://torqit.gg/owen\n\nKit and parts list in the pinned comment.",
+ "paid_promotion": false,
+ "sentences": [
+  {
+   "t": "Alright, the shell is closed, the screws are in, and it's the moment of truth."
+  },
+  {
+   "t": "I'm putting in two double A batteries, and if this doesn't turn on, I'm going to need a minute."
+  },
+  {
+   "t": "Okay, power switch."
+  },
+  {
+   "t": "There it is!"
+  },
+  {
+   "t": "Look at that, look at how bright that is compared to the original screen I showed you at the start."
+  },
+  {
+   "t": "This is a Game Boy Color from 1999, and the original screen was completely unreadable unless you were sitting under a lamp, and now it looks like it came out of a phone."
+  },
+  {
+   "t": "Let's go back over the trickiest parts, because I know a lot of you are going to try this."
+  },
+  {
+   "t": "The hardest bit by far was trimming the shell."
+  },
+  {
+   "t": "This IPS kit is slightly thicker than the original panel, so you have to shave down two little plastic ribs inside the front half of the shell."
+  },
+  {
+   "t": "Go slowly, use a flush cutter, and test fit it about ten times, because you cannot un-cut plastic."
+  },
+  {
+   "t": "Second tricky part, the ribbon cable."
+  },
+  {
+   "t": "It's tiny, it's fragile, and it has to go in at exactly the right angle, so flip the latch up, slide it in, and close the latch without pulling on the cable."
+  },
+  {
+   "t": "I tore my first one doing this, which is why there's a cut in the video where I suddenly have a second kit."
+  },
+  {
+   "t": "Third, the brightness wire."
+  },
+  {
+   "t": "This kit lets you change brightness with a button combo, but you have to solder one thin wire from the screen board to the select button pad."
+  },
+  {
+   "t": "If soldering scares you, there are kits that skip this step, you just lose the brightness control."
+  },
+  {
+   "t": "If you're getting into this hobby, the one tool you don't want to cheap out on is your driver set, and the one I keep reaching for is the Torqit Mini.",
+   "seg": "A"
+  },
+  {
+   "t": "It comes with sixty-four magnetic bits, including the tri-wing and gamebit ones that Nintendo loves, so you're never hunting for some weird screwdriver again.",
+   "seg": "A"
+  },
+  {
+   "t": "The handle is aluminum, it spins on a little bearing at the top, and the case snaps shut magnetically so the bits don't end up all over your desk.",
+   "seg": "A"
+  },
+  {
+   "t": "Every bit is covered by a lifetime warranty, which honestly is rare for anything at this price.",
+   "seg": "A"
+  },
+  {
+   "t": "You can pick one up at torqit.gg slash owen, and if you use code OWEN10 at checkout you'll get ten percent off.",
+   "seg": "A"
+  },
+  {
+   "t": "So, was it worth it?"
+  },
+  {
+   "t": "The kit was about forty dollars, the console was sixty on a resale site, and the time was about two hours, not counting the ribbon cable incident."
+  },
+  {
+   "t": "For a Game Boy that I'll actually play now instead of keeping it in a drawer, yeah, absolutely worth it."
+  },
+  {
+   "t": "Let's put in Pokemon Crystal and see how the colors look."
+  },
+  {
+   "t": "Oh, that's gorgeous."
+  },
+  {
+   "t": "The greens are actually green."
+  },
+  {
+   "t": "Next week, I'm going to try putting a rechargeable battery in this thing, with USB-C charging, which involves cutting the battery compartment, so, pray for me."
+  },
+  {
+   "t": "If you have a handheld you want to see modded, leave it in the comments."
+  },
+  {
+   "t": "See you next time."
+  }
+ ],
+ "segments": {
+  "A": {
+   "expect": "skip",
+   "category": "sponsor",
+   "brand": "Torqit"
+  }
+ },
+ "noisy": {
+  "swaps": [
+   [
+    "Torqit",
+    "torque it"
+   ],
+   [
+    "OWEN10",
+    "owen 10"
+   ]
+  ]
+ }
+}

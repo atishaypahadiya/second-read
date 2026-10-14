@@ -1,0 +1,258 @@
+{
+ "id": "s22_h1",
+ "scenario": 22,
+ "split": "held",
+ "lang": "en",
+ "title": "Our Worst Jobs Ever (The Corn Maze Incident) | Overthinking It Ep. 211",
+ "creator": "Overthinking It with Sam & Rio",
+ "description": "Sam finally tells the corn maze story. Rio ranks every terrible summer job she's ever had. Nobody learns anything.\n\nSponsors:\nBetterHelp - 10% off your first month at betterhelp.com/overthinking\nQuince - free shipping and 365-day returns at quince.com/overthinking\nLiquid I.V. - 20% off with code OVERTHINKING at liquidiv.com\n\nMerch: overthinkingpod.shop\nSend us your worst job stories: hello@overthinkingpod.com",
+ "paid_promotion": true,
+ "sentences": [
+  {
+   "t": "Hello and welcome to Overthinking It, I'm Sam."
+  },
+  {
+   "t": "I'm Rio, and Sam has promised me that today, finally, we're getting the corn maze story."
+  },
+  {
+   "t": "I did promise that, and I regret it already."
+  },
+  {
+   "t": "You've been teasing it for like two years."
+  },
+  {
+   "t": "Okay, so, context, I'm seventeen, it's October, and my uncle has a farm with a corn maze."
+  },
+  {
+   "t": "And he hires me to be the guy who walks around the maze at closing time to make sure nobody's still in there."
+  },
+  {
+   "t": "That sounds peaceful, honestly."
+  },
+  {
+   "t": "It was not peaceful, Rio, it was a nightmare."
+  },
+  {
+   "t": "Because the maze changes every year, and nobody gave me a map."
+  },
+  {
+   "t": "No."
+  },
+  {
+   "t": "Yes, so on night one I go in at nine to sweep it, and I am the one who gets lost."
+  },
+  {
+   "t": "Ha, you became the person you were hired to find!"
+  },
+  {
+   "t": "I became the person I was hired to find."
+  },
+  {
+   "t": "And my phone is at like four percent, and I can hear my uncle on the tractor going round and round outside honking."
+  },
+  {
+   "t": "Oh my god, so how did you get out?"
+  },
+  {
+   "t": "A ten year old girl found me."
+  },
+  {
+   "t": "Stop."
+  },
+  {
+   "t": "She'd snuck back in because she dropped her mitten, and she just walked me out, like she'd done it a hundred times."
+  },
+  {
+   "t": "So the employee got rescued by a customer."
+  },
+  {
+   "t": "By a child customer, who then told my uncle, and he never let me forget it."
+  },
+  {
+   "t": "That is genuinely the best thing I've ever heard."
+  },
+  {
+   "t": "Okay, okay, but before we do your list, and I know you've got a list, let's take a quick break to thank our sponsors.",
+   "seg": "A"
+  },
+  {
+   "t": "First up is BetterHelp.",
+   "seg": "A",
+   "gap": 0.6
+  },
+  {
+   "t": "Look, we joke a lot on this show, but a lot of what we talk about is basically anxiety wearing a funny hat.",
+   "seg": "A"
+  },
+  {
+   "t": "BetterHelp is online therapy with licensed therapists, and you can do it by video, phone, or just messaging, whatever feels less scary.",
+   "seg": "A"
+  },
+  {
+   "t": "You fill out a short questionnaire and they match you, usually within a couple of days, and if it's not a fit you can switch therapists for free.",
+   "seg": "A"
+  },
+  {
+   "t": "I started last year and it honestly changed how I handle the bad weeks.",
+   "seg": "A"
+  },
+  {
+   "t": "Visit betterhelp dot com slash overthinking to get ten percent off your first month.",
+   "seg": "A"
+  },
+  {
+   "t": "That's betterhelp, h e l p, dot com slash overthinking.",
+   "seg": "A"
+  },
+  {
+   "t": "This episode is also brought to you by Quince.",
+   "seg": "B",
+   "gap": 0.5
+  },
+  {
+   "t": "Rio, you're wearing Quince right now, aren't you?",
+   "seg": "B"
+  },
+  {
+   "t": "I am, this is the washable silk shirt, and I have spilled coffee on it at least four times and it's fine.",
+   "seg": "B"
+  },
+  {
+   "t": "Quince does the high quality stuff, cashmere, linen, silk, for like half of what the fancy brands charge, because they skip the middlemen and work straight with the factories.",
+   "seg": "B"
+  },
+  {
+   "t": "I've got their cashmere sweater too, and people keep asking where it's from.",
+   "seg": "B"
+  },
+  {
+   "t": "Go to quince dot com slash overthinking for free shipping on your order and three hundred sixty five day returns.",
+   "seg": "B"
+  },
+  {
+   "t": "Quince dot com slash overthinking.",
+   "seg": "B"
+  },
+  {
+   "t": "And finally, Liquid I.V.",
+   "seg": "C",
+   "gap": 0.5
+  },
+  {
+   "t": "We record a lot of these after long days, and if I don't hydrate I sound like a gravel road by minute twenty.",
+   "seg": "C"
+  },
+  {
+   "t": "Liquid I.V. is a drink mix with electrolytes that hydrates you faster than water alone, and the passion fruit one is genuinely delicious.",
+   "seg": "C"
+  },
+  {
+   "t": "I keep a stick in my bag for flights, gym days, and, let's be honest, the morning after a wedding.",
+   "seg": "C"
+  },
+  {
+   "t": "Get twenty percent off when you go to liquid i v dot com and use code OVERTHINKING at checkout.",
+   "seg": "C"
+  },
+  {
+   "t": "That's code OVERTHINKING at liquid i v dot com.",
+   "seg": "C"
+  },
+  {
+   "t": "Okay, we're back, Rio, the list.",
+   "gap": 1.0
+  },
+  {
+   "t": "So I've ranked them, worst to slightly less worst."
+  },
+  {
+   "t": "Number three, I was a mascot for a mattress store."
+  },
+  {
+   "t": "What was the mascot?"
+  },
+  {
+   "t": "A sleeping cloud, and the head had no air holes, so I spent every Saturday slowly dying in a parking lot."
+  },
+  {
+   "t": "Ha, that's grim."
+  },
+  {
+   "t": "Number two, I was a phone surveyor, which meant I called people during dinner to ask how they felt about their local bank."
+  },
+  {
+   "t": "Oh no, you were the dinner call person."
+  },
+  {
+   "t": "I was the dinner call person, and one guy put his grandma on, and she talked to me for forty minutes about her tomatoes."
+  },
+  {
+   "t": "Okay, that sounds kind of nice actually."
+  },
+  {
+   "t": "It was the best call I ever had, I didn't get a single survey answer, and I got written up."
+  },
+  {
+   "t": "And number one?"
+  },
+  {
+   "t": "Number one is the summer I worked at a smoothie place where the owner made us sing every time someone ordered a large."
+  },
+  {
+   "t": "Sing what?"
+  },
+  {
+   "t": "A song he wrote, it was about bananas, and it was nine verses long."
+  },
+  {
+   "t": "Nine verses?"
+  },
+  {
+   "t": "We were only allowed to stop when the smoothie was done, so I learned to make a smoothie very, very fast."
+  },
+  {
+   "t": "Honestly that's a life skill."
+  },
+  {
+   "t": "It really is, I can do a large in fifty seconds, flat."
+  },
+  {
+   "t": "Okay, I think that's the episode, but we want your worst job stories, send them in."
+  },
+  {
+   "t": "And if you got lost in a corn maze while working there, we especially want to hear from you."
+  },
+  {
+   "t": "Bye everybody."
+  }
+ ],
+ "segments": {
+  "A": {
+   "expect": "skip",
+   "category": "sponsor",
+   "brand": "BetterHelp"
+  },
+  "B": {
+   "expect": "skip",
+   "category": "sponsor",
+   "brand": "Quince"
+  },
+  "C": {
+   "expect": "skip",
+   "category": "sponsor",
+   "brand": "Liquid I.V."
+  }
+ },
+ "noisy": {
+  "swaps": [
+   [
+    "Quince",
+    "quints"
+   ],
+   [
+    "Liquid I.V.",
+    "liquid ivy"
+   ]
+  ]
+ }
+}

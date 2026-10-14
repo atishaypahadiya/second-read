@@ -1,0 +1,254 @@
+{
+ "id": "s21_h3",
+ "scenario": 21,
+ "split": "held",
+ "lang": "en",
+ "title": "Ultra Runner Kim Adeyemi on Her First 100 Miler, Blisters and Quitting Twice",
+ "creator": "Long Way Round Running Pod",
+ "description": "Kim Adeyemi went from hating the mile in school to finishing the Western Ridge 100. We talk DNFs, foot care, fueling and the mental game.\n\nPartners:\nHydrova electrolyte mix - 20% off with code LONGWAY at hydrova.com\nCozyloom performance sheets - free shipping and a 100 night trial at cozyloom.com/longway\nBabbel - up to 55% off your subscription at babbel.com/longway\n\nKim on Instagram: @kimrunsfar\nTheme music: Pale Harbor",
+ "paid_promotion": false,
+ "sentences": [
+  {
+   "t": "Welcome to Long Way Round, the podcast about running far and suffering on purpose."
+  },
+  {
+   "t": "I'm Josh, and today I've got Kim Adeyemi with me, who just finished her first hundred miler."
+  },
+  {
+   "t": "Hi, hi, I'm still walking down stairs backwards, so that's how it's going."
+  },
+  {
+   "t": "Ha, that is the ultra runner badge of honor."
+  },
+  {
+   "t": "Before we dig in, I need to tell you about Hydrova, who are sponsoring today's show.",
+   "seg": "A",
+   "gap": 0.7
+  },
+  {
+   "t": "If you've ever bonked halfway up a climb because you only drank water, you know electrolytes are not optional on long runs.",
+   "seg": "A"
+  },
+  {
+   "t": "Hydrova is a powder mix with a proper amount of sodium, like a thousand milligrams a serving, and none of the neon sugar stuff.",
+   "seg": "A"
+  },
+  {
+   "t": "I use the lemon one in one bottle and plain water in the other, and my cramps on hot days basically disappeared.",
+   "seg": "A"
+  },
+  {
+   "t": "Go to hydrova dot com and use code LONGWAY for twenty percent off your first order.",
+   "seg": "A"
+  },
+  {
+   "t": "Code LONGWAY at hydrova dot com.",
+   "seg": "A"
+  },
+  {
+   "t": "Okay, Kim, take me back, how does someone who hated running in school end up doing a hundred miles?",
+   "gap": 0.9
+  },
+  {
+   "t": "Honestly, spite, a little bit."
+  },
+  {
+   "t": "Ha, I love that."
+  },
+  {
+   "t": "So my brother said I couldn't do a half marathon, and I said watch me, and I trained for it, and then I just kind of kept going."
+  },
+  {
+   "t": "And at some point you went off road."
+  },
+  {
+   "t": "Yeah, a friend dragged me to a trail race, a fifty K, and I got completely lost and cried and had the best day of my life."
+  },
+  {
+   "t": "That is the most trail running sentence ever said."
+  },
+  {
+   "t": "So you dropped out of your first attempt at the hundred, right?"
+  },
+  {
+   "t": "Twice, actually."
+  },
+  {
+   "t": "Twice?"
+  },
+  {
+   "t": "Twice, the first one at mile sixty two with blisters, and the second one at mile seventy eight, which was more of a head thing."
+  },
+  {
+   "t": "Let's do the blisters first, because I think a lot of people listening are gonna relate."
+  },
+  {
+   "t": "So basically my shoes were fine for fifty K, but the feet swell over a long race, and by the evening my toes had nowhere to go."
+  },
+  {
+   "t": "And I didn't change socks because I thought it would waste time."
+  },
+  {
+   "t": "Classic."
+  },
+  {
+   "t": "Classic, and then I sat at an aid station for forty minutes popping blisters, so that saved me a lot of time, as you can imagine."
+  },
+  {
+   "t": "Ha, what did you change for the race you finished?"
+  },
+  {
+   "t": "Half a size up, toe socks, lube on everything, and a fresh pair of socks every twenty five miles, no matter what."
+  },
+  {
+   "t": "And the head thing at mile seventy eight?"
+  },
+  {
+   "t": "Hold that thought, because I want to give that one room, and before that, a quick thank you to Cozyloom.",
+   "seg": "B",
+   "gap": 0.8
+  },
+  {
+   "t": "You know how much recovery happens in bed, and if you sleep hot like I do, a lot of sheets just trap all that heat.",
+   "seg": "B"
+  },
+  {
+   "t": "Cozyloom makes sheets from a eucalyptus blend that stay cool all night, and they're super soft without that slippery feel.",
+   "seg": "B"
+  },
+  {
+   "t": "I put them on the week before a big block of training, and I genuinely stopped waking up at three in the morning all sweaty.",
+   "seg": "B"
+  },
+  {
+   "t": "You get a hundred night trial, so if you don't love them, you send them back.",
+   "seg": "B"
+  },
+  {
+   "t": "Go to cozyloom dot com slash longway for free shipping on your first set.",
+   "seg": "B"
+  },
+  {
+   "t": "Okay, mile seventy eight, Kim.",
+   "gap": 0.8
+  },
+  {
+   "t": "So it was about four in the morning, and I was alone on a ridge, and I just decided I didn't want to be a runner anymore."
+  },
+  {
+   "t": "Wow."
+  },
+  {
+   "t": "Not that I was tired, like I wanted to quit the whole sport."
+  },
+  {
+   "t": "And that's the thing nobody tells you, that the low point at night isn't really about your legs."
+  },
+  {
+   "t": "Yeah, I think my body was fine, honestly, I just hadn't eaten in two hours, and my brain went dark."
+  },
+  {
+   "t": "So the fix was food?"
+  },
+  {
+   "t": "The fix was food, a grilled cheese at the next aid station and I was a completely different person."
+  },
+  {
+   "t": "Ha, the grilled cheese of salvation."
+  },
+  {
+   "t": "Literally, I now set an alarm on my watch every forty minutes that just says eat something."
+  },
+  {
+   "t": "Smart, and at the race you finished, did you hit a low point?"
+  },
+  {
+   "t": "Of course, around mile eighty again, which I think is just my spot."
+  },
+  {
+   "t": "But I knew it was coming, so when it showed up I sort of said hello to it, ate a potato, and kept walking."
+  },
+  {
+   "t": "I love that, said hello to it."
+  },
+  {
+   "t": "One more break, and then I want to hear about the finish line, and the language thing, because I hear you're learning Portuguese for a race.",
+   "seg": "C",
+   "gap": 0.9
+  },
+  {
+   "t": "That's actually a perfect segue, because this episode is also supported by Babbel.",
+   "seg": "C"
+  },
+  {
+   "t": "Babbel's lessons are about ten minutes long, so you can do one on an easy run or a commute, and they're built around real conversations, not random vocab lists.",
+   "seg": "C"
+  },
+  {
+   "t": "I've been doing the Spanish course for a trip next year, and I can now order food and ask for directions without just pointing.",
+   "seg": "C"
+  },
+  {
+   "t": "Right now you can get up to fifty five percent off your subscription at babbel dot com slash longway.",
+   "seg": "C"
+  },
+  {
+   "t": "That's babbel dot com slash longway.",
+   "seg": "C"
+  },
+  {
+   "t": "Okay, so Kim, Portuguese.",
+   "gap": 0.8
+  },
+  {
+   "t": "Yeah, there's a race in the Azores next spring that I'm obsessed with, and I don't want to be the tourist who can't say thank you at the aid stations."
+  },
+  {
+   "t": "That's very sweet."
+  },
+  {
+   "t": "Obrigada, that's about where I'm at."
+  },
+  {
+   "t": "Ha, and the finish line, what was that like?"
+  },
+  {
+   "t": "I sat down in a camping chair and didn't get up for an hour, and somebody handed me a pancake, and it was the best moment of my life."
+  },
+  {
+   "t": "Kim, thank you so much for coming on."
+  },
+  {
+   "t": "Thanks for having me, Josh, this was so fun."
+  }
+ ],
+ "segments": {
+  "A": {
+   "expect": "skip",
+   "category": "sponsor",
+   "brand": "Hydrova"
+  },
+  "B": {
+   "expect": "skip",
+   "category": "sponsor",
+   "brand": "Cozyloom"
+  },
+  "C": {
+   "expect": "skip",
+   "category": "sponsor",
+   "brand": "Babbel"
+  }
+ },
+ "noisy": {
+  "swaps": [
+   [
+    "Hydrova",
+    "hydro va"
+   ],
+   [
+    "Cozyloom",
+    "cozy loom"
+   ]
+  ]
+ }
+}

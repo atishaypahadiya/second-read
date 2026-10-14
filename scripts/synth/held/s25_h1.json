@@ -1,0 +1,124 @@
+{
+ "id": "s25_h1",
+ "scenario": 25,
+ "split": "held",
+ "lang": "en",
+ "title": "48 Hours in Lisbon on a Budget (What I'd Do Again)",
+ "creator": "Wandering Wren",
+ "description": "Two days in Lisbon: trams, pastéis de nata, the best free viewpoint in the city, and one restaurant I'd skip.\n\nWhere I stayed: a guesthouse in Graça (not sponsored, just loved it)\nCamera: Fujifilm X-S20\nMusic: Artlist\n\nPlaces mentioned:\nMiradouro da Senhora do Monte\nTime Out Market\nLX Factory\nBelém",
+ "paid_promotion": true,
+ "sentences": [
+  {
+   "t": "Good morning from Lisbon, it's seven a m, and I'm already sweating, which is a great sign."
+  },
+  {
+   "t": "Part of this video is sponsored by Airalo.",
+   "seg": "A",
+   "gap": 0.4
+  },
+  {
+   "t": "So I've got two days here and a pretty tight budget, so I'm going to show you exactly what I did and what it cost.",
+   "gap": 0.6
+  },
+  {
+   "t": "First stop, breakfast, which in Lisbon means a pastel de nata and a tiny coffee standing at the counter."
+  },
+  {
+   "t": "This whole thing was two euros twenty, and it's the best two euros I've spent all year."
+  },
+  {
+   "t": "The custard is still warm, and the top is that slightly burnt caramel, oh, that's so good."
+  },
+  {
+   "t": "Okay, so from here I'm taking the famous tram twenty eight up to the castle."
+  },
+  {
+   "t": "Now, real talk, the tram is iconic, but the line at the first stop is about an hour long by nine a m."
+  },
+  {
+   "t": "My tip is to walk two or three stops up the route and get on there, it's way less crowded."
+  },
+  {
+   "t": "And it's included in the day pass, which is around seven euros for unlimited metro, tram and bus."
+  },
+  {
+   "t": "We're climbing up through Alfama right now, and the streets are so narrow I could reach out and touch the laundry."
+  },
+  {
+   "t": "Okay, I got off near the top, and I'm skipping the castle itself, because it's fifteen euros and honestly the views are just as good for free."
+  },
+  {
+   "t": "I'm heading to Miradouro da Senhora do Monte instead, which is the highest viewpoint in the city."
+  },
+  {
+   "t": "And here it is."
+  },
+  {
+   "t": "That's the whole city, the river, the bridge, everything, and it costs nothing."
+  },
+  {
+   "t": "There's a guy playing guitar over there, and a couple of people having a picnic, and I could stay here all day."
+  },
+  {
+   "t": "For lunch I went to the Time Out Market, which everyone recommends, and I have mixed feelings."
+  },
+  {
+   "t": "The food is good, but it's loud, it's packed, and it's more expensive than the little tascas around the corner."
+  },
+  {
+   "t": "So afternoon of day one, I found one of those tascas, and the lunch special was soup, grilled fish, a glass of wine, and coffee for eleven euros."
+  },
+  {
+   "t": "Eleven, I'm not joking."
+  },
+  {
+   "t": "Day two, I took the train out to Belém, which is about twenty minutes along the river."
+  },
+  {
+   "t": "This is where the famous monastery is, and the tower, and the original pastel de nata bakery."
+  },
+  {
+   "t": "And I'm sorry to the breakfast place from yesterday, but these are better."
+  },
+  {
+   "t": "They give you cinnamon and powdered sugar on the side, and the pastry is somehow even flakier."
+  },
+  {
+   "t": "In the afternoon I went to LX Factory, which is an old industrial complex turned into shops, cafes, and a huge bookshop in an old printing hall."
+  },
+  {
+   "t": "I could have spent my whole budget in that bookshop, it was dangerous."
+  },
+  {
+   "t": "For sunset I went back up to a viewpoint, a different one this time, and just watched the city turn orange."
+  },
+  {
+   "t": "So all in, two days, food, transport and a couple of museums, I spent about ninety euros, not including where I stayed."
+  },
+  {
+   "t": "Lisbon is one of those cities that rewards you for walking and for being curious."
+  },
+  {
+   "t": "Let me know where I should go next, and I'll see you there."
+  }
+ ],
+ "segments": {
+  "A": {
+   "expect": "noskip",
+   "category": "sponsor",
+   "brand": "Airalo"
+  }
+ },
+ "noisy": {
+  "swaps": [
+   [
+    "Airalo",
+    "a rallo"
+   ],
+   [
+    "Senhora",
+    "senora"
+   ]
+  ]
+ }
+}

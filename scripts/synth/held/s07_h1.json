@@ -1,0 +1,129 @@
+{
+ "id": "s07_h1",
+ "scenario": 7,
+ "split": "held",
+ "lang": "en",
+ "title": "2 Weeks in Japan With Only a Carry-On",
+ "creator": "Rafa Domínguez",
+ "description": "Packing for two weeks in Japan with one 40L bag and a small daypack. Full packing list linked below.\n\nRoamly eSIM: 15% off your first plan with code RAFA at https://roamly.com/rafa\n\nNext video: landing in Tokyo with no paper map.",
+ "paid_promotion": true,
+ "sentences": [
+  {
+   "t": "Okay, two weeks in Japan, one carry-on, one small backpack, and zero checked bags."
+  },
+  {
+   "t": "People keep telling me this is impossible, so today I'm packing it on camera so you can see exactly what goes in."
+  },
+  {
+   "t": "First, the bag itself."
+  },
+  {
+   "t": "This is a forty liter bag, which is right at the limit for most airlines, and the reason I like it is that it opens like a suitcase instead of from the top."
+  },
+  {
+   "t": "Top loading bags are great for hiking and terrible for hotel rooms, I will die on that hill."
+  },
+  {
+   "t": "Clothes next."
+  },
+  {
+   "t": "I'm bringing five shirts, two pants, one pair of shorts, and seven pairs of socks and underwear, and yes, I will be doing laundry."
+  },
+  {
+   "t": "Every hotel I booked has a coin laundry on the ground floor, and in Japan those are honestly kind of fun."
+  },
+  {
+   "t": "Everything goes into packing cubes, and I roll instead of fold, because rolled shirts come out less wrinkled and you can see everything at a glance."
+  },
+  {
+   "t": "Shoes are the hardest part."
+  },
+  {
+   "t": "I'm wearing my heaviest pair on the plane and packing one light pair of sneakers, and that's it."
+  },
+  {
+   "t": "Now, the thing I used to stress about most on trips like this was getting online the second I land.",
+   "seg": "A"
+  },
+  {
+   "t": "These days I just use Roamly, which is an eSIM app, so there's no little plastic card and no line at the airport kiosk.",
+   "seg": "A"
+  },
+  {
+   "t": "You pick the country, pick how much data you want, and it installs on your phone in about two minutes, before you even leave home.",
+   "seg": "A"
+  },
+  {
+   "t": "When the plane touches down, you flip it on and you've got local data right away, at a fraction of what my carrier charges for roaming.",
+   "seg": "A"
+  },
+  {
+   "t": "I've used it in eleven countries now, and the only time it didn't work was when I forgot to turn it on.",
+   "seg": "A"
+  },
+  {
+   "t": "If you want to try it, use code RAFA at roamly.com slash rafa and you'll get fifteen percent off your first plan.",
+   "seg": "A"
+  },
+  {
+   "t": "Back to the bag."
+  },
+  {
+   "t": "Toiletries go in one clear pouch, everything under a hundred milliliters, and I buy sunscreen when I get there because it's better in Japan anyway."
+  },
+  {
+   "t": "Electronics are my phone, a small power bank, one charger with two ports, and a plug converter for the stopover in Seoul on the way back."
+  },
+  {
+   "t": "I'm not bringing a laptop this time, which feels scary, but I want this to be a real vacation."
+  },
+  {
+   "t": "Then the little things that make a huge difference."
+  },
+  {
+   "t": "A foldable tote for groceries and souvenirs, because you will buy snacks, I promise you."
+  },
+  {
+   "t": "A tiny pack of laundry sheets, which weigh basically nothing."
+  },
+  {
+   "t": "And a coin purse, because Japan still runs on coins and your pockets will be full of them by day two."
+  },
+  {
+   "t": "Okay, let's see if it closes."
+  },
+  {
+   "t": "Come on."
+  },
+  {
+   "t": "There we go, with room to spare, which is good, because the snack situation on the way home is going to be serious."
+  },
+  {
+   "t": "Total weight, let me check, a little over nine kilos, so just under the limit for most airlines."
+  },
+  {
+   "t": "If you want my full packing list, it's linked down below."
+  },
+  {
+   "t": "Next video, we land in Tokyo and I try to find my hotel with no paper map, so wish me luck."
+  },
+  {
+   "t": "See you there."
+  }
+ ],
+ "segments": {
+  "A": {
+   "expect": "skip",
+   "category": "sponsor",
+   "brand": "Roamly"
+  }
+ },
+ "noisy": {
+  "swaps": [
+   [
+    "Roamly",
+    "roam lee"
+   ]
+  ]
+ }
+}

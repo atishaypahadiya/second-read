@@ -1,0 +1,158 @@
+{
+ "id": "s15_h2",
+ "scenario": 15,
+ "split": "held",
+ "lang": "en",
+ "title": "The Ship That Kept Coming Back for 38 Years: The SS Baychimo",
+ "creator": "Imogen Hart",
+ "description": "In 1931 a cargo ship was abandoned in the Arctic ice. People kept seeing it, drifting with nobody aboard, for decades. This is the story of the ghost ship of the Arctic.\n\nSupport the channel on Patreon: patreon.com/imogenhart\nPatrons get every episode a week early and an extra monthly bonus story.\n\nSources in the pinned comment.",
+ "paid_promotion": null,
+ "sentences": [
+  {
+   "t": "In October of nineteen thirty-one, a cargo ship called the Baychimo got stuck in the ice off the coast of Alaska."
+  },
+  {
+   "t": "Her crew left her there, expecting her to sink."
+  },
+  {
+   "t": "She didn't."
+  },
+  {
+   "t": "And for the next thirty-eight years, people kept seeing her, drifting through the Arctic, completely empty."
+  },
+  {
+   "t": "So let's go back to the start.",
+   "gap": 1.2
+  },
+  {
+   "t": "The Baychimo was a steel steamer owned by the Hudson's Bay Company, and her job was trading along the northern coast of Canada."
+  },
+  {
+   "t": "She'd sail up every summer, trade supplies for furs, and head back before the ice closed in."
+  },
+  {
+   "t": "That year, she left it too late."
+  },
+  {
+   "t": "The ice trapped her near a place called Barrow, which is now Utqiagvik.",
+   "gap": 1.0
+  },
+  {
+   "t": "The crew walked to shore and built themselves a little wooden hut to wait it out."
+  },
+  {
+   "t": "And then, in late November, a huge blizzard hit."
+  },
+  {
+   "t": "When it cleared, the ship was gone."
+  },
+  {
+   "t": "Everyone assumed she'd been crushed and sunk.",
+   "gap": 1.0
+  },
+  {
+   "t": "But a few days later, a seal hunter told the crew he'd seen her, about forty miles away, still floating."
+  },
+  {
+   "t": "The company decided she wasn't going to survive the winter, so they took what furs they could carry and left her."
+  },
+  {
+   "t": "And that's where it gets strange.",
+   "gap": 1.1
+  },
+  {
+   "t": "In nineteen thirty-two, a man travelling by dog sled saw her."
+  },
+  {
+   "t": "In nineteen thirty-three, a group of hunters actually climbed on board, got trapped by a storm, and sheltered inside her for ten days."
+  },
+  {
+   "t": "When the storm passed, they left, and she drifted off again."
+  },
+  {
+   "t": "In the fifties and sixties, she was spotted again and again, by hunters, by traders, once by a group of scientists."
+  },
+  {
+   "t": "Nobody ever managed to bring her in."
+  },
+  {
+   "t": "The last confirmed sighting was in nineteen sixty-nine, thirty-eight years after she was abandoned, frozen into an ice pack off the Alaskan coast."
+  },
+  {
+   "t": "So what actually happened to her?",
+   "gap": 1.0
+  },
+  {
+   "t": "In two thousand and six, the Alaskan government started a project to find her, but they never did."
+  },
+  {
+   "t": "Most historians think she finally sank sometime in the seventies, or got crushed and broken up in the ice."
+  },
+  {
+   "t": "But the Arctic is huge, and steel ships can float for a very long time if the hull stays intact."
+  },
+  {
+   "t": "So there's a tiny, tiny chance she's still out there somewhere."
+  },
+  {
+   "t": "What I love about this story is how ordinary she was.",
+   "gap": 1.0
+  },
+  {
+   "t": "She wasn't a warship, or a famous liner."
+  },
+  {
+   "t": "She was a working cargo boat that just refused to go down."
+  },
+  {
+   "t": "Okay, before you go.",
+   "gap": 1.4
+  },
+  {
+   "t": "This channel is completely funded by the people who watch it, through Patreon.",
+   "seg": "A"
+  },
+  {
+   "t": "If you join, you get every episode a week before it goes up here, plus a bonus story every month that doesn't go on YouTube at all.",
+   "seg": "A"
+  },
+  {
+   "t": "This month's bonus is about a lighthouse in Scotland where all three keepers disappeared in one night, and it's one of my favourites.",
+   "seg": "A"
+  },
+  {
+   "t": "The link is in the description, and genuinely, every single patron is the reason I can keep making these.",
+   "seg": "A"
+  },
+  {
+   "t": "Thank you so much to everyone who's already there.",
+   "seg": "A"
+  },
+  {
+   "t": "And if you have a lost ship story you want me to cover, leave it in the comments, I read every one.",
+   "gap": 1.0
+  },
+  {
+   "t": "See you next time."
+  }
+ ],
+ "segments": {
+  "A": {
+   "expect": "label",
+   "category": "selfpromo",
+   "brand": "Patreon"
+  }
+ },
+ "noisy": {
+  "swaps": [
+   [
+    "Baychimo",
+    "bay chee mo"
+   ],
+   [
+    "Patreon",
+    "patron"
+   ]
+  ]
+ }
+}

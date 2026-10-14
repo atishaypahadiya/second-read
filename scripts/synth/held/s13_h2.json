@@ -1,0 +1,147 @@
+{
+ "id": "s13_h2",
+ "scenario": 13,
+ "split": "held",
+ "lang": "en",
+ "title": "Every UK Bank Account I've Used, Ranked Honestly",
+ "creator": "Hannah Osei",
+ "description": "Twelve years of current accounts, savings accounts and one very regrettable credit card. Here's every bank I've used, ranked.\n\nNothing in this video is paid for and there are no referral links. I'm not a financial adviser, this is just my experience.\n\nRead the terms for any account before you open it.",
+ "paid_promotion": null,
+ "sentences": [
+  {
+   "t": "Hiya, so today I'm ranking every bank account I've ever had, from worst to best."
+  },
+  {
+   "t": "And I've had a lot, because I am the kind of person who switches every time someone offers me a free toaster."
+  },
+  {
+   "t": "Before we start, I need to say something, because it matters for this kind of video.",
+   "gap": 1.0
+  },
+  {
+   "t": "A couple of the banks on this list have run ads on my channel before, and Monzo in particular sponsored a video of mine last year.",
+   "seg": "A"
+  },
+  {
+   "t": "None of that has anything to do with this ranking.",
+   "seg": "A"
+  },
+  {
+   "t": "This video isn't sponsored, there are no referral links, and no bank had any say in where they landed.",
+   "seg": "A"
+  },
+  {
+   "t": "If anything, I've been harder on the ones that paid me, just so nobody can accuse me of going easy on them.",
+   "seg": "A"
+  },
+  {
+   "t": "Right, at the bottom.",
+   "gap": 1.2
+  },
+  {
+   "t": "The big high street bank I opened when I was sixteen."
+  },
+  {
+   "t": "I'm not going to name it, but you can probably guess, it's the one with the horse."
+  },
+  {
+   "t": "The app was fine, but every time I had a problem I spent forty minutes on hold, and once they froze my card while I was on holiday in Spain."
+  },
+  {
+   "t": "I was standing in a supermarket with a basket of shopping and no way to pay."
+  },
+  {
+   "t": "Bottom of the list, sorry."
+  },
+  {
+   "t": "Next up, my building society savings account.",
+   "gap": 1.0
+  },
+  {
+   "t": "Honestly, nothing wrong with it, but the interest rate was so low it was almost an insult."
+  },
+  {
+   "t": "I left about two thousand pounds in there for three years and earned enough to buy a sandwich."
+  },
+  {
+   "t": "Not even a nice sandwich."
+  },
+  {
+   "t": "In the middle, we've got Starling.",
+   "gap": 1.0
+  },
+  {
+   "t": "I used them for my business account when I went self-employed."
+  },
+  {
+   "t": "The invoicing tools are great, and their customer support is actually a human who replies in the app within a few minutes."
+  },
+  {
+   "t": "I only moved because I wanted my business and personal money in one place, which, looking back, was a mistake."
+  },
+  {
+   "t": "Then Monzo, and yes, I'm aware of what I just said about them.",
+   "gap": 0.9
+  },
+  {
+   "t": "The budgeting stuff is brilliant, those little pots where you can put money aside for bills."
+  },
+  {
+   "t": "It's the reason I stopped going overdrawn every month in my twenties."
+  },
+  {
+   "t": "But I've had two random account reviews where they locked things for a few days, and that's terrifying when it's your main account."
+  },
+  {
+   "t": "So it's good, really good, but I keep a backup account elsewhere."
+  },
+  {
+   "t": "And my number one, which might surprise you, is my credit union.",
+   "gap": 1.1
+  },
+  {
+   "t": "It's tiny, it's local, and the app looks like it was made in two thousand and nine."
+  },
+  {
+   "t": "But they know me by name, the savings rate is decent, and when my boiler broke they gave me a small loan at a fair rate in one afternoon."
+  },
+  {
+   "t": "Nobody talks about credit unions, and I think they should."
+  },
+  {
+   "t": "So the big lesson from twelve years of switching?",
+   "gap": 1.0
+  },
+  {
+   "t": "The best bank isn't the one with the prettiest app."
+  },
+  {
+   "t": "It's the one that picks up the phone when something goes wrong."
+  },
+  {
+   "t": "Keep a second account somewhere, just in case, and don't let any bank hold all your money with no backup."
+  },
+  {
+   "t": "Let me know your best and worst in the comments, I want to hear the horror stories."
+  }
+ ],
+ "segments": {
+  "A": {
+   "expect": "none",
+   "category": "sponsor",
+   "brand": "Monzo"
+  }
+ },
+ "noisy": {
+  "swaps": [
+   [
+    "Monzo",
+    "monzer"
+   ],
+   [
+    "Starling",
+    "starlin"
+   ]
+  ]
+ }
+}

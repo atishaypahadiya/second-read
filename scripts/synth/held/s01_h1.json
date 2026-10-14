@@ -1,0 +1,158 @@
+{
+  "id": "s01_h1",
+  "scenario": 1,
+  "split": "held",
+  "lang": "en",
+  "title": "I Turned a $40 Thrift Store PC Into a Home Server",
+  "creator": "Theo Marsh",
+  "description": "Forty dollars, two hard drives and a lot of dust. Here's how the thrift store server turned out.\n\nThanks to Lumen Backup for sponsoring this video! Get 30 days free at https://lumenbackup.com/theo\n\nParts list:\n2x 4TB drives\nZip ties (many)\n\nChapters:\n0:00 The thrift store find\n1:10 Cleaning and drives\n2:05 Install\n3:05 Media server and power draw\n4:00 Game server\n4:40 Verdict",
+  "paid_promotion": true,
+  "sentences": [
+    {
+      "t": "Alright, so this is the PC I picked up at the thrift store last weekend for forty bucks."
+    },
+    {
+      "t": "It's an old office tower, the kind every company bought by the pallet like ten years ago."
+    },
+    {
+      "t": "And the plan today is to turn it into a little home server that runs my movies, my backups, and maybe a game server for my friends."
+    },
+    {
+      "t": "First thing, let's crack it open and see what we're dealing with."
+    },
+    {
+      "t": "Oh, okay, there is a truly upsetting amount of dust in here."
+    },
+    {
+      "t": "We've got a fourth gen Intel chip, eight gigs of RAM, and a single hard drive that sounds kind of crunchy when it spins up."
+    },
+    {
+      "t": "That drive is getting replaced no matter what, because I do not trust it."
+    },
+    {
+      "t": "So I grabbed two cheap four terabyte drives, and we're gonna mirror them so if one dies I don't lose anything."
+    },
+    {
+      "t": "The case only has one proper drive bay, so I'm doing a little zip tie engineering on the second one."
+    },
+    {
+      "t": "Don't tell anyone."
+    },
+    {
+      "t": "Okay, it's in, it's not touching the fan, I'm calling that a win."
+    },
+    {
+      "t": "For the operating system I went with one of the free NAS style distros, and the installer is honestly pretty painless."
+    },
+    {
+      "t": "You pick your drives, you pick mirror, you set a password, and then you wait."
+    },
+    {
+      "t": "While that installs, this video is sponsored by Lumen Backup.",
+      "seg": "A",
+      "gap": 0.9
+    },
+    {
+      "t": "Here's the thing about a home server, a mirror protects you from one drive dying, but it does not protect you from a fire, a flood, or me deleting the wrong folder at two in the morning.",
+      "seg": "A"
+    },
+    {
+      "t": "Lumen Backup is cloud backup that just sits in the background and copies everything you point it at, off site, encrypted, automatically.",
+      "seg": "A"
+    },
+    {
+      "t": "You install it once, pick your folders or even a whole network drive like this one, and you basically never think about it again.",
+      "seg": "A"
+    },
+    {
+      "t": "And if something goes wrong, you can roll back to any version from the last thirty days, which has saved me more than once.",
+      "seg": "A"
+    },
+    {
+      "t": "There's no file size limit either, so my giant raw video files go up just fine.",
+      "seg": "A"
+    },
+    {
+      "t": "Plans start at about six dollars a month for unlimited storage on one computer.",
+      "seg": "A"
+    },
+    {
+      "t": "If you want to try it, go to lumenbackup.com/theo and your first thirty days are completely free.",
+      "seg": "A"
+    },
+    {
+      "t": "That link is also down in the description.",
+      "seg": "A"
+    },
+    {
+      "t": "Okay, the installer is done, let's reboot and pray.",
+      "gap": 1.1
+    },
+    {
+      "t": "And we have a login screen, which is more than I expected from a computer that came with a sticker saying property of a dental office."
+    },
+    {
+      "t": "Let's set up the shares first."
+    },
+    {
+      "t": "I'm making one folder for movies, one for backups, and one called junk, because there's always junk."
+    },
+    {
+      "t": "Next I'm installing a media server from the built in app store, which is literally two clicks."
+    },
+    {
+      "t": "It's scanning my movie folder right now and pulling in all the posters, which is the most satisfying part of this entire hobby."
+    },
+    {
+      "t": "Now let's check power draw, because that's the thing people always ask about."
+    },
+    {
+      "t": "I've got it plugged into a little meter here and it's sitting at about twenty eight watts at idle."
+    },
+    {
+      "t": "That works out to maybe three or four dollars a month where I live, which is fine."
+    },
+    {
+      "t": "Under load, while it's converting a movie on the fly, it jumps up to around sixty."
+    },
+    {
+      "t": "Not amazing, not terrible, totally fine for a box that cost less than a pizza night."
+    },
+    {
+      "t": "Now the game server, because my friends have been bugging me about this for months."
+    },
+    {
+      "t": "I spun up a small block building server, and with eight gigs of RAM it handles four players without breaking a sweat."
+    },
+    {
+      "t": "So, was it worth it?"
+    },
+    {
+      "t": "For forty dollars plus the drives, I've got a quiet little box in the closet that runs my movies, my files, and our game nights."
+    },
+    {
+      "t": "In the next video I'm going to set up remote access so I can get to all of this from my phone when I'm away."
+    },
+    {
+      "t": "If you've got a thrift store server of your own, tell me what you're running on it down in the comments."
+    },
+    {
+      "t": "Thanks for watching, and I'll see you in the next one."
+    }
+  ],
+  "segments": {
+    "A": {
+      "expect": "skip",
+      "category": "sponsor",
+      "brand": "Lumen Backup"
+    }
+  },
+  "noisy": {
+    "swaps": [
+      [
+        "Lumen",
+        "lumin"
+      ]
+    ]
+  }
+}

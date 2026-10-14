@@ -1,0 +1,133 @@
+{
+ "id": "s08_h1",
+ "scenario": 8,
+ "split": "held",
+ "lang": "en",
+ "title": "What Caffeine Actually Does to Your Brain",
+ "creator": "Priya Explains",
+ "description": "Adenosine, tolerance, the afternoon crash, and whether delaying your first coffee actually helps.\n\nThis video is sponsored by Zocdoc. Find a doctor who takes your insurance and book online for free: https://zocdoc.com/priya\n\nSources in the pinned comment.",
+ "paid_promotion": true,
+ "sentences": [
+  {
+   "t": "So, it's seven a.m., you've just had your first coffee, and about twenty minutes from now you're going to feel like a functioning person again."
+  },
+  {
+   "t": "But what's actually happening in your head during those twenty minutes?"
+  },
+  {
+   "t": "The answer involves a molecule called adenosine, and I think once you understand it, you'll drink coffee a little differently."
+  },
+  {
+   "t": "From the moment you wake up, your brain is slowly building up adenosine, which is basically a byproduct of your neurons burning energy all day."
+  },
+  {
+   "t": "The more adenosine binds to its receptors, the sleepier you feel."
+  },
+  {
+   "t": "That's what scientists mean by sleep pressure, it literally builds up like water behind a dam."
+  },
+  {
+   "t": "Now, caffeine happens to be shaped a lot like adenosine."
+  },
+  {
+   "t": "So it slides into those same receptors and just sits there, blocking them, without actually activating anything."
+  },
+  {
+   "t": "Your brain is still making adenosine, it just can't hear it anymore."
+  },
+  {
+   "t": "Which is why caffeine doesn't really give you energy, it hides your tiredness from you."
+  },
+  {
+   "t": "Quick break before we get to the crash part, because this video is sponsored by Zach Doc.",
+   "seg": "A"
+  },
+  {
+   "t": "Zach Doc is a free app and website where you can find doctors near you who take your insurance, read real patient reviews, and book an appointment in a couple of taps.",
+   "seg": "A"
+  },
+  {
+   "t": "I put off finding a new primary care doctor for almost two years after I moved, mostly because calling around offices felt like a part-time job.",
+   "seg": "A"
+  },
+  {
+   "t": "With Zach Doc, I filtered by my insurance, found someone with evening hours, and booked for that same week.",
+   "seg": "A"
+  },
+  {
+   "t": "A lot of practices also post same-day or next-day slots, so if something comes up you're not waiting a month.",
+   "seg": "A"
+  },
+  {
+   "t": "Go to Zach Doc dot com slash priya to find a doctor and book today, it's totally free to use, and the link is in the description.",
+   "seg": "A"
+  },
+  {
+   "t": "Okay, the crash."
+  },
+  {
+   "t": "Caffeine has a half-life of around five to six hours in most adults."
+  },
+  {
+   "t": "So if you have a coffee at three in the afternoon, a good chunk of that caffeine is still blocking receptors at nine at night."
+  },
+  {
+   "t": "Meanwhile, adenosine has been piling up behind it all day."
+  },
+  {
+   "t": "When the caffeine finally clears, all of that adenosine hits at once, and that's the crash people describe."
+  },
+  {
+   "t": "There's also a tolerance effect."
+  },
+  {
+   "t": "If you drink coffee every day, your brain responds by growing more adenosine receptors, which means you need more caffeine to block the same share of them."
+  },
+  {
+   "t": "That's why your first coffee in years feels like rocket fuel and your fourth cup of the week does almost nothing."
+  },
+  {
+   "t": "So what do you do with this?"
+  },
+  {
+   "t": "One trick people love is waiting sixty to ninety minutes after waking before your first coffee."
+  },
+  {
+   "t": "The idea is that you let your body's natural wake-up hormones do their thing first, and save the caffeine for when they start to fade."
+  },
+  {
+   "t": "Honestly, the research on that is still mixed, but plenty of people swear by it."
+  },
+  {
+   "t": "The more solid advice is the boring one, have your last caffeine at least eight hours before bed."
+  },
+  {
+   "t": "And if you want to reset your tolerance, a week or two of cutting back will bring those receptor numbers down, though the first three days are rough, headaches and all."
+  },
+  {
+   "t": "In the next video, we're looking at why some people can drink espresso at midnight and sleep fine, and it turns out it's mostly genetics."
+  },
+  {
+   "t": "Thanks for watching, and I'll see you then."
+  }
+ ],
+ "segments": {
+  "A": {
+   "expect": "skip",
+   "category": "sponsor",
+   "brand": "Zocdoc"
+  }
+ },
+ "noisy": {
+  "swaps": [
+   [
+    "Zach Doc",
+    "zack dock"
+   ],
+   [
+    "adenosine",
+    "adding a scene"
+   ]
+  ]
+ }
+}

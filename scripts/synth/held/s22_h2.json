@@ -1,0 +1,230 @@
+{
+ "id": "s22_h2",
+ "scenario": 22,
+ "split": "held",
+ "lang": "en",
+ "title": "Why Are Game Studios Cancelling Finished Games? feat. Marta Kowalczyk | Patch Notes",
+ "creator": "Patch Notes Podcast",
+ "description": "Former producer Marta Kowalczyk explains why nearly-finished games get shelved, what a tax write-off actually means, and whether live service is to blame.\n\nThis week's sponsors\nRaycon: get 15% off at buyraycon.com/patchnotes\nSquarespace: build your site and save 10% with code PATCHNOTES at squarespace.com\nKeeps: 50% off your first hair loss treatment order at keeps.com/patchnotes\n\nChapters\n0:00 Intro\n1:40 Sponsors\n3:20 Why finished games get shelved\n6:00 Live service",
+ "paid_promotion": null,
+ "sentences": [
+  {
+   "t": "What's up everyone, welcome to Patch Notes, I'm Devon."
+  },
+  {
+   "t": "And today we've got a guest who has actually been in the room when a game got cancelled, Marta Kowalczyk."
+  },
+  {
+   "t": "Hey Devon, happy to be here, and yes, I've been in that room more times than I'd like."
+  },
+  {
+   "t": "So this week another studio shelved a game that was, by every report, basically done."
+  },
+  {
+   "t": "And people are furious, and I think a lot of them don't understand how that can even happen."
+  },
+  {
+   "t": "Yeah, I get the anger, but the short version is that done and shippable are very different things."
+  },
+  {
+   "t": "Okay, I want to unpack that properly, so let's take a quick break to thank our sponsors and then we'll dive in.",
+   "seg": "A"
+  },
+  {
+   "t": "This episode is brought to you by Raycon.",
+   "seg": "A",
+   "gap": 0.5
+  },
+  {
+   "t": "Raycon makes wireless earbuds that sound great and cost about half what the big brands charge.",
+   "seg": "A"
+  },
+  {
+   "t": "I've been using the Everyday earbuds for the gym and my commute, and the battery lasts something like thirty two hours with the case.",
+   "seg": "A"
+  },
+  {
+   "t": "They're tiny, they don't fall out, and the noise cancelling is good enough that I can't hear my neighbor's leaf blower anymore, which is a gift.",
+   "seg": "A"
+  },
+  {
+   "t": "Go to buy raycon dot com slash patchnotes for fifteen percent off sitewide.",
+   "seg": "A"
+  },
+  {
+   "t": "That's buy raycon dot com slash patchnotes.",
+   "seg": "A"
+  },
+  {
+   "t": "Patch Notes is also sponsored by Squarespace.",
+   "seg": "B",
+   "gap": 0.4
+  },
+  {
+   "t": "Squarespace is how I built the site for this show, and it took me one evening.",
+   "seg": "B"
+  },
+  {
+   "t": "You pick a template, drag stuff around, and it just looks good on phones without you thinking about it.",
+   "seg": "B"
+  },
+  {
+   "t": "And if you want to sell merch or take bookings or run a newsletter, all of that's built in.",
+   "seg": "B"
+  },
+  {
+   "t": "Head to squarespace dot com for a free trial, and when you're ready to launch, use code PATCHNOTES to save ten percent on your first purchase of a website or domain.",
+   "seg": "B"
+  },
+  {
+   "t": "And last but not least, Keeps.",
+   "seg": "C",
+   "gap": 0.4
+  },
+  {
+   "t": "Guys, if you're noticing more hair in the drain than you used to, the earlier you act, the more you can keep.",
+   "seg": "C"
+  },
+  {
+   "t": "Keeps connects you with a licensed provider online, and if treatment's right for you, it ships straight to your door, no awkward pharmacy trip.",
+   "seg": "C"
+  },
+  {
+   "t": "Right now new customers get fifty percent off their first order at keeps dot com slash patchnotes.",
+   "seg": "C"
+  },
+  {
+   "t": "That's keeps dot com slash patchnotes.",
+   "seg": "C"
+  },
+  {
+   "t": "Alright, Marta, done versus shippable.",
+   "gap": 1.0
+  },
+  {
+   "t": "So, a game can be content complete, every level built, every cutscene in, and still be, like, months away from being something you can put on a store."
+  },
+  {
+   "t": "Because of bugs?"
+  },
+  {
+   "t": "Bugs are part of it, but also certification for the consoles, performance on lower end hardware, localization into a dozen languages, ratings boards."
+  },
+  {
+   "t": "And all of that costs money, a lot of money."
+  },
+  {
+   "t": "So you're saying the last stretch isn't cheap."
+  },
+  {
+   "t": "The last stretch is often the most expensive part, because you've got the whole team on it and nothing is earning yet."
+  },
+  {
+   "t": "Okay, but why not just finish it and get some money back?"
+  },
+  {
+   "t": "Because sometimes the math says that even if it ships, it won't earn back what it'll cost to finish and market it."
+  },
+  {
+   "t": "And marketing a big game can be as expensive as making it, people forget that."
+  },
+  {
+   "t": "Wow, I genuinely did not know that."
+  },
+  {
+   "t": "And then there's the tax piece, which everyone on social media has turned into a conspiracy."
+  },
+  {
+   "t": "Right, the write-off thing, explain that like I'm five."
+  },
+  {
+   "t": "If a company spends money making something and then decides it has no value, it can count that as a loss, and that lowers the taxes it pays."
+  },
+  {
+   "t": "So it's not like they make money by cancelling."
+  },
+  {
+   "t": "No, you don't make money, you just lose a little less, it's the least bad option on a bad day."
+  },
+  {
+   "t": "That's a much more depressing answer than I expected."
+  },
+  {
+   "t": "Ha, welcome to the industry."
+  },
+  {
+   "t": "What about live service, because a lot of people blame that whole trend for this."
+  },
+  {
+   "t": "I think it's fair to blame it partly."
+  },
+  {
+   "t": "Executives saw a few huge hits that earn money for a decade and wanted that for everything."
+  },
+  {
+   "t": "So games got redesigned midway to be forever games, and that's when things really go sideways."
+  },
+  {
+   "t": "Because the design was never built for that."
+  },
+  {
+   "t": "Exactly, you can't bolt a battle pass onto a story game and expect it to hold together."
+  },
+  {
+   "t": "So is there anything players can actually do about this?"
+  },
+  {
+   "t": "Honestly, buy the weird mid-sized games when they come out, not two years later on sale."
+  },
+  {
+   "t": "Ha, that one hurts, my backlog is entirely sale games."
+  },
+  {
+   "t": "Mine too, I'm not judging, but day one sales are what convince a publisher to greenlight the next one."
+  },
+  {
+   "t": "That's fair, I'll feel guilty about that all week."
+  },
+  {
+   "t": "Marta, this has been super illuminating, where can people find you?"
+  },
+  {
+   "t": "I'm writing a newsletter about production now, it's linked below."
+  },
+  {
+   "t": "Awesome, thanks for coming on."
+  },
+  {
+   "t": "Thanks Devon, this was fun."
+  }
+ ],
+ "segments": {
+  "A": {
+   "expect": "skip",
+   "category": "sponsor",
+   "brand": "Raycon"
+  },
+  "B": {
+   "expect": "skip",
+   "category": "sponsor",
+   "brand": "Squarespace"
+  },
+  "C": {
+   "expect": "skip",
+   "category": "sponsor",
+   "brand": "Keeps"
+  }
+ },
+ "noisy": {
+  "swaps": [
+   [
+    "Raycon",
+    "ray con"
+   ],
+   [
+    "Kowalczyk",
+    "co all check"
+   ]
+  ]
+ }
+}

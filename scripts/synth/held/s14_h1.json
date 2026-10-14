@@ -1,0 +1,182 @@
+{
+ "id": "s14_h1",
+ "scenario": 14,
+ "split": "held",
+ "lang": "en",
+ "title": "Build a Promo Code System in JavaScript (Checkout Tutorial Part 3)",
+ "creator": "Lena Fischer",
+ "description": "Part 3 of the checkout series: we add discount codes to the cart. Percentage codes, fixed-amount codes, expiry dates and one-use-per-customer.\n\nStarter code is on my GitHub, link below.\nPart 1: building the cart\nPart 2: totals and tax\n\n0:00 Recap\n0:40 The data model\n1:50 Applying a code\n3:10 Expiry and limits\n4:20 Testing",
+ "paid_promotion": false,
+ "sentences": [
+  {
+   "t": "Hey everyone, welcome back to part three of the checkout series."
+  },
+  {
+   "t": "Last time we got the cart totals and tax working, and today we're adding discount codes."
+  },
+  {
+   "t": "This is honestly one of the most requested features, so let's get into it."
+  },
+  {
+   "t": "First, the data model.",
+   "gap": 1.0
+  },
+  {
+   "t": "I'm going to keep all our codes in a simple object for now, and later we'll move it into a database."
+  },
+  {
+   "t": "Each code has a type, which is either percent or fixed, an amount, an expiry date, and a flag for whether it can only be used once per customer."
+  },
+  {
+   "t": "So let me just type this out."
+  },
+  {
+   "t": "Okay, now let's write some test codes, so we have something to play with.",
+   "gap": 1.2
+  },
+  {
+   "t": "The first one is SAVE20, and that's a percentage code, so if a customer types in SAVE20 at checkout, they get twenty percent off the whole cart.",
+   "seg": "A"
+  },
+  {
+   "t": "The second one is TENOFF, a fixed code, ten dollars off, but only if the order is over fifty dollars.",
+   "seg": "A"
+  },
+  {
+   "t": "And the third one is WELCOME, which gives fifteen percent off your first order, and that's the one-use-per-customer code.",
+   "seg": "A"
+  },
+  {
+   "t": "So in the UI, the customer pastes the code into this little box, hits apply, and the discount shows up right under the subtotal.",
+   "seg": "A"
+  },
+  {
+   "t": "These codes aren't real, by the way, they don't work on any actual store, they're just test data for our app.",
+   "seg": "A"
+  },
+  {
+   "t": "Now we need a function to actually apply the code.",
+   "gap": 1.0
+  },
+  {
+   "t": "I'm calling it applyDiscount, and it takes the cart and whatever string the user typed in."
+  },
+  {
+   "t": "The first thing we do is trim the input and make it uppercase."
+  },
+  {
+   "t": "Because people will absolutely type save twenty in lowercase with a space at the end, and we don't want that to fail."
+  },
+  {
+   "t": "Then we look the code up in our object."
+  },
+  {
+   "t": "If it doesn't exist, we return an error message, something friendly like, sorry, that code isn't valid."
+  },
+  {
+   "t": "If it does exist, we check the type.",
+   "gap": 0.9
+  },
+  {
+   "t": "For a percent code, we multiply the subtotal by the amount divided by a hundred."
+  },
+  {
+   "t": "For a fixed code, we just subtract the amount."
+  },
+  {
+   "t": "And here's a bug I see all the time in code reviews."
+  },
+  {
+   "t": "If the discount is bigger than the cart, you end up with a negative total, and then your store is paying the customer."
+  },
+  {
+   "t": "So we clamp it with Math dot max, zero, so the total can never go below zero."
+  },
+  {
+   "t": "Next, expiry.",
+   "gap": 1.2
+  },
+  {
+   "t": "Every code has an expiresAt date, so before we apply anything, we compare that to the current date."
+  },
+  {
+   "t": "If it's in the past, we return an error saying the code has expired."
+  },
+  {
+   "t": "One thing to watch out for here is time zones."
+  },
+  {
+   "t": "If your server is in a different time zone from your customer, a code might expire a few hours early or late."
+  },
+  {
+   "t": "For this tutorial I'm just using UTC everywhere, which is the sane default."
+  },
+  {
+   "t": "And then the one-use-per-customer rule.",
+   "gap": 1.0
+  },
+  {
+   "t": "For that, we keep a set of customer IDs that have already used the code."
+  },
+  {
+   "t": "If the current customer is in the set, we reject it."
+  },
+  {
+   "t": "If not, we apply the discount and add them to the set once the order actually goes through, not when they click apply."
+  },
+  {
+   "t": "Otherwise someone could apply it, abandon the cart, and lose the code forever."
+  },
+  {
+   "t": "Alright, let's test it.",
+   "gap": 1.1
+  },
+  {
+   "t": "I'll add a few items to the cart, a hoodie and two mugs."
+  },
+  {
+   "t": "Typing in the twenty percent code, hit apply, and there we go, the total drops."
+  },
+  {
+   "t": "Now let me try the ten dollar one on a small order."
+  },
+  {
+   "t": "And it says the order needs to be over fifty, perfect."
+  },
+  {
+   "t": "Let me try the welcome code twice with the same customer."
+  },
+  {
+   "t": "Second time, rejected, exactly what we want."
+  },
+  {
+   "t": "In part four we're going to hook this up to a real database and add an admin page where you can create codes without touching the code.",
+   "gap": 1.0
+  },
+  {
+   "t": "The starter files are linked below if you want to follow along."
+  },
+  {
+   "t": "See you in the next one."
+  }
+ ],
+ "segments": {
+  "A": {
+   "expect": "none",
+   "category": "sponsor",
+   "brand": "SAVE20"
+  }
+ },
+ "noisy": {
+  "swaps": [
+   [
+    "applyDiscount",
+    "apply discount"
+   ],
+   [
+    "SAVE20",
+    "save twenty"
+   ]
+  ]
+ }
+}

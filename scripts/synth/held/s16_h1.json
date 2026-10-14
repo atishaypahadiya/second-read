@@ -1,0 +1,179 @@
+{
+  "id": "s16_h1",
+  "scenario": 16,
+  "split": "held",
+  "lang": "en",
+  "title": "Why Your Home Espresso Tastes Sour (3 Fixes That Actually Work)",
+  "creator": "Dana Okafor",
+  "description": "Sour shots are the number one question in my comments, so here are the three things I check every single time.\n\n0:00 The sour shot problem\n1:05 Fix one: grind finer\n2:20 My setup\n3:00 Fix two: temperature\n4:05 Fix three: ratio and time\n\nGear I use (affiliate links, I earn a small commission at no cost to you):\nBaratza Encore ESP grinder: https://amzn.to/3xK9pQe\nTimemore Black Mirror scale: https://amzn.to/4bRt2Lm\nBottomless portafilter (58mm): https://amzn.to/3yQe7Hw\n\nBeans in this video: a washed Ethiopian from my local roaster.\n\nInstagram: @danapullsshots",
+  "paid_promotion": false,
+  "sentences": [
+    {
+      "t": "Okay, so if you've ever pulled a shot and it tasted like you licked a lemon, this video is for you."
+    },
+    {
+      "t": "That's the sour shot, and honestly it's the most common thing people ask me about."
+    },
+    {
+      "t": "And the good news is it's almost always one of three things."
+    },
+    {
+      "t": "So let me pull one first so you can see what we're dealing with."
+    },
+    {
+      "t": "Look at that, see how fast it's running?",
+      "gap": 1.4
+    },
+    {
+      "t": "That's like fifteen seconds and it's already blonde and thin and kind of watery."
+    },
+    {
+      "t": "Let me taste it.",
+      "gap": 0.8
+    },
+    {
+      "t": "Yeah, oof, that's sour, that's really sharp at the front of the tongue."
+    },
+    {
+      "t": "So fix number one, and this is the big one, is grind size."
+    },
+    {
+      "t": "Sourness basically means under-extraction, the water ran through too fast and only grabbed the acids."
+    },
+    {
+      "t": "The acids come out first, then the sugars, then the bitter stuff at the end."
+    },
+    {
+      "t": "So if you stop too early, all you get is the acid, and that's your lemon shot."
+    },
+    {
+      "t": "Going finer slows the water down, so it has more time to pull out the sweet stuff."
+    },
+    {
+      "t": "I'm going to go about three clicks finer here, which on this grinder is a pretty big jump."
+    },
+    {
+      "t": "And yeah, a few people have asked what I'm actually using, so real quick."
+    },
+    {
+      "t": "The grinder is the Baratza Encore ESP, the scale is a Timemore, and the portafilter is just a generic bottomless one.",
+      "seg": "A"
+    },
+    {
+      "t": "I've linked all three down in the description, and just so you know, those are affiliate links.",
+      "seg": "A"
+    },
+    {
+      "t": "So if you buy through them I get a small commission, it doesn't cost you anything extra, and it helps the channel a bit.",
+      "seg": "A"
+    },
+    {
+      "t": "Nobody's paying me to say this stuff, it's literally just what's on my counter.",
+      "seg": "A"
+    },
+    {
+      "t": "You absolutely do not need this exact gear to fix a sour shot, any grinder that goes fine enough will do.",
+      "seg": "A"
+    },
+    {
+      "t": "Okay, shot number two, three clicks finer, same dose, eighteen grams in.",
+      "gap": 1.1
+    },
+    {
+      "t": "Watch the flow now, it's way slower, it's kind of honey-looking at the start."
+    },
+    {
+      "t": "Twenty eight seconds, thirty six grams out, that's about where I want it."
+    },
+    {
+      "t": "Tasting.",
+      "gap": 0.9
+    },
+    {
+      "t": "Okay, so much better, there's still a little brightness but now there's this caramel thing underneath."
+    },
+    {
+      "t": "If yours is still sour after going finer, that brings us to fix number two, which is temperature."
+    },
+    {
+      "t": "A lot of machines, especially the cheaper single boiler ones, run kind of cool."
+    },
+    {
+      "t": "And cooler water extracts slower, so you end up under-extracted again even with a good grind."
+    },
+    {
+      "t": "If your machine lets you set the temperature, bump it up two or three degrees and see what happens."
+    },
+    {
+      "t": "If it doesn't, a trick I used for years is to run a blank shot first to heat everything up."
+    },
+    {
+      "t": "Just run water through the group with no coffee for a few seconds, then lock in and pull right away."
+    },
+    {
+      "t": "Also, light roasts are way harder here, they're denser and they just need more heat and more time."
+    },
+    {
+      "t": "So if you bought some fancy fruity Ethiopian and it's sour no matter what, that's partly the beans being picky."
+    },
+    {
+      "t": "Okay, fix number three is ratio and time, and this is the one people skip."
+    },
+    {
+      "t": "If you're doing a one to one ratio, like eighteen in and eighteen out, that's a ristretto, and it's going to lean sour."
+    },
+    {
+      "t": "Try going longer, one to two and a half, so eighteen grams in and about forty five out."
+    },
+    {
+      "t": "You're pushing more water through, so you're pulling more of those sugars at the tail end."
+    },
+    {
+      "t": "Let me show you, same grind as the good shot, I'm just going to let it run longer.",
+      "gap": 1.3
+    },
+    {
+      "t": "There we go, forty four grams, thirty four seconds."
+    },
+    {
+      "t": "And honestly with this coffee I think I like this one even more, it's rounder, it's softer."
+    },
+    {
+      "t": "So, quick recap, because I know I talk a lot."
+    },
+    {
+      "t": "Sour means under-extracted, so grind finer first, then check your temperature, then try a longer ratio."
+    },
+    {
+      "t": "Change one thing at a time, taste every shot, and write down what you did, even just in your phone notes."
+    },
+    {
+      "t": "Next week I'm doing the opposite problem, bitter shots, which is a whole other can of worms."
+    },
+    {
+      "t": "Let me know in the comments what machine you're on and I'll try to help you dial it in."
+    },
+    {
+      "t": "Alright, I'm going to go drink these, see you next week."
+    }
+  ],
+  "segments": {
+    "A": {
+      "expect": "label",
+      "category": "affiliate",
+      "brand": "Baratza"
+    }
+  },
+  "noisy": {
+    "swaps": [
+      [
+        "Baratza",
+        "barrows a"
+      ],
+      [
+        "Timemore",
+        "time more"
+      ]
+    ]
+  }
+}

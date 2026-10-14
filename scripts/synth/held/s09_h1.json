@@ -1,0 +1,264 @@
+{
+ "id": "s09_h1",
+ "scenario": 9,
+ "split": "held",
+ "lang": "en",
+ "title": "I Rebuilt My Home Network From Scratch",
+ "creator": "Kai Nakamura",
+ "description": "I tore out my whole home network and rebuilt it: a fanless firewall, VLANs for the smart home junk, and PoE access points on every floor.\n\nSponsored by Vaultra. Get 3 months free plus 20% off your first year with code KAI: https://vaultra.com/kai\n\nParts list and firewall rules: in the pinned comment.",
+ "paid_promotion": true,
+ "sentences": [
+  {
+   "t": "Six months ago my home network was a disaster."
+  },
+  {
+   "t": "I had a router from my internet provider, a mesh system I bought on sale, two switches I don't remember buying, and a smart plug that I'm pretty sure was talking to a server in a country I've never been to."
+  },
+  {
+   "t": "So I tore it all out, every cable, every box, and started over."
+  },
+  {
+   "t": "This video is the whole rebuild, what I bought, what I configured, and what I'd do differently."
+  },
+  {
+   "t": "Let's start with the plan."
+  },
+  {
+   "t": "I wanted three things."
+  },
+  {
+   "t": "First, fast and stable wifi in every room, including the garage, which has historically been a dead zone."
+  },
+  {
+   "t": "Second, all the smart home junk on its own network, completely separated from my computers."
+  },
+  {
+   "t": "And third, I wanted to actually understand what was going on, instead of just trusting a box with blinking lights."
+  },
+  {
+   "t": "For the core, I went with a small fanless mini PC running open source firewall software."
+  },
+  {
+   "t": "It's got four network ports, it sips about ten watts, and it replaced the provider's router entirely."
+  },
+  {
+   "t": "The provider's box is now in bridge mode, which basically means it passes the internet through and does nothing else."
+  },
+  {
+   "t": "Behind the firewall there's one managed switch, and this is where the magic happens, because it supports VLANs."
+  },
+  {
+   "t": "If you've never heard of VLANs, think of them as separate networks that share the same physical cables."
+  },
+  {
+   "t": "My computers and phones live on one, the smart home devices live on another, guests get a third, and the cameras get their own little jail with no internet at all."
+  },
+  {
+   "t": "That last one was a big deal for me."
+  },
+  {
+   "t": "Cheap cameras are notorious for phoning home, and now they physically can't, they can only talk to my recorder."
+  },
+  {
+   "t": "For wifi I used three ceiling-mounted access points, one per floor, all powered over the network cable, so there are no power bricks anywhere."
+  },
+  {
+   "t": "Running cable to the ceiling was easily the worst part of this project."
+  },
+  {
+   "t": "I spent one entire Saturday in the attic, in July, with a fish tape and a headlamp, and I do not recommend it."
+  },
+  {
+   "t": "But the result is full speed in the garage, which means I can finally watch tutorials while I'm pretending to fix my bike."
+  },
+  {
+   "t": "Once the hardware was in, I had to set up a ridiculous number of logins."
+  },
+  {
+   "t": "Firewall admin, switch admin, the controller for the access points, the camera recorder, a DNS filter, and about a dozen smart home accounts."
+  },
+  {
+   "t": "And honestly, that's the perfect moment to talk about today's sponsor, Vaultra, because juggling a pile of logins is exactly the problem it solves.",
+   "seg": "A",
+   "gap": 0.8
+  },
+  {
+   "t": "Vaultra is a password manager, and before you click away, hear me out, because I resisted using one for years.",
+   "seg": "A"
+  },
+  {
+   "t": "My excuse was always that putting all of my passwords in one place sounded like a terrible idea.",
+   "seg": "A"
+  },
+  {
+   "t": "What changed my mind was actually understanding how Vaultra stores your data.",
+   "seg": "A"
+  },
+  {
+   "t": "Everything in your vault is encrypted on your own device before it ever leaves it, using a master password that Vaultra never sees and never stores.",
+   "seg": "A"
+  },
+  {
+   "t": "So even if somebody broke into their servers, all they'd get is a pile of scrambled data they can't read.",
+   "seg": "A"
+  },
+  {
+   "t": "They've also had the whole system audited by outside security firms, and they publish those reports, which is the kind of transparency I want from a company holding my keys.",
+   "seg": "A"
+  },
+  {
+   "t": "Day to day, it's just easy.",
+   "seg": "A"
+  },
+  {
+   "t": "When I sign up for something new, Vaultra offers to generate a long random password, saves it, and fills it in next time without me having to think about it.",
+   "seg": "A"
+  },
+  {
+   "t": "It works in every browser I use, on my phone, on my laptop, and on my partner's tablet, and it all stays in sync.",
+   "seg": "A"
+  },
+  {
+   "t": "There's a built-in authenticator too, so the six-digit two-factor codes live right next to the password instead of in a separate app I always forget to back up.",
+   "seg": "A"
+  },
+  {
+   "t": "And the security dashboard is genuinely a bit scary, in a good way.",
+   "seg": "A"
+  },
+  {
+   "t": "The first time I ran it, it told me I had forty-one reused passwords and three that had shown up in known data breaches.",
+   "seg": "A"
+  },
+  {
+   "t": "One of them was an old forum login I'd completely forgotten about, and it was the same password I'd been using for my email.",
+   "seg": "A"
+  },
+  {
+   "t": "I changed all of them in one evening, and Vaultra walked me through each one with a direct link to the right settings page.",
+   "seg": "A"
+  },
+  {
+   "t": "The feature I didn't expect to love is secure sharing.",
+   "seg": "A"
+  },
+  {
+   "t": "My family has a shared folder now with the streaming logins, the guest wifi password, and the account for our internet provider.",
+   "seg": "A"
+  },
+  {
+   "t": "When my brother needs the login for my mom's streaming account, I don't text it to him in plain text anymore, I just share the item, and I can take it back any time.",
+   "seg": "A"
+  },
+  {
+   "t": "There's also an emergency access feature, where you pick a trusted person who can request access to your vault if something happens to you.",
+   "seg": "A"
+  },
+  {
+   "t": "That's not a fun thing to think about, but after helping my dad sort out my grandfather's accounts last year, I can tell you it matters a lot.",
+   "seg": "A"
+  },
+  {
+   "t": "Vaultra has a free plan that covers unlimited passwords on one type of device, which is a fine way to try it out.",
+   "seg": "A"
+  },
+  {
+   "t": "But the plan I'd point most people to is the family plan, which covers up to six people, each with their own private vault plus shared folders.",
+   "seg": "A"
+  },
+  {
+   "t": "It costs less per month than a single streaming subscription, and it protects literally every other account you have.",
+   "seg": "A"
+  },
+  {
+   "t": "If you've been meaning to sort out your passwords for years, like I was, this is your sign.",
+   "seg": "A"
+  },
+  {
+   "t": "Go to vaultra.com slash kai and use code KAI to get your first three months free on any paid plan, plus twenty percent off your first year.",
+   "seg": "A"
+  },
+  {
+   "t": "That's vaultra.com slash kai, code KAI, and the link is right at the top of the description.",
+   "seg": "A"
+  },
+  {
+   "t": "Seriously, do it tonight, it takes about twenty minutes to move your important accounts over.",
+   "seg": "A"
+  },
+  {
+   "t": "Thanks to Vaultra for supporting the channel.",
+   "seg": "A"
+  },
+  {
+   "t": "Okay, back to the network."
+  },
+  {
+   "t": "With everything set up, I wanted to see if the separation actually worked, so I ran a few tests."
+  },
+  {
+   "t": "From my laptop, I tried to reach the smart plug directly, and the firewall blocked it, exactly like it should."
+  },
+  {
+   "t": "From the guest network, I tried to see my file server, and it couldn't even find it."
+  },
+  {
+   "t": "And the cameras, which I watched with a traffic monitor for a full week, made zero connections to the internet that got through."
+  },
+  {
+   "t": "They tried, by the way."
+  },
+  {
+   "t": "One of them tried to contact the same address about every ninety seconds, all day, which is both hilarious and deeply unsettling."
+  },
+  {
+   "t": "Speeds are great."
+  },
+  {
+   "t": "I'm getting the full gigabit on wired connections and around six hundred megabits on wifi in most of the house, including the garage."
+  },
+  {
+   "t": "So, what would I do differently?"
+  },
+  {
+   "t": "First, I'd buy one access point with better range instead of fighting with placement for the upstairs one, which I moved three times."
+  },
+  {
+   "t": "Second, I'd label every cable at both ends on day one, because I didn't, and I regretted it within a week."
+  },
+  {
+   "t": "And third, I'd keep a written plan of which VLAN is which, because when something breaks at eleven at night, you do not want to be guessing."
+  },
+  {
+   "t": "Total cost was a bit over eight hundred dollars, which I know sounds like a lot, but it replaced a pile of stuff that was worse in every way."
+  },
+  {
+   "t": "If you want my full parts list and the firewall rules I used, they're in the pinned comment."
+  },
+  {
+   "t": "In the next video, I'm setting up a little server in the closet to run my own media library and backups, so stick around for that."
+  },
+  {
+   "t": "Thanks for watching, and I'll catch you next time."
+  }
+ ],
+ "segments": {
+  "A": {
+   "expect": "skip",
+   "category": "sponsor",
+   "brand": "Vaultra"
+  }
+ },
+ "noisy": {
+  "swaps": [
+   [
+    "Vaultra",
+    "vault ra"
+   ],
+   [
+    "VLANs",
+    "v lands"
+   ]
+  ]
+ }
+}

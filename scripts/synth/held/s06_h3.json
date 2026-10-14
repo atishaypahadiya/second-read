@@ -1,0 +1,138 @@
+{
+ "id": "s06_h3",
+ "scenario": 6,
+ "split": "held",
+ "lang": "en",
+ "title": "20-Minute Kettlebell Finisher (No Rest, Sorry)",
+ "creator": "Jess Okafor",
+ "description": "Five rounds, one bell, no rest. Scale the weight, not the effort.\n\nFull 8-week program playlist is on the channel.\n\nThanks to Brinewell for sponsoring! 25% off your first order with code JESS25 at brinewell.co\n\nMusic: licensed via the channel's library.",
+ "paid_promotion": false,
+ "sentences": [
+  {
+   "t": "And that's time, put the bell down, put it down, you're done."
+  },
+  {
+   "t": "Oh my gosh."
+  },
+  {
+   "t": "Okay, walk it out, don't just collapse on the floor, keep your legs moving for a minute."
+  },
+  {
+   "t": "That was five rounds of swings, goblet squats, and single arm presses, and I'm not going to lie, round four got me."
+  },
+  {
+   "t": "If you kept the same bell the whole way through, I'm genuinely proud of you."
+  },
+  {
+   "t": "If you had to drop down a size halfway, that is also completely fine, that's literally how you're supposed to scale this."
+  },
+  {
+   "t": "Let's talk about form for a second while we breathe, because I watched a lot of your clips from last week's challenge."
+  },
+  {
+   "t": "The biggest thing I saw on swings was people squatting the bell up instead of hinging."
+  },
+  {
+   "t": "The swing is a hip snap, it is not a front raise, your arms are basically ropes."
+  },
+  {
+   "t": "If your shoulders are burning more than your glutes, that's the sign."
+  },
+  {
+   "t": "On the goblet squats, keep that bell glued to your chest and let your elbows track inside your knees."
+  },
+  {
+   "t": "And on the presses, squeeze the opposite fist, it sounds weird, but it locks your whole side down and you'll press more."
+  },
+  {
+   "t": "Okay, let's get into a quick stretch, hip flexors first."
+  },
+  {
+   "t": "Drop into a half kneeling position, tuck your tailbone under, and just lean forward a little."
+  },
+  {
+   "t": "You should feel that right at the front of the hip, not in your lower back."
+  },
+  {
+   "t": "Hold that for thirty seconds and then switch sides."
+  },
+  {
+   "t": "Now a figure four on your back, ankle over the opposite knee, and pull that leg in gently."
+  },
+  {
+   "t": "This one is for your glutes, which, after fifty swings, are probably filing a complaint right now."
+  },
+  {
+   "t": "Now a child's pose, arms long, and just let your breathing slow down."
+  },
+  {
+   "t": "In through the nose, long breath out through the mouth, and let your heart rate come all the way back down."
+  },
+  {
+   "t": "I do this finisher twice a week on top of my normal lifting, and it has done more for my conditioning than any amount of jogging ever did."
+  },
+  {
+   "t": "And I hate jogging, so that's a win on two fronts."
+  },
+  {
+   "t": "If you want the full eight week program this is from, it's on the channel as a playlist, totally free."
+  },
+  {
+   "t": "Comment your bell weight below so we can all keep each other honest."
+  },
+  {
+   "t": "That's it for today, thank you so much for sweating with me, and I'll see you Thursday for lower body."
+  },
+  {
+   "t": "Bye, guys!"
+  },
+  {
+   "t": "Okay, actually, one last thing, and then I'll let you go stretch properly.",
+   "seg": "A",
+   "gap": 1.2
+  },
+  {
+   "t": "Today's video is in partnership with Brinewell, which is what's in this pink bottle I keep waving around.",
+   "seg": "A"
+  },
+  {
+   "t": "Brinewell is an electrolyte mix with a thousand milligrams of sodium and zero sugar, which matters a lot if you sweat the way I do.",
+   "seg": "A"
+  },
+  {
+   "t": "I used to get these awful headaches after long sessions, and getting my salt in properly is what finally fixed it.",
+   "seg": "A"
+  },
+  {
+   "t": "The watermelon one is my favorite, the lemon lime is a close second, and they dissolve without any of that gritty stuff at the bottom.",
+   "seg": "A"
+  },
+  {
+   "t": "You can get twenty-five percent off your first order with code JESS25 at brinewell dot co.",
+   "seg": "A"
+  },
+  {
+   "t": "That code is JESS25, and it's also pinned in the comments.",
+   "seg": "A"
+  }
+ ],
+ "segments": {
+  "A": {
+   "expect": "skip",
+   "category": "sponsor",
+   "brand": "Brinewell"
+  }
+ },
+ "noisy": {
+  "swaps": [
+   [
+    "Brinewell",
+    "brine well"
+   ],
+   [
+    "JESS25",
+    "jess 25"
+   ]
+  ]
+ }
+}

@@ -1,0 +1,172 @@
+{
+ "id": "s24_h2",
+ "scenario": 24,
+ "split": "held",
+ "lang": "en",
+ "title": "Bringing a Dead 1979 Datsun Back to Life | Part 3: Brakes",
+ "creator": "Rusty Knuckle Garage",
+ "description": "Part 3 of the Datsun 280ZX revival. Seized calipers, rotted lines, and a master cylinder that's been dry since the nineties.\n\nToday's video is sponsored by Ridge. Get 10% off with code KNUCKLE at ridge.com/knuckle\n\nParts list: rustyknucklegarage.com/datsun\nPart 1: Will it run?\nPart 2: Fuel system",
+ "paid_promotion": null,
+ "sentences": [
+  {
+   "t": "Welcome back to the garage, this is part three of the Datsun build, and today it's brakes."
+  },
+  {
+   "t": "If you missed the last one, we got her running, which was amazing, but she cannot currently stop, which is less amazing."
+  },
+  {
+   "t": "So the plan is front calipers, the rear drums, all the hard lines, and the master cylinder."
+  },
+  {
+   "t": "Let's start up front."
+  },
+  {
+   "t": "I've got the wheel off, and you can see the caliper here is just completely crusted over."
+  },
+  {
+   "t": "I'm going to crack the bleeder screw first, see if any fluid comes out."
+  },
+  {
+   "t": "Nothing."
+  },
+  {
+   "t": "Not a drop, which tells me the line is either clogged or completely empty."
+  },
+  {
+   "t": "Let's get the caliper off, two bolts, and these have been on here for forty years, so penetrating oil and patience."
+  },
+  {
+   "t": "There we go, and, oh yeah, look at that piston, it's seized solid."
+  },
+  {
+   "t": "Honestly, I'm not even going to try to rebuild these, new remanufactured calipers are about forty bucks each."
+  },
+  {
+   "t": "Alright, before we get into the hard lines, which is the part I'm dreading, a quick word from the sponsor of today's video, Ridge.",
+   "seg": "A",
+   "gap": 1.0
+  },
+  {
+   "t": "Ridge makes these slim metal wallets, and I've been carrying this one for about a year now.",
+   "seg": "A"
+  },
+  {
+   "t": "It holds up to twelve cards and some cash with this little clip on the back, and it's way thinner than the leather brick I used to sit on.",
+   "seg": "A"
+  },
+  {
+   "t": "It's also got RFID blocking, so nobody can scan your cards from your back pocket.",
+   "seg": "A"
+  },
+  {
+   "t": "And the best part for me, it's aluminum, so when I'm lying under a car with it in my pocket, it's not getting crushed or soaked in oil.",
+   "seg": "A"
+  },
+  {
+   "t": "They've got a lifetime warranty, and if you don't like it, you can return it within forty five days.",
+   "seg": "A"
+  },
+  {
+   "t": "Go to ridge dot com slash knuckle and use code KNUCKLE for ten percent off.",
+   "seg": "A"
+  },
+  {
+   "t": "That's ridge dot com slash knuckle, link in the description.",
+   "seg": "A"
+  },
+  {
+   "t": "Okay, hard lines.",
+   "gap": 0.9
+  },
+  {
+   "t": "So the original lines on this car run along the frame rail, and they're steel, and they are rotten."
+  },
+  {
+   "t": "You can see right here, it's bubbled and flaking, and if I press on it with a screwdriver, yep, it went right through."
+  },
+  {
+   "t": "So all of these are coming out, and I'm going to bend new ones from copper nickel, which is much easier to work with and won't rust."
+  },
+  {
+   "t": "The trick is to take the old line out in as few pieces as possible, so you can use it as a template."
+  },
+  {
+   "t": "I'm laying it on the bench, and I'll just follow the bends with the new line, using the tubing bender for the tight ones."
+  },
+  {
+   "t": "And then flaring the ends, which takes a bit of practice."
+  },
+  {
+   "t": "This is a double flare, you fold the end over on itself so it seals properly against the fitting."
+  },
+  {
+   "t": "That one's good, nice and even."
+  },
+  {
+   "t": "One down, five to go."
+  },
+  {
+   "t": "I'll speed this part up, because it took me most of Saturday."
+  },
+  {
+   "t": "Alright, all the lines are in, and now the master cylinder."
+  },
+  {
+   "t": "The old one's basically a fossil, so new one's going on, and I'm bench bleeding it first so I don't get air in the whole system."
+  },
+  {
+   "t": "Then fill her up and bleed every corner, starting with the one furthest from the master, that's the rear passenger side."
+  },
+  {
+   "t": "Pump, hold, open, close."
+  },
+  {
+   "t": "And there's fluid, clean fluid, no bubbles."
+  },
+  {
+   "t": "Okay, moment of truth, let's roll her out and try them."
+  },
+  {
+   "t": "And she stops."
+  },
+  {
+   "t": "She actually stops, that is a huge relief."
+  },
+  {
+   "t": "Big thanks again to Ridge for sponsoring this one, if you want a wallet that'll survive a garage, use code KNUCKLE for ten percent off at ridge dot com slash knuckle.",
+   "seg": "B",
+   "gap": 1.4
+  },
+  {
+   "t": "Next week is suspension, and the bushings on this thing are basically dust, so that'll be fun.",
+   "gap": 0.6
+  },
+  {
+   "t": "See you then."
+  }
+ ],
+ "segments": {
+  "A": {
+   "expect": "skip",
+   "category": "sponsor",
+   "brand": "Ridge"
+  },
+  "B": {
+   "expect": "skip",
+   "category": "sponsor",
+   "brand": "Ridge"
+  }
+ },
+ "noisy": {
+  "swaps": [
+   [
+    "Datsun",
+    "dot son"
+   ],
+   [
+    "caliper",
+    "Kali per"
+   ]
+  ]
+ }
+}

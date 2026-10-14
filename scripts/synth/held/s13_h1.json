@@ -1,0 +1,176 @@
+{
+ "id": "s13_h1",
+ "scenario": 13,
+ "split": "held",
+ "lang": "en",
+ "title": "I Tried to Hack My Own Password Manager",
+ "creator": "Ravi Menon",
+ "description": "Can you actually get into a password manager vault if you steal the file? I tried, on my own vault, with a deliberately bad master password and then a good one.\n\nNot sponsored. Tools used are all free and open source.\n\n0:00 The setup\n1:00 A quick note\n1:30 Cracking the weak vault\n3:00 The strong vault\n4:10 What this means for you",
+ "paid_promotion": false,
+ "sentences": [
+  {
+   "t": "So here's the question I keep getting in the comments."
+  },
+  {
+   "t": "If someone steals my password manager vault, can they actually open it?"
+  },
+  {
+   "t": "Today I'm going to find out, by attacking my own vault, on my own laptop."
+  },
+  {
+   "t": "The plan is pretty simple.",
+   "gap": 1.0
+  },
+  {
+   "t": "I made two brand new vaults, one with a terrible master password, and one with a long passphrase."
+  },
+  {
+   "t": "Then I exported the encrypted files, exactly like an attacker would get them in a breach."
+  },
+  {
+   "t": "And then I'm going to throw my gaming PC at them and see what happens."
+  },
+  {
+   "t": "Quick thing before we start, because I know someone will ask.",
+   "seg": "A",
+   "gap": 1.2
+  },
+  {
+   "t": "Password manager companies, including Bitwarden, which I'm using in this video, have sponsored videos on this channel in the past.",
+   "seg": "A"
+  },
+  {
+   "t": "This video is not one of them.",
+   "seg": "A"
+  },
+  {
+   "t": "Nobody paid for it, nobody from any of these companies has seen it, and if the vault falls apart, you're going to see it fall apart.",
+   "seg": "A"
+  },
+  {
+   "t": "Okay, that's it, that's the whole disclaimer.",
+   "seg": "A"
+  },
+  {
+   "t": "So, vault number one.",
+   "gap": 1.0
+  },
+  {
+   "t": "The master password is the name of my dog plus the year I was born, which is genuinely what a lot of people use."
+  },
+  {
+   "t": "I'm using a free tool called hashcat, which tries passwords really fast on a graphics card."
+  },
+  {
+   "t": "Now, the vault doesn't store your password directly, it runs it through something called a key derivation function, hundreds of thousands of times."
+  },
+  {
+   "t": "That's the whole point, it makes every single guess slow on purpose."
+  },
+  {
+   "t": "So instead of billions of guesses a second, my GPU is doing, let me check, a few thousand a second."
+  },
+  {
+   "t": "That sounds slow, right?"
+  },
+  {
+   "t": "But I gave it a word list of common names and years."
+  },
+  {
+   "t": "And it got in after about four minutes."
+  },
+  {
+   "t": "Four minutes.",
+   "gap": 0.8
+  },
+  {
+   "t": "That's the bit that should scare you, not the encryption."
+  },
+  {
+   "t": "The encryption did its job perfectly, it was my password that was rubbish."
+  },
+  {
+   "t": "Vault number two.",
+   "gap": 1.2
+  },
+  {
+   "t": "This time the master password is five random words with spaces, the kind you'd get from rolling dice."
+  },
+  {
+   "t": "Same tool, same graphics card, same settings."
+  },
+  {
+   "t": "And I'm just going to let it run overnight."
+  },
+  {
+   "t": "Okay, it's the next morning.",
+   "gap": 1.5
+  },
+  {
+   "t": "It tried something like two hundred million guesses."
+  },
+  {
+   "t": "It didn't get in."
+  },
+  {
+   "t": "And if I do the maths on how many combinations five random words actually have, at this speed it would take longer than the universe has existed."
+  },
+  {
+   "t": "So even with the file in hand, a strong passphrase basically makes it impossible."
+  },
+  {
+   "t": "What does this mean for you?",
+   "gap": 1.0
+  },
+  {
+   "t": "First, the master password is everything."
+  },
+  {
+   "t": "If it's short or guessable, the fancy encryption won't save you."
+  },
+  {
+   "t": "Second, turn on two-factor authentication for the account itself, because that stops people logging in even if they somehow guess it."
+  },
+  {
+   "t": "Third, don't reuse your master password anywhere else, ever, not even once."
+  },
+  {
+   "t": "And honestly, if you're not using a password manager at all, that's a bigger risk than any of this."
+  },
+  {
+   "t": "Reusing one password across forty websites is how most people actually get hacked."
+  },
+  {
+   "t": "I'll put the exact settings I used in the pinned comment, so you can try this on your own vault if you want.",
+   "gap": 1.0
+  },
+  {
+   "t": "Just make sure it's your own, please."
+  },
+  {
+   "t": "Next week I'm trying the same thing on the passwords saved in my browser, and I have a feeling that one is going to go badly."
+  },
+  {
+   "t": "See you then."
+  }
+ ],
+ "segments": {
+  "A": {
+   "expect": "none",
+   "category": "sponsor",
+   "brand": "Bitwarden"
+  }
+ },
+ "noisy": {
+  "swaps": [
+   [
+    "Bitwarden",
+    "bit warden"
+   ],
+   [
+    "hashcat",
+    "hash cat"
+   ]
+  ]
+ }
+}

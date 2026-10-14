@@ -1,0 +1,161 @@
+{
+ "id": "s12_h1",
+ "scenario": 12,
+ "split": "held",
+ "lang": "en",
+ "title": "Surfshark After One Year: Is It Actually Private?",
+ "creator": "Daniel Okafor",
+ "description": "I paid for a year of Surfshark with my own money and tested it the whole time. Leak tests, speed tests, the audit reports, and the stuff in the privacy policy nobody reads.\n\nI bought this subscription myself. No affiliate links in this description.\n\n0:00 Why I tested it\n0:50 Pricing and the renewal trap\n1:50 Speed\n2:50 Leak tests\n3:40 The audits\n4:20 Verdict",
+ "paid_promotion": false,
+ "sentences": [
+  {
+   "t": "So about a year ago I signed up for Surfshark, with my own card, and I've been using it every day since."
+  },
+  {
+   "t": "I wanted to answer one question, which is, is it actually private, or is it just a really good advert?"
+  },
+  {
+   "t": "Because you've seen the adverts, everyone has seen the adverts."
+  },
+  {
+   "t": "Let's start with what you actually pay.",
+   "gap": 1.0
+  },
+  {
+   "t": "Surfshark's headline price is the two-year plan, which works out to a couple of dollars a month, and that's the number you see everywhere.",
+   "seg": "A"
+  },
+  {
+   "t": "But that price is billed up front, so you're handing over the full two years in one go.",
+   "seg": "A"
+  },
+  {
+   "t": "And here's the part people miss, when the two years end, Surfshark renews you at the regular yearly rate, which is quite a bit higher.",
+   "seg": "A"
+  },
+  {
+   "t": "I checked my own account and the renewal date was already set, auto-renew switched on by default.",
+   "seg": "A"
+  },
+  {
+   "t": "So if you do get Surfshark, put a reminder in your calendar for about a month before it renews, because that's when the discount disappears.",
+   "seg": "A"
+  },
+  {
+   "t": "To be fair to Surfshark, the cancel button was easy to find, it wasn't buried five menus deep like some services I won't name.",
+   "seg": "A"
+  },
+  {
+   "t": "Okay, speed.",
+   "gap": 1.2
+  },
+  {
+   "t": "I ran tests from my flat in Leeds every week, connecting to London, Amsterdam and New York."
+  },
+  {
+   "t": "On my normal connection I get about a hundred and fifty down."
+  },
+  {
+   "t": "Connected to London, I averaged around a hundred and thirty, which is genuinely good."
+  },
+  {
+   "t": "Amsterdam was a bit lower, maybe a hundred and ten."
+  },
+  {
+   "t": "New York was all over the place, sometimes sixty, sometimes ninety, depending on the time of day."
+  },
+  {
+   "t": "So it's fast, but it's not magic, distance still matters."
+  },
+  {
+   "t": "Now the part I actually care about, leaks.",
+   "gap": 1.0
+  },
+  {
+   "t": "I ran DNS leak tests and WebRTC tests on three browsers, about once a month."
+  },
+  {
+   "t": "Every single test came back clean, no leaks, which is what you'd hope for."
+  },
+  {
+   "t": "I also tried the kill switch by just yanking my router's power while connected."
+  },
+  {
+   "t": "On Windows it worked perfectly, the internet cut out until the tunnel came back."
+  },
+  {
+   "t": "On my Android phone, though, I had one time in twelve where it reconnected without the tunnel for a few seconds."
+  },
+  {
+   "t": "One in twelve is not a lot, but if your threat model is serious, that's worth knowing."
+  },
+  {
+   "t": "Then there are the audits.",
+   "gap": 1.0
+  },
+  {
+   "t": "The company has had independent audits of its no-logs claims, and I read the summaries."
+  },
+  {
+   "t": "And I want to be careful here, because an audit is a snapshot."
+  },
+  {
+   "t": "It tells you that on the day they looked, the servers matched what the policy said."
+  },
+  {
+   "t": "It doesn't tell you what happens next year, or what happens if a government knocks on the door."
+  },
+  {
+   "t": "That's true for every VPN, not just this one."
+  },
+  {
+   "t": "I also read the privacy policy, all of it, which took me about forty minutes and a lot of tea."
+  },
+  {
+   "t": "They do collect your email and payment info, obviously, and some anonymous crash data in the apps, which you can switch off in settings."
+  },
+  {
+   "t": "So, verdict after a year.",
+   "gap": 1.1
+  },
+  {
+   "t": "Is it private?"
+  },
+  {
+   "t": "For normal people who want to stop their internet provider seeing every site they visit, or use public wifi without worrying, yeah, I think it does the job."
+  },
+  {
+   "t": "Is it some invisibility cloak against anyone who really wants to find you?"
+  },
+  {
+   "t": "No, and no VPN is."
+  },
+  {
+   "t": "The thing that annoyed me most wasn't the tech, it was the pricing, that renewal jump is real."
+  },
+  {
+   "t": "I'll be cancelling mine and switching to a different provider for a year, so I can do the same test and compare them properly."
+  },
+  {
+   "t": "If there's one you want me to try, put it in the comments."
+  },
+  {
+   "t": "Cheers for watching."
+  }
+ ],
+ "segments": {
+  "A": {
+   "expect": "none",
+   "category": "sponsor",
+   "brand": "Surfshark"
+  }
+ },
+ "noisy": {
+  "swaps": [
+   [
+    "Surfshark",
+    "surf shark"
+   ]
+  ]
+ }
+}
