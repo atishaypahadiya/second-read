@@ -113,11 +113,13 @@ def run_video(entry, allow_model):
     server.cache_valid = lambda *a, **k: False  # always re-process (reusing cached calls)
     server.jobs.clear()  # entries may share a video (with and without metadata)
     m = entry.get("meta") or {}
-    if m == "cached":   # the request metadata as the extension sent it, kept in the (gitignored) cache file
+    if m == "cached" or (isinstance(m, dict) and m.get("cached")):
+        # the request metadata as the extension sent it, kept in the (gitignored) cache file; a dict with "cached": true
+        # adds to it (e.g. a stand-in analysis track)
         c = cached.get("meta") or {}
         m = {"title": cached.get("title", ""), "creator": c.get("creator", ""), "kind": c.get("kind", ""),
              "channelId": c.get("channelId", ""), "duration": c.get("duration"), "paidPromotion": c.get("paidPromotion"),
-             "description": c.get("description", "")}
+             "description": c.get("description", ""), **({k: v for k, v in m.items() if k != "cached"} if isinstance(m, dict) else {})}
     meta = {"creator": m.get("creator", entry.get("creator", "")), "kind": m.get("kind", ""), "tag": "REGRESS",
             "channel_id": m.get("channelId", ""), "duration": m.get("duration"),
             "paid_promotion": m.get("paidPromotion") if isinstance(m.get("paidPromotion"), bool) else None,
@@ -149,10 +151,13 @@ def run_video(entry, allow_model):
 
 
 def row_kind(entry):
-    """verified (a human checked the expectations against the video), snapshot (the pipeline's own output when the
-    row was added: a change guard, not truth) or label (replayed and printed, not checked: nobody has labeled it)."""
+    """verified (a human checked the expectations against the video), transcript (labeled from a reading of the
+    transcript, independent of the pipeline's output, not checked by a human), snapshot (the pipeline's own output when
+    the row was added: a change guard, not truth) or label (replayed and printed, not checked: nobody has labeled it)."""
     if entry.get("source") == "needs-label":
         return "label"
+    if entry.get("source") == "transcript-labeled":
+        return "transcript"
     return "snapshot" if entry.get("verified") is False else "verified"
 
 
@@ -205,9 +210,11 @@ def check(entry, segments):
         tol = e.get("tol", DEFAULT_TOL)
         hit = None
         for i, s in enumerate(segments):
-            # start may be later than expected by start_late_ok (a later start is the safe direction), never earlier
+            # start may be later than expected by start_late_ok, end earlier by end_early_ok (both the safe direction:
+            # a little ad plays), never the other way
             start_ok = -tol <= s["start"] - e["start"] <= tol + e.get("start_late_ok", 0)
-            if s["action"] == e["action"] and start_ok and abs(s["end"] - e["end"]) <= tol \
+            end_ok = -tol - e.get("end_early_ok", 0) <= s["end"] - e["end"] <= tol
+            if s["action"] == e["action"] and start_ok and end_ok \
                     and (not e.get("category") or s.get("category") == e["category"]):
                 hit = i
                 break
@@ -623,7 +630,7 @@ def main():
     if allow_model:
         keep_model_outputs(video_ids, store)
     shutil.rmtree(DATA_DIR, ignore_errors=True)
-    SHORT = {"verified": "ver", "snapshot": "snap", "label": "label"}
+    SHORT = {"verified": "ver", "transcript": "trans", "snapshot": "snap", "label": "label"}
     print(f"{'video':22} {'creator':14} {'kind':5} {'result':6} {'time':>6}  details")
     print("-" * 116)
     for vid, cr, res, details, dt, kind in rows:
@@ -639,7 +646,8 @@ def main():
     def tally(kind):
         mine = [r for r in rows if r[5] == kind]
         return f"{sum(1 for r in mine if r[2] == 'PASS')}/{len(mine)}"
-    print(f"video rows: {tally('verified')} verified, {tally('snapshot')} snapshot (the pipeline's own output, not truth), "
+    print(f"video rows: {tally('verified')} verified, {tally('transcript')} transcript-labeled (not human-checked), "
+          f"{tally('snapshot')} snapshot (the pipeline's own output, not truth), "
           f"{labels} need a label (replayed, not checked)")
     sys.exit(1 if failures else 0)
 

@@ -1,5 +1,5 @@
 {
-  "_comment": "Machine-readable expectations for scripts/regress.py. Times in seconds; tol = +-seconds (default 1.5). 'category' is checked when given. 'forbid' ranges must not overlap any segment; must_not_skip = zero skip segments. Keep in sync with testset.md. 'start_late_ok' allows a later-than-expected start by that many seconds. An entry may carry 'meta' (title, creator, channelId, kind, description, paidPromotion, duration) sent with the request, an 'id' when the same video appears twice, and 'expect_meta' (hints, brand, creator, duration, disclosure) checked against the job and the stats row. Rows are human-verified unless they say \"verified\": false. \"source\": \"pipeline-snapshot\" rows expect what the pipeline produced when they were added (a change guard, not truth); \"source\": \"needs-label\" rows are replayed and printed but not checked until someone labels them ('question' says what to label).",
+  "_comment": "Machine-readable expectations for scripts/regress.py. Times in seconds; tol = +-seconds (default 1.5). 'category' is checked when given. 'forbid' ranges must not overlap any segment; must_not_skip = zero skip segments. Keep in sync with testset.md. 'start_late_ok' allows a later-than-expected start by that many seconds, 'end_early_ok' an earlier end. An entry may carry 'meta' (title, creator, channelId, kind, description, paidPromotion, duration) sent with the request, an 'id' when the same video appears twice, and 'expect_meta' (hints, brand, creator, duration, disclosure) checked against the job and the stats row. Rows are human-verified unless they say \"verified\": false. \"source\": \"transcript-labeled\" rows were labeled from a reading of the transcript, independent of the pipeline's output, and not checked by a human. \"source\": \"pipeline-snapshot\" rows expect what the pipeline produced when they were added (a change guard, not truth); \"source\": \"needs-label\" rows are replayed and printed but not checked until someone labels them ('question' says what to label).",
   "videos": [
     {
       "video": "dU7gCt-7kKk",
@@ -596,10 +596,24 @@
       "creator": "fern",
       "meta": "cached",
       "verified": false,
-      "source": "needs-label",
-      "question": "Two DeleteMe segments: the read 5:32-6:13 and a reminder 24:40-24:49 ('Thanks again to DeleteMe for supporting this video... 20% off'). Looks like really two. Confirm both and the bounds (the read's last line 'Scan this QR code or hit the link in the description' at 6:13 is not in the skip). Canonical brand shows 'Joindeleteme'.",
-      "note": "The Scariest Building in Europe. Replay at snapshot time: skip sponsor 5:32.4-6:12.9 'DeleteMe'; skip sponsor 24:40.2-24:48.9 'DeleteMe'.",
-      "expect": []
+      "source": "transcript-labeled",
+      "note": "The Scariest Building in Europe. Labeled from the transcript: two DeleteMe ads. The read runs from the segue 'But there's your way out of this shady data labyrinth.' (5:28.8) to 'Scan this QR code or hit the link in the description.' (ends 6:16.9); the reminder 'Thanks again to DeleteMe for supporting this video... joindeme.com/fern.' 24:40.2-24:49.0. The skip may start up to 4 s late and end up to 4.5 s early (the safe direction): at labeling time it ran 5:32.4-6:12.9.",
+      "expect": [
+        {
+          "action": "skip",
+          "category": "sponsor",
+          "start": 328.83,
+          "end": 376.9,
+          "start_late_ok": 4,
+          "end_early_ok": 4.5
+        },
+        {
+          "action": "skip",
+          "category": "sponsor",
+          "start": 1480.21,
+          "end": 1489.0
+        }
+      ]
     },
     {
       "video": "yS0ML6cwEYQ",

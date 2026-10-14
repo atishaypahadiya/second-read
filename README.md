@@ -254,16 +254,18 @@ separately:
 - **verified** (13 rows, 9 videos): expectations checked against the video by
   a person, including three variants of one video with different request
   metadata and one with a stand-in English analysis track;
+- **transcript-labeled** (1 row): labeled from a reading of the transcript,
+  independent of what the pipeline produced, not checked against the audio by
+  a person; never counted as verified;
 - **snapshot** (12 rows, 12 videos): what the pipeline produced when the row
   was added, marked `"verified": false, "source": "pipeline-snapshot"`. A
   snapshot row catches a change, not an error: a wrong result snapshotted
   stays wrong until someone labels it;
-- **needs label** (4 rows): replayed and printed, not checked, until someone
-  labels them (a known false positive, a misnamed brand, a split read, a
-  missed ad).
+- **needs label** (3 rows): replayed and printed, not checked, until someone
+  labels them.
 
 It also runs 57 rule checks and the extension wiring test. At versions detect
-3, refine 3, post 6, lead-in 2 all 13 verified and 12 snapshot rows pass. The
+3, refine 3, post 6, lead-in 2 all verified, transcript-labeled and snapshot rows pass. The
 expectations were written from the same videos the prompt and thresholds were
 tuned on, so a pass says nothing has regressed and nothing about unseen
 videos.
