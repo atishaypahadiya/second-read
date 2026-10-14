@@ -43,8 +43,8 @@ everything runs on Atishay's M4 Pro MacBook.
   video is seen: YouTube does not always return the same captions for a video, and re-watching a test video
   rewrites its cache file, which moved an expectation once (`vGoRpjE-svI`, first line at 0:11 instead of 0:15).
   Delete a video's entry from that file to re-freeze it from the cache.
-  **Four kinds of rows**, reported separately (`video rows: 13/13 verified, 1/1 transcript-labeled, 12/12 snapshot,
-  3 need a label`): verified (a person checked the expectations against the video; the default), `"verified": false,
+  **Four kinds of rows**, reported separately (`video rows: 13/13 verified, 2/2 transcript-labeled, 12/12 snapshot,
+  2 need a label`): verified (a person checked the expectations against the video; the default), `"verified": false,
   "source": "transcript-labeled"` (labeled from a reading of the transcript, independent of the pipeline's output, not
   checked by a person), `"verified": false, "source": "pipeline-snapshot"` (the pipeline's output when the row was
   added: catches changes, not errors) and `"source": "needs-label"` (replayed and printed with its `question`, never
@@ -353,6 +353,9 @@ Every GET/POST for a video counts as a poll.
     speech for ≥ 4s at the start), `outro` (closing phrases in the final 60s), `recap` ("previously", "coming up",
     "in this video we'll", …). Charity rule: a charity paying for the spot = sponsor; the creator's own fundraiser =
     charity.
+    **Enforced in code** (`paid_spot`, post v8): a `charity` segment whose quote or first lines carry sponsorship
+    language ("brought to you by", "sponsored by", "supported by", …) becomes `sponsor`/`read`: the model labeled
+    Cancer Research UK's "This episode is brought to you by…" as charity (yS0ML6cwEYQ).
   - style: `read | integration` (meaningful for sponsor)
 - **Rubric (system prompt):**
   - sponsor = any third-party brand; a creator-specific code or link is the standard sponsor pattern, not selfpromo.

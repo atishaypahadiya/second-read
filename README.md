@@ -168,7 +168,7 @@ are the pipeline's own output and never count as verified.
 | `affiliate` | model | label | built |
 | `membership` | model | label | built |
 | `crosspromo` | model | label | built |
-| `charity` | model; a charity paying for the spot is `sponsor` | label | built |
+| `charity` | model; a charity paying for the spot is `sponsor` (a rule enforces it when the spot uses sponsorship language) | label | built |
 | `giveaway` | model | label | built |
 | `interaction` (like, subscribe, bell) | rules: phrases | label | built |
 | `intro` | rule: no speech for 4 s or more at the start | label | built; in the regression set, no verdict |
@@ -254,14 +254,14 @@ separately:
 - **verified** (13 rows, 9 videos): expectations checked against the video by
   a person, including three variants of one video with different request
   metadata and one with a stand-in English analysis track;
-- **transcript-labeled** (1 row): labeled from a reading of the transcript,
+- **transcript-labeled** (2 rows): labeled from a reading of the transcript,
   independent of what the pipeline produced, not checked against the audio by
   a person; never counted as verified;
 - **snapshot** (12 rows, 12 videos): what the pipeline produced when the row
   was added, marked `"verified": false, "source": "pipeline-snapshot"`. A
   snapshot row catches a change, not an error: a wrong result snapshotted
   stays wrong until someone labels it;
-- **needs label** (3 rows): replayed and printed, not checked, until someone
+- **needs label** (2 rows): replayed and printed, not checked, until someone
   labels them.
 
 It also runs 57 rule checks and the extension wiring test. At versions detect
