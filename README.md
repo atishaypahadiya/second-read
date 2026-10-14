@@ -565,4 +565,12 @@ without a sponsor.
 Built, not yet checked against a video by a human: everything else in the
 Coverage table and the items under Limitations.
 
-Held-out evaluation: not run.
+Release: `v1.0` is `d4af8de`. It differs from `v1.0-candidate` (`102467c`, the code the
+synthetic HELD run used) only by a type-narrowing guard in `cue_word_times` and a renamed
+test helper, and replays identically: with stored model outputs only, every segment
+(start, end, action, category, brand) of all 156 DEV runs and of 24 of the 28 cached real
+videos is the same under both commits, and so is the regression output. The other 4 real
+videos cannot replay without a model call; the changed function never runs for 3 of them
+(no sponsor-titled chapter), and the 4th is covered by its regression row.
+
+Held-out evaluation (real videos): not run.
