@@ -316,8 +316,10 @@ Every GET/POST for a video counts as a poll.
   creator's own chapter label over the evidence gate (a description is page-supplied); it is bounded by the chapter
   and the 4-minute cap.
 - **Hint fast path:** transcript lines that mention a hint term (brand/code/domain, ≥ 4 chars) are clustered (gap
-  ≤ 120s) into regions that go **straight to refine** as candidates (`source: hint`); detect windows overlapping a
-  region ± 60s are skipped. Regions run before any detect window.
+  ≤ 40s; it was 120 s, and a read plus its end reminder, or a usage plus its pitch, became one region and one skip
+  over the content between) into regions that go **straight to refine** as candidates (`source: hint`). Regions run
+  before any detect window; detect windows overlapping a region ± 60s run after them, still (post v13: the
+  description often names one of several sponsors, and the others were never detected). Synthetic suite, s21/s24.
 - **Merged refine + boundaries:** the refine call also returns `first_words` / `last_words` (3–5 verbatim words at
   the ad's start and end). If each phrase occurs exactly once in the boundary context (±1 line) they are used as the
   word picks, saving the separate word pass; otherwise the labeled word pass runs as the retry. Non-English videos
