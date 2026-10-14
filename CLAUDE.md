@@ -43,7 +43,7 @@ everything runs on Atishay's M4 Pro MacBook.
   video is seen: YouTube does not always return the same captions for a video, and re-watching a test video
   rewrites its cache file, which moved an expectation once (`vGoRpjE-svI`, first line at 0:11 instead of 0:15).
   Delete a video's entry from that file to re-freeze it from the cache.
-  **Four kinds of rows**, reported separately (`video rows: 13/13 verified, 3/3 transcript-labeled, 12/12 snapshot,
+  **Four kinds of rows**, reported separately (`video rows: 13/13 verified, 4/4 transcript-labeled, 11/11 snapshot,
   1 needs a label`): verified (a person checked the expectations against the video; the default), `"verified": false,
   "source": "transcript-labeled"` (labeled from a reading of the transcript, independent of the pipeline's output, not
   checked by a person), `"verified": false, "source": "pipeline-snapshot"` (the pipeline's output when the row was
@@ -398,6 +398,8 @@ Every GET/POST for a video counts as a poll.
   - Word pass fallback is inward only: invalid pick → retry once → start = end of first ad line, end = start of
     last ad line; if < 3s remains, downgrade to `show`. Never fall back outward to a line end.
   - Merge overlapping or touching (gap ≤ 1s) segments with the same action and brand.
+  - **A skip shorter than `MIN_SKIP_S` (5 s) is labeled instead** (post v10): "Part of this video is sponsored by
+    Shopify." (bCmwCkNY85g, 2 s, no read anywhere in the captions) is a disclosure line; a seek that short gains nothing.
   - **Post-filter** (keep/show only; skips are never dropped here, only logged): drop if evidence/reason reads like
     a sponsor disclaimer; drop if the brand appears in the video title or is mentioned in ≥ 3 transcript lines
     outside the segment (it's the subject); **drop a `sponsor` keep/show that has no ad marker**; drop `show` below

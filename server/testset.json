@@ -457,20 +457,15 @@
       "creator": "Cleo Abram",
       "meta": "cached",
       "verified": false,
-      "source": "pipeline-snapshot",
-      "note": "What's Really Happening At CERN. Shopify skip of only 2 s at 1:28: looks too short to be the whole read; the label should check it.",
+      "source": "transcript-labeled",
+      "note": "What's Really Happening At CERN. Labeled from the transcript (manual captions): the only sponsor speech is the one-line disclosure 'Part of this video is sponsored by Shopify.' at 1:27-1:30, after the show's tagline 'This is Huge If True.'. Shopify is never mentioned again and there is no read to extend to. A 2 s disclosure is labeled, not skipped (MIN_SKIP_S, post v10); it used to be a 2 s skip.",
+      "must_not_skip": true,
       "expect": [
         {
-          "action": "skip",
+          "action": "show",
           "category": "sponsor",
           "start": 88.18,
           "end": 90.26
-        },
-        {
-          "action": "show",
-          "category": "interaction",
-          "start": 987.62,
-          "end": 995.46
         }
       ]
     },

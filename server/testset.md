@@ -28,7 +28,6 @@ verdict here turns a row into a verified one.
 | kS-CGkiPetQ | Veritasium | en | manual | SKIP Boot.dev 8:40–9:41 | | manual captions, estimated word times |
 | RDoVLHaYfgM | Cleo Abram | en | manual | SKIP Ground News 7:13–8:12 | | |
 | iX6w1P60m8M | Cleo Abram | en | asr | SKIP Rhinoshield 7:11–8:28 | | |
-| bCmwCkNY85g | Cleo Abram | en | manual | SKIP Shopify 1:28–1:30 | | 2 s: probably not the whole read |
 | E1BeAUHnLIg | Mrwhosetheboss | en | asr | SKIP Eight Sleep 11:17–11:59 | | |
 | vpn3VmGvIXA | TBJZL | en | asr | nothing | | only the creator's own links |
 | g5BMdEpLLZE | Untriggered | ar (really en) | asr | nothing | | podcast; track labeled `ar` by an as-is read |
@@ -47,6 +46,7 @@ what the pipeline produced; nobody has checked them against the audio. Reported 
 | 4zxG_oUxBg4 | fern | SKIP DeleteMe read 5:28.8–6:16.9 (from the segue "But there's your way out…" to "…link in the description."); SKIP reminder 24:40.2–24:49.0 | the skip may start ≤ 4 s late / end ≤ 4.5 s early |
 | yS0ML6cwEYQ | The Rest Is Science | SKIP Cancer Research UK read 1:37.0–2:51.2 | a charity paying for the spot; was missed before post v8 |
 | FBeMrUWX73s | RAINBOLT | NOTHING: no ad; 61:42–62:02 ("got all kinds of uh sponsors") is an interview about a community project | was kept as a "Sponsors" integration before post v9 |
+| bCmwCkNY85g | Cleo Abram | LABEL (no skip) the disclosure 'Part of this video is sponsored by Shopify.' 1:28–1:30; no read in the captions | was a 2 s skip before post v10 |
 
 ### Needs a label (replayed, not checked)
 

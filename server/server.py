@@ -75,7 +75,7 @@ KEEP_ALIVE = -1                                       # keep the model loaded be
 # Rubric changes in SYSTEM_PROMPT affect both passes: bump DETECT and REFINE.
 DETECT_VERSION = 3
 REFINE_VERSION = 3
-POST_VERSION = 9
+POST_VERSION = 10
 LEADIN_VERSION = 2   # the lead-in check: LEADIN_PROMPT / LEADIN_SYSTEM, the sentences it is shown, its caps
 NUM_CTX = 8192
 LLM_TIMEOUT_S = 600
@@ -94,6 +94,7 @@ MERGE_GAP_S = 1.0           # merge same-action, same-brand segments this close
 MIN_SKIP_S = 3.0            # a skip shorter than this after inward fallback is too uncertain -> show
 SNAP_GAP_S = 0.25           # an inter-word gap this long counts as a pause
 SNAP_FORWARD_MAX_S = 5.0    # never move a start later than this to find a clean cut
+MIN_SKIP_S = 5.0            # a skip shorter than this is a one-line disclosure, not a read: labeled instead
 TOPIC_MENTIONS = 3          # brand mentioned in this many lines outside the segment -> it's the subject
 HINT_CLUSTER_GAP_S = 120.0  # transcript mentions of a description hint closer than this form one region
 HINT_REGION_PAD_S = 60.0    # detect windows overlapping a hint region (+- this) are skipped: refine runs directly
@@ -2159,6 +2160,13 @@ def finalize(job, verbose):
     state = disclosure_state(job.get("paid_promotion"), job.get("disclosed"))
     for x in post_filter(merge_segments(kept), job["title"], job["alines"], verbose, job.get("terms") or (),
                          job.get("paid_promotion")):
+        if x.get("action") == "skip" and x["end"] - x["start"] < MIN_SKIP_S:
+            # "Part of this video is sponsored by Shopify." (bCmwCkNY85g, 2 s) is a disclosure line, not a read: a seek
+            # that short gains nothing and jars. A label instead. (A copy: the lead-in check may still lengthen it.)
+            if verbose:
+                log(f"  filter: {fmt_time(x['start'])}-{fmt_time(x['end'])} {x.get('brand')!r} is {x['end'] - x['start']:.1f}s "
+                    f"(< {MIN_SKIP_S:.0f}s): a disclosure line, labeled instead of skipped")
+            x = {**x, "action": "show", "reason": f"[under {MIN_SKIP_S:.0f}s: a disclosure, not a read] {x.get('reason', '')}"[:1000]}
         x.pop("undisclosed", None)
         if x.get("category") == "sponsor" and x.get("style") == "read":
             x["disclosure"] = state
