@@ -148,6 +148,20 @@ def run_video(entry, allow_model):
     return job, None
 
 
+def row_kind(entry):
+    """verified (a human checked the expectations against the video), snapshot (the pipeline's own output when the
+    row was added: a change guard, not truth) or label (replayed and printed, not checked: nobody has labeled it)."""
+    if entry.get("source") == "needs-label":
+        return "label"
+    return "snapshot" if entry.get("verified") is False else "verified"
+
+
+def produced(job):
+    """What the pipeline found, for a row nobody has labeled yet."""
+    return [f"{s['action']} {s.get('category')} {server.fmt_time(s['start'])}-{server.fmt_time(s['end'])} {s.get('brand')!r}"
+            f" ({s.get('confidence')})" for s in job["segments"]] or ["nothing found"]
+
+
 def check_meta(entry, job):
     """expect_meta: what the server must have derived from the request metadata (hints, canonical brand, stats row)."""
     out = []
@@ -580,39 +594,53 @@ def main():
             r = subprocess.run([node, os.path.join(ROOT, "scripts", "wiring_test.js")], capture_output=True, text=True)
             out = [l.strip() for l in (r.stdout + r.stderr).strip().splitlines() if l.strip()] or ["(no output)"]
             failures += 0 if r.returncode == 0 else 1
-            rows.append(("wiring", "extension", "PASS" if r.returncode == 0 else "FAIL", out, time.time() - t0))
+            rows.append(("wiring", "extension", "PASS" if r.returncode == 0 else "FAIL", out, time.time() - t0, ""))
         else:
-            rows.append(("wiring", "extension", "SKIP", ["not run: node not found"], 0.0))
+            rows.append(("wiring", "extension", "SKIP", ["not run: node not found"], 0.0, ""))
     if not args:
         t0 = time.time()
         results = unit_checks()
         bad = [m for ok, m in results if not ok]
         failures += 1 if bad else 0
-        rows.append(("rules", "server", "FAIL" if bad else "PASS", bad or [f"{len(results)} rule checks ok (cleaning, end snap, lead-in, stored result, ad markers, hints, halls, brands, codes, tier-2 quotes, disclosure)"], time.time() - t0))
+        rows.append(("rules", "server", "FAIL" if bad else "PASS", bad or [f"{len(results)} rule checks ok (cleaning, end snap, lead-in, stored result, ad markers, hints, halls, brands, codes, tier-2 quotes, disclosure)"], time.time() - t0, ""))
     for e in entries:
         t0 = time.time()
         label = e.get("id", e["video"])
+        kind = row_kind(e)
         job, err = run_video(e, allow_model)
+        if kind == "label":   # not checked: printed so the labeler sees what the pipeline does now
+            rows.append((label, e.get("creator", ""), "LABEL", [f"needs a label: {e.get('question', '')}"]
+                         + ([f"not run: {err}"] if err else [f"now: {p}" for p in produced(job)]), time.time() - t0, kind))
+            continue
         if err:
-            rows.append((label, e.get("creator", ""), "SKIP", [f"not run: {err}"], time.time() - t0))
+            rows.append((label, e.get("creator", ""), "SKIP", [f"not run: {err}"], time.time() - t0, kind))
             continue
         results = check(e, job["segments"]) + check_forbid(e, job["segments"]) + check_published(e, job) + check_meta(e, job)
         ok = all(r[0] for r in results)
         failures += 0 if ok else 1
-        rows.append((label, e.get("creator", ""), "PASS" if ok else "FAIL", [m for _, m in results], time.time() - t0))
+        rows.append((label, e.get("creator", ""), "PASS" if ok else "FAIL", [m for _, m in results] or ["nothing expected, no skip"],
+                     time.time() - t0, kind))
     if allow_model:
         keep_model_outputs(video_ids, store)
     shutil.rmtree(DATA_DIR, ignore_errors=True)
-    print(f"{'video':22} {'creator':14} {'result':6} {'time':>6}  details")
-    print("-" * 110)
-    for vid, cr, res, details, dt in rows:
-        print(f"{vid:22} {cr[:14]:14} {res:6} {dt:5.1f}s  {details[0]}")
+    SHORT = {"verified": "ver", "snapshot": "snap", "label": "label"}
+    print(f"{'video':22} {'creator':14} {'kind':5} {'result':6} {'time':>6}  details")
+    print("-" * 116)
+    for vid, cr, res, details, dt, kind in rows:
+        print(f"{vid:22} {cr[:14]:14} {SHORT.get(kind, ''):5} {res:6} {dt:5.1f}s  {details[0]}")
         for d in details[1:]:
-            print(f"{'':22} {'':14} {'':6} {'':>6}  {d}")
+            print(f"{'':22} {'':14} {'':5} {'':6} {'':>6}  {d}")
     skipped = sum(1 for r in rows if r[2] == "SKIP")
-    print("-" * 110)
-    print(f"{len(rows) - failures - skipped} passed, {failures} failed, {skipped} not run"
+    labels = sum(1 for r in rows if r[2] == "LABEL")
+    print("-" * 116)
+    print(f"{len(rows) - failures - skipped - labels} passed, {failures} failed, {skipped} not run"
           f"  (versions detect={server.DETECT_VERSION} refine={server.REFINE_VERSION} post={server.POST_VERSION})")
+
+    def tally(kind):
+        mine = [r for r in rows if r[5] == kind]
+        return f"{sum(1 for r in mine if r[2] == 'PASS')}/{len(mine)}"
+    print(f"video rows: {tally('verified')} verified, {tally('snapshot')} snapshot (the pipeline's own output, not truth), "
+          f"{labels} need a label (replayed, not checked)")
     sys.exit(1 if failures else 0)
 
 

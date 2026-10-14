@@ -157,7 +157,8 @@ strength of a field the client failed to send.
 
 Every category the server can emit. "Verified live" means a human verdict of
 `ok` in `server/testset.md`; a segment that only appeared in a run, with nobody
-checking it against the video, is "built".
+checking it against the video, is "built". Snapshot rows in the regression set
+are the pipeline's own output and never count as verified.
 
 | Category | Detected by | Default action | Status |
 | --- | --- | --- | --- |
@@ -244,16 +245,28 @@ at the time, including runs from before bugs were fixed. It drives the popup
 and the dashboard. It is diagnostic only and is never reported as a result.
 
 `scripts/regress.py` is a regression check, not an accuracy measurement. It
-replays the ten videos of `server/testset.json` (plus three variants of one
-video with different request metadata, and one with a stand-in English
-analysis track) through the real pipeline from stored
+replays `server/testset.json` through the real pipeline from stored
 transcripts and stored model outputs, with zero model calls, and checks
 expected segments within 1.5 s, that must-not-skip videos have no skip, and
-that forbidden ranges stay empty. It also runs 57 rule checks and the
-extension wiring test. All sixteen rows pass at versions detect 3, refine 3,
-post 6, lead-in 2. The expectations were written from the same videos the prompt and
-thresholds were tuned on, so a pass says nothing has regressed and nothing
-about unseen videos.
+that forbidden ranges stay empty. Its video rows come in three kinds, reported
+separately:
+
+- **verified** (13 rows, 9 videos): expectations checked against the video by
+  a person, including three variants of one video with different request
+  metadata and one with a stand-in English analysis track;
+- **snapshot** (12 rows, 12 videos): what the pipeline produced when the row
+  was added, marked `"verified": false, "source": "pipeline-snapshot"`. A
+  snapshot row catches a change, not an error: a wrong result snapshotted
+  stays wrong until someone labels it;
+- **needs label** (4 rows): replayed and printed, not checked, until someone
+  labels them (a known false positive, a misnamed brand, a split read, a
+  missed ad).
+
+It also runs 57 rule checks and the extension wiring test. At versions detect
+3, refine 3, post 6, lead-in 2 all 13 verified and 12 snapshot rows pass. The
+expectations were written from the same videos the prompt and thresholds were
+tuned on, so a pass says nothing has regressed and nothing about unseen
+videos.
 
 The held-out evaluation has not been run. No accuracy figure is claimed
 anywhere in this repository. The protocol, when it is run:
@@ -469,7 +482,7 @@ hundred; when it is wrong in the costly direction it removes up to 6 seconds
 of content before an ad.
 
 The pipeline has been tested by one person on a small set of channels. The
-test set is ten videos, the prompt and thresholds were tuned on them, and the
+verified test set is nine videos, the prompt and thresholds were tuned on them, and the
 held-out evaluation has not been run. Several categories have never been
 checked against a video by a human.
 

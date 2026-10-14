@@ -1,5 +1,5 @@
 {
-  "_comment": "Machine-readable expectations for scripts/regress.py. Times in seconds; tol = +-seconds (default 1.5). 'category' is checked when given. 'forbid' ranges must not overlap any segment; must_not_skip = zero skip segments. Keep in sync with testset.md. 'start_late_ok' allows a later-than-expected start by that many seconds. An entry may carry 'meta' (title, creator, channelId, kind, description, paidPromotion, duration) sent with the request, an 'id' when the same video appears twice, and 'expect_meta' (hints, brand, creator, duration, disclosure) checked against the job and the stats row.",
+  "_comment": "Machine-readable expectations for scripts/regress.py. Times in seconds; tol = +-seconds (default 1.5). 'category' is checked when given. 'forbid' ranges must not overlap any segment; must_not_skip = zero skip segments. Keep in sync with testset.md. 'start_late_ok' allows a later-than-expected start by that many seconds. An entry may carry 'meta' (title, creator, channelId, kind, description, paidPromotion, duration) sent with the request, an 'id' when the same video appears twice, and 'expect_meta' (hints, brand, creator, duration, disclosure) checked against the job and the stats row. Rows are human-verified unless they say \"verified\": false. \"source\": \"pipeline-snapshot\" rows expect what the pipeline produced when they were added (a change guard, not truth); \"source\": \"needs-label\" rows are replayed and printed but not checked until someone labels them ('question' says what to label).",
   "videos": [
     {
       "video": "dU7gCt-7kKk",
@@ -211,7 +211,9 @@
           "end": 1225,
           "tol": 3
         }
-      ]
+      ],
+      "verified": false,
+      "source": "pipeline-snapshot"
     },
     {
       "id": "SOQynHuWPeI+meta",
@@ -389,6 +391,225 @@
           "end": 480.4
         }
       ]
+    },
+    {
+      "video": "kS-CGkiPetQ",
+      "creator": "Veritasium",
+      "meta": "cached",
+      "verified": false,
+      "source": "pipeline-snapshot",
+      "note": "Google Maps is unreasonably fast. Let me explain. Boot.dev read. Manual captions (no word timing): the cut is on estimated word times.",
+      "expect": [
+        {
+          "action": "skip",
+          "category": "sponsor",
+          "start": 520.13,
+          "end": 581.0
+        },
+        {
+          "action": "show",
+          "category": "outro",
+          "start": 1778.01,
+          "end": 1782.51
+        }
+      ]
+    },
+    {
+      "video": "RDoVLHaYfgM",
+      "creator": "Cleo Abram",
+      "meta": "cached",
+      "verified": false,
+      "source": "pipeline-snapshot",
+      "note": "Dinosaurs Were Weirder Than We Thought. Ground News read.",
+      "expect": [
+        {
+          "action": "show",
+          "category": "recap",
+          "start": 15.72,
+          "end": 21.88
+        },
+        {
+          "action": "skip",
+          "category": "sponsor",
+          "start": 433.44,
+          "end": 492.25
+        }
+      ]
+    },
+    {
+      "video": "iX6w1P60m8M",
+      "creator": "Cleo Abram",
+      "meta": "cached",
+      "verified": false,
+      "source": "pipeline-snapshot",
+      "note": "The Real Reason We Should Revive Extinct Animals. Rhinoshield read.",
+      "expect": [
+        {
+          "action": "skip",
+          "category": "sponsor",
+          "start": 431.36,
+          "end": 508.34
+        }
+      ]
+    },
+    {
+      "video": "bCmwCkNY85g",
+      "creator": "Cleo Abram",
+      "meta": "cached",
+      "verified": false,
+      "source": "pipeline-snapshot",
+      "note": "What's Really Happening At CERN. Shopify skip of only 2 s at 1:28: looks too short to be the whole read; the label should check it.",
+      "expect": [
+        {
+          "action": "skip",
+          "category": "sponsor",
+          "start": 88.18,
+          "end": 90.26
+        },
+        {
+          "action": "show",
+          "category": "interaction",
+          "start": 987.62,
+          "end": 995.46
+        }
+      ]
+    },
+    {
+      "video": "E1BeAUHnLIg",
+      "creator": "Mrwhosetheboss",
+      "meta": "cached",
+      "verified": false,
+      "source": "pipeline-snapshot",
+      "note": "I Investigated IKEA’s Suspiciously Cheap Tech. Eight Sleep read. The live run was left unfinished; this snapshot is the replay's complete result.",
+      "expect": [
+        {
+          "action": "skip",
+          "category": "sponsor",
+          "start": 677.64,
+          "end": 719.14
+        },
+        {
+          "action": "show",
+          "category": "interaction",
+          "start": 938.84,
+          "end": 943.56
+        }
+      ]
+    },
+    {
+      "video": "vpn3VmGvIXA",
+      "creator": "TBJZL",
+      "meta": "cached",
+      "verified": false,
+      "source": "pipeline-snapshot",
+      "note": "SIDEMEN OUTSIDE : WHO IS THE SMARTEST?. Nothing skipped. Description has only the creator's own links. The live run was left unfinished.",
+      "expect": [
+        {
+          "action": "show",
+          "category": "outro",
+          "start": 2220.88,
+          "end": 2224.6
+        }
+      ]
+    },
+    {
+      "video": "g5BMdEpLLZE",
+      "creator": "Untriggered with AminJaz",
+      "meta": "cached",
+      "verified": false,
+      "source": "pipeline-snapshot",
+      "note": "India's Craziest Solo Traveller: Taliban, China, Nicaragua & more | Truly Nomadly | Untriggered #246. Nothing skipped. Podcast; no sponsor line in the description, 'sponsor' only in conversation. The cached track is labeled 'ar' although the transcript is English (an as-is read).",
+      "expect": [
+        {
+          "action": "show",
+          "category": "recap",
+          "start": 5258.72,
+          "end": 5261.12
+        }
+      ]
+    },
+    {
+      "video": "yTwtg9cwr90",
+      "creator": "MoreSidemen",
+      "meta": "cached",
+      "verified": false,
+      "source": "pipeline-snapshot",
+      "note": "SIDEMEN PRECISION GUESSING. Nothing skipped; the 'Sideman Coding app' selfpromo label. Description links are Sidemen's own brands.",
+      "expect": [
+        {
+          "action": "show",
+          "category": "selfpromo",
+          "start": 1464.48,
+          "end": 1479.96
+        }
+      ]
+    },
+    {
+      "video": "sTOEvwyRYxM",
+      "creator": "Ramasamy Ramanathan",
+      "meta": "cached",
+      "verified": false,
+      "source": "pipeline-snapshot",
+      "note": "Voice RAG ChatBot. Nothing found. No description.",
+      "expect": []
+    },
+    {
+      "video": "_phJIm8mUT8",
+      "creator": "Dhruv Rathee",
+      "meta": "cached",
+      "verified": false,
+      "source": "pipeline-snapshot",
+      "note": "Gyanesh Kumar EXPOSED | Dhruv Rathee. Nothing found ON THE HINDI TRACK ONLY: the live run analyzed the English auto-translation, which the cache does not keep, so this replay proves little. Description: the creator's own academy and code GET20.",
+      "expect": []
+    },
+    {
+      "video": "yTV22sMVHPQ",
+      "creator": "Dhruv Rathee",
+      "meta": "cached",
+      "verified": false,
+      "source": "pipeline-snapshot",
+      "note": "Iran Israel War | Why is ENTIRE Middle East under Attack? | Dhruv Rathee. Nothing found ON THE HINDI TRACK ONLY (see _phJIm8mUT8). Description: the creator's own academy and code GET20.",
+      "expect": []
+    },
+    {
+      "video": "FBeMrUWX73s",
+      "creator": "RAINBOLT",
+      "meta": "cached",
+      "verified": false,
+      "source": "needs-label",
+      "question": "Is there any ad here? Post v6 still KEEPS 'sponsors' 61:42-62:02 (sponsor/integration 0.80): the interviewee's Halloween walk 'got all kinds of uh sponsors', which is the story. The word 'sponsors' in the evidence counts as its own ad marker. No sponsor line in the description, paid flag false.",
+      "note": "solving a 4 year internet mystery. Replay at snapshot time: show recap 25:03.0-25:10.2 ''; keep sponsor 61:42.6-62:02.5 'sponsors'.",
+      "expect": []
+    },
+    {
+      "video": "lyMTD1eAZAw",
+      "creator": "Dhruv Rathee",
+      "meta": "cached",
+      "verified": false,
+      "source": "needs-label",
+      "question": "Times of the NordVPN read (live: skip 9:35-10:10 as 'Na VPN'; the description says 'Get an exclusive NordVPN deal here https://NordVPN.com/dhruv'). The hint parser missed that line and took 'Viewer' from the sponsor disclaimer line instead; the Hindi-only replay labels 9:28-10:26 sponsor 'Viewer' show (0.95).",
+      "note": "The Terrifying Story of Flight 236 | Dhruv Rathee. Replay at snapshot time: show sponsor 9:28.2-10:26.6 'Viewer'.",
+      "expect": []
+    },
+    {
+      "video": "4zxG_oUxBg4",
+      "creator": "fern",
+      "meta": "cached",
+      "verified": false,
+      "source": "needs-label",
+      "question": "Two DeleteMe segments: the read 5:32-6:13 and a reminder 24:40-24:49 ('Thanks again to DeleteMe for supporting this video... 20% off'). Looks like really two. Confirm both and the bounds (the read's last line 'Scan this QR code or hit the link in the description' at 6:13 is not in the skip). Canonical brand shows 'Joindeleteme'.",
+      "note": "The Scariest Building in Europe. Replay at snapshot time: skip sponsor 5:32.4-6:12.9 'DeleteMe'; skip sponsor 24:40.2-24:48.9 'DeleteMe'.",
+      "expect": []
+    },
+    {
+      "video": "yS0ML6cwEYQ",
+      "creator": "The Rest Is Science",
+      "meta": "cached",
+      "verified": false,
+      "source": "needs-label",
+      "question": "Times of the Cancer Research UK read ('This episode is brought to you by Cancer Research UK', 1:36 to about 2:47; paid flag true). Nothing was found: a missed ad, so it is not snapshotted as 'no skip'.",
+      "note": "You (Don't) Know Where You Are. Replay at snapshot time: show interaction 59:18.5-59:26.0 ''; show outro 59:32.8-59:36.4 ''.",
+      "expect": []
     }
   ]
 }
