@@ -343,6 +343,10 @@ Every GET/POST for a video counts as a poll.
   refine pass had already given the promotion is marked as such in the prompt. Whole sentences only, ≤ 6 s, never
   into a previous segment. A failed or timed-out call (60 s), an unusable answer or "all content" leaves the start
   alone. Not run on chapter skips or when the analysis track is a translation.
+  (2b) **A break announcement, by rule** (`break_leadin`, post v18, no model call): "Alright, we're going to take a
+  short break, and when we come back…" / "one more quick break" / "a word from our sponsors" in the last sentence
+  before the cut starts the skip there, up to 15 s back (one such sentence is usually longer than the 6 s cap;
+  synthetic s21). Content between the announcement and the read stops it. Runs before the model check.
   (3) **It never delays a skip:** the check is queued as the job's next unit *after* the skip was published
   (`queue_leadin_checks`), and the segment is republished only if the start moved. Segments carry `lead_in_s` and
   `lead_in` {from, sentences}; the tooltip says "incl. Ns lead-in". content.js moves a segment's handled state to

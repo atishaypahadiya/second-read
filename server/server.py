@@ -75,7 +75,7 @@ KEEP_ALIVE = -1                                       # keep the model loaded be
 # Rubric changes in SYSTEM_PROMPT affect both passes: bump DETECT and REFINE.
 DETECT_VERSION = 3
 REFINE_VERSION = 3
-POST_VERSION = 17
+POST_VERSION = 18
 LEADIN_VERSION = 2   # the lead-in check: LEADIN_PROMPT / LEADIN_SYSTEM, the sentences it is shown, its caps
 NUM_CTX = 8192
 LLM_TIMEOUT_S = 600
@@ -1403,6 +1403,48 @@ def sentences_before(lines, cut_t):
     return out[::-1]
 
 
+BREAK_LEADIN_MAX_S = 15.0   # a break announcement right before a read moves its start back by at most this much
+BREAK_LEADIN_RE = re.compile(
+    r"\b(?:(?:let'?s |we'?re going to |we'?re gonna |we'?ll |i'?m going to |gonna |going to )?(?:take|taking) "
+    r"(?:a |one )?(?:quick |short |little |brief )?break"
+    r"|(?:one more|another) (?:quick |short |little |brief )?break"
+    r"|(?:quick|short|little|brief) (?:ad )?break"
+    r"|a (?:quick |short )?word from (?:our|today'?s|this (?:week'?s|episode'?s)) sponsors?"
+    r"|thank (?:our|today'?s|this (?:week'?s|episode'?s)) sponsors?)\b", re.I)
+
+
+def break_leadin(lines, cut_t, floor):
+    """A podcast's break announcement right before a read ("Alright, we're going to take a short break, and when we
+    come back I want to get into the passengers." / "Okay, one more quick break, and then...") is the read's lead-in,
+    and as one sentence it is usually longer than LEADIN_MAX_S. Deterministic, no model call: the announcement must
+    be in the last whole sentence before the cut (or the head of the sentence the cut is in), start no more than
+    BREAK_LEADIN_MAX_S before the cut, and not before floor. The start moves to that sentence's start, or to the
+    phrase itself when the sentence starts further back (no punctuation). Returns (start, text) or None."""
+    hi = max((i for i, l in enumerate(lines) if l["start"] <= cut_t + 1e-6), default=None)
+    if hi is None:
+        return None
+    lo = min((i for i, l in enumerate(lines) if l["end"] > cut_t - 2 * BREAK_LEADIN_MAX_S), default=hi)
+    words = all_words(lines, lo, hi)
+    end = next((i for i, w in enumerate(words) if w[0] >= cut_t - 1e-6), len(words))
+    if end == 0:
+        return None
+    first = sentence_start_index(words, end - 1)
+    if first > 0 and not SENTENCE_END_RE.search(words[end - 1][2]):   # the cut is inside a sentence: its head and the one before
+        first = sentence_start_index(words, first - 1)
+    text, offs = "", []
+    for k in range(first, end):
+        offs.append(len(text))
+        text += words[k][2] + " "
+    for m in BREAK_LEADIN_RE.finditer(text):
+        k = first + max(j for j, o in enumerate(offs) if o <= m.start())
+        start = words[sentence_start_index(words, k)][0]
+        if start < cut_t - BREAK_LEADIN_MAX_S - 1e-6 or start < floor:
+            start = words[k][0]
+        if cut_t - BREAK_LEADIN_MAX_S - 1e-6 <= start < cut_t and start >= floor:
+            return start, " ".join(w[2] for w in words if start - 1e-6 <= w[0] < cut_t - 1e-6)
+    return None
+
+
 def check_leadin(job, seg):
     """One model call about the sentences right before a skip: are they a lead-in to the ad? If so the start moves
     back to the earliest lead-in sentence, by whole sentences and by at most LEADIN_MAX_S. The segment was already
@@ -1417,6 +1459,15 @@ def check_leadin(job, seg):
     if job.get("alang") != job.get("lang"):
         log(f"  lead-in {rng}: not checked (the analysis runs on a translated track; the cut is on the original)")
         return False
+    floor = max([f["end"] for f in job["final"] if f is not seg and f.get("action") != "drop" and f["end"] <= cut] + [0.0])
+    hit = break_leadin(lines, cut, floor)
+    if hit:
+        new_start, text = hit
+        seg["start"] = round(new_start, 2)
+        seg["lead_in_s"] = round(cut - new_start, 1)
+        seg["lead_in"] = {"from": round(cut, 2), "sentences": [text]}
+        log(f"  lead-in {rng}: break announcement; start {cut:.2f} -> {new_start:.2f} (-{cut - new_start:.1f}s): {text!r}")
+        return True
     sents = sentences_before(lines, cut)
     if not sents:
         log(f"  lead-in {rng}: no whole sentence within {LEADIN_MAX_S:.0f}s before the cut")
@@ -1464,7 +1515,6 @@ def check_leadin(job, seg):
         return False
     pick = labels[len(labels) - run]
     new_start = sents[labels.index(pick)][0]
-    floor = max([f["end"] for f in job["final"] if f is not seg and f.get("action") != "drop" and f["end"] <= cut] + [0.0])
     if not (cut - LEADIN_MAX_S - 1e-6 <= new_start < cut) or new_start < floor:
         log(f"  lead-in {rng}: answer {pick!r} would start at {new_start:.2f}, outside what is allowed; start stays at {cut:.2f}")
         return False
