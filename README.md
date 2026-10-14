@@ -254,10 +254,10 @@ separately:
 - **verified** (13 rows, 9 videos): expectations checked against the video by
   a person, including three variants of one video with different request
   metadata and one with a stand-in English analysis track;
-- **transcript-labeled** (3 rows): labeled from a reading of the transcript,
+- **transcript-labeled** (4 rows): labeled from a reading of the transcript,
   independent of what the pipeline produced, not checked against the audio by
   a person; never counted as verified;
-- **snapshot** (12 rows, 12 videos): what the pipeline produced when the row
+- **snapshot** (11 rows, 11 videos): what the pipeline produced when the row
   was added, marked `"verified": false, "source": "pipeline-snapshot"`. A
   snapshot row catches a change, not an error: a wrong result snapshotted
   stays wrong until someone labels it;
