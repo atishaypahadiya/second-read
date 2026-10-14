@@ -1,7 +1,7 @@
 {
- "id": "s10_h3",
+ "id": "s10_d4",
  "scenario": 10,
- "split": "held",
+ "split": "dev",
  "lang": "en",
  "title": "Hiking the Lost Lakes Loop (We Still Got Lost)",
  "creator": "Ben Adeyemi",

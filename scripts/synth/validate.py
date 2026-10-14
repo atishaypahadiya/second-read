@@ -107,8 +107,11 @@ def main():
         if errs:
             bad += 1
             print(f"{name}: {'; '.join(errs)}")
-    missing = [f"s{i:02d}" for i in sorted(scenarios) if per.get(f"s{i:02d}", 0) != 3]
-    print(f"{split}: {len(paths)} files, {bad} with problems; scenarios without exactly 3 files: {missing or 'none'}")
+    # HELD has exactly 3 per scenario; DEV at least 3 (a HELD file that was fixed afterwards moves to DEV as _d4+)
+    ok = (lambda n: n == 3) if split == "held" else (lambda n: n >= 3)
+    missing = [f"s{i:02d}" for i in sorted(scenarios) if not ok(per.get(f"s{i:02d}", 0))]
+    want = "exactly 3" if split == "held" else "at least 3"
+    print(f"{split}: {len(paths)} files, {bad} with problems; scenarios without {want} files: {missing or 'none'}")
     sys.exit(1 if bad or missing else 0)
 
 
