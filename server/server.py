@@ -76,7 +76,7 @@ KEEP_ALIVE = -1                                       # keep the model loaded be
 # Rubric changes in SYSTEM_PROMPT affect both passes: bump DETECT and REFINE.
 DETECT_VERSION = 3
 REFINE_VERSION = 3
-POST_VERSION = 23
+POST_VERSION = 24
 LEADIN_VERSION = 2   # the lead-in check: LEADIN_PROMPT / LEADIN_SYSTEM, the sentences it is shown, its caps
 NUM_CTX = 8192
 LLM_TIMEOUT_S = 600
@@ -2161,9 +2161,40 @@ def chapter_is_ad(title):
     return len(others) <= CHAPTER_OTHER_MAX and all(w[0].isupper() or any(c.isdigit() or c == "." for c in w) for w in others)
 
 
+# A chapter's bounds are the creator's, typed by hand, and can be off: "1:40 Sponsors" up to "3:20 Why finished games
+# get shelved" in a podcast whose three reads end at 2:28 skipped 52 s of conversation (synthetic s22). So a chapter
+# is trusted only up to CHAPTER_SLACK_S of speech without a sponsor cue at either end: past that, the skip starts at
+# its first cue line and ends at its last.
+CHAPTER_SLACK_S = 20.0
+
+
+def cue_word_times(line, terms):
+    """(start of the first, end of the last) word that a sponsor cue in this line touches, or None (no cue, or no
+    words to place it on). An auto track's 8 s line can hold the read's last words and the conversation after it."""
+    text, words = line["text"], line.get("words") or []
+    if not words or " ".join(w[2] for w in words) != text:
+        return None
+    low = text.lower()
+    spans = [m.span() for r in (CUE_RE, STRONG_CUE_RE) for m in r.finditer(text)]
+    spans += [(m.start(), m.end()) for h in terms if h for m in re.finditer(re.escape(h.lower()), low)]
+    if not spans:
+        return None
+    a, b = min(x for x, _ in spans), max(y for _, y in spans)
+    pos, first, last = 0, None, None
+    for w in words:
+        w0, w1 = pos, pos + len(w[2])
+        if first is None and w1 > a:
+            first = w[0]
+        if w0 < b:
+            last = w[1]
+        pos = w1 + 1
+    return first, last
+
+
 def chapter_segments(job):
     """7a: a chapter titled like an ad/sponsor becomes a skip segment from its bounds, immediately, no model call.
-    Bounds are snapped to pauses on the original track. Over MAX_CHAPTER_AD_S the chapter is ignored (the model
+    Bounds are snapped to pauses on the original track, and pulled in to the first and last sponsor-cue lines when
+    the chapter runs more than CHAPTER_SLACK_S past them. Over MAX_CHAPTER_AD_S the chapter is ignored (the model
     path still runs there)."""
     lines, alines = job["lines"], job["alines"]
     chapters = job.get("chapter_times") or []
@@ -2180,6 +2211,18 @@ def chapter_segments(job):
         a_idx = [k for k, l in enumerate(alines) if l["end"] > cs and l["start"] < ce]
         if not o_idx or not a_idx:
             continue
+        ch_s, ch_e, pulled = cs, ce, []
+        cue = [k for k in a_idx if window_cues(alines[k]["text"], job.get("terms") or (), sponsor_only=True)
+               or STRONG_CUE_RE.search(alines[k]["text"])]
+        terms = job.get("terms") or ()
+        if cue and alines[cue[0]]["start"] - cs > CHAPTER_SLACK_S:
+            cs = (cue_word_times(alines[cue[0]], terms) or (alines[cue[0]]["start"],))[0]
+            pulled.append(f"start to the first sponsor cue at {fmt_time(cs)}")
+        if cue and ce - alines[cue[-1]]["end"] > CHAPTER_SLACK_S:
+            ce = (cue_word_times(alines[cue[-1]], terms) or (None, alines[cue[-1]]["end"]))[1]
+            pulled.append(f"end to the last sponsor cue at {fmt_time(ce)}")
+        if pulled:
+            o_idx = [k for k, l in enumerate(lines) if l["end"] > cs and l["start"] < ce] or o_idx
         o_s, o_e = o_idx[0], o_idx[-1]
         start, s_note = snap_start(lines, o_s, o_e, cs)
         end, e_note = snap_end(lines, o_s, o_e, ce)
@@ -2191,12 +2234,13 @@ def chapter_segments(job):
         brands = job["hints"].get("brands") or []
         seg = {"start": round(start, 2), "end": round(end, 2), "start_line": a_idx[0], "end_line": a_idx[-1],
                "category": "sponsor", "style": "read", "brand": brands[0] if len(brands) == 1 else "",
-               "confidence": 1.0, "evidence": f"chapter: {title}", "reason": f"creator-labeled chapter {title!r} {fmt_time(cs)}-{fmt_time(ce)}",
+               "confidence": 1.0, "evidence": f"chapter: {title}",
+               "reason": f"creator-labeled chapter {title!r} {fmt_time(ch_s)}-{fmt_time(ch_e)}" + (f" (pulled in: {', '.join(pulled)})" if pulled else ""),
                "line_start": cs, "line_end": ce, "source": "chapter"}
         seg["action"] = action_for(seg)
         out.append(seg)
-        log(f"[{job['video_id']}] chapter fast path: {title!r} {fmt_time(cs)}-{fmt_time(ce)} -> SKIP {fmt_time(start)}-{fmt_time(end)} "
-            f"(snap start: {s_note}; snap end: {e_note}); no model call")
+        log(f"[{job['video_id']}] chapter fast path: {title!r} {fmt_time(ch_s)}-{fmt_time(ch_e)} -> SKIP {fmt_time(start)}-{fmt_time(end)} "
+            f"({'pulled in: ' + ', '.join(pulled) + '; ' if pulled else ''}snap start: {s_note}; snap end: {e_note}); no model call")
     return out
 
 
@@ -2380,12 +2424,50 @@ def disclosure_only(seg, lines):
     return None if CTA_RE.search(text) else f"{dur:.1f}s with no offer or call to action"
 
 
+# A read the creator quotes in order to take it apart is not a promotion: "I want you to hear the actual pitch ... I
+# wrote it down word for word. <the scam ad> That's it, that's the whole ad, and every sentence in it is a red flag."
+# (synthetic s14: a scam-awareness video, skipped for 22-27 s.) The pitch has every ad marker, so only its framing
+# says it is quoted. Searched in the lines around its start and its end.
+QUOTED_AD_RE = re.compile(
+    r"\bword for word\b|\bverbatim\b|"
+    r"\bread (?:you|out) (?:the|their|his|her|its|this|that|a|an) (?:\w+ ){0,2}(?:script|pitch|ad|advert|commercial|example|message|email|text)\b|"
+    r"\b(?:the|their|this|that) (?:exact|actual|original|full) (?:script|pitch|wording)\b|"
+    r"\bthat'?s (?:it,? )?(?:that'?s )?the (?:whole|entire) (?:ad|advert|pitch|script|commercial)\b|"
+    r"\b(?:sounds|looks) (?:exactly |just )?like (?:a|any) (?:normal|real|regular|legit) (?:sponsor|ad|advert)", re.I)
+QUOTE_BEFORE_S, QUOTE_INSIDE_S = 15.0, 10.0
+
+
+def quoted_ad(seg, lines):
+    """The phrase that frames a skip as a quoted ad, or None: in the lines from QUOTE_BEFORE_S before its start to
+    QUOTE_INSIDE_S into it, or from QUOTE_INSIDE_S before its end to QUOTE_INSIDE_S after it."""
+    s0, s1 = seg["start"], seg["end"]
+    spans = ((s0 - QUOTE_BEFORE_S, min(s1, s0 + QUOTE_INSIDE_S)), (max(s0, s1 - QUOTE_INSIDE_S), s1 + QUOTE_INSIDE_S))
+    for a, b in spans:
+        m = QUOTED_AD_RE.search(" ".join(l["text"] for l in lines if l["end"] > a and l["start"] < b))
+        if m:
+            return m.group(0)
+    return None
+
+
 def finalize(job, verbose):
     out = []
     kept = [x for x in job["final"] if x.get("action") != "drop"]
     state = disclosure_state(job.get("paid_promotion"), job.get("disclosed"))
     for x in post_filter(merge_segments(kept), job["title"], job["alines"], verbose, job.get("terms") or (),
                          job.get("paid_promotion")):
+        quote = quoted_ad(x, job["alines"]) if x.get("action") == "skip" and x.get("source") != "chapter" else None
+        if quote:
+            # Labeled when something outside the transcript says the video carries a paid spot (the paid-promotion
+            # flag, a description hint in it): "they gave me this script, word for word" before a real read. Else dropped.
+            backed = job.get("paid_promotion") is True or any(h.lower() in " ".join(
+                l["text"] for l in job["alines"] if l["end"] > x["start"] and l["start"] < x["end"]).lower()
+                for h in job.get("terms") or ())
+            if verbose:
+                log(f"  filter: {fmt_time(x['start'])}-{fmt_time(x['end'])} {x.get('brand')!r} is framed as a quoted ad "
+                    f"({quote!r}): {'labeled instead of skipped' if backed else 'dropped, not a promotion'}")
+            if not backed:
+                continue
+            x = {**x, "action": "show", "reason": f"[quoted, not a read: {quote!r}] {x.get('reason', '')}"[:1000]}
         why = disclosure_only(x, job["alines"]) if x.get("action") == "skip" else None
         if why:
             # "Part of this video is sponsored by Shopify." (bCmwCkNY85g, 2 s; synthetic s25 at 5.8 s on a noisy track) is
