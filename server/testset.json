@@ -398,13 +398,19 @@
       "meta": "cached",
       "verified": false,
       "source": "pipeline-snapshot",
-      "note": "Google Maps is unreasonably fast. Let me explain. Boot.dev read. Manual captions (no word timing): the cut is on estimated word times.",
+      "note": "Google Maps is unreasonably fast. Let me explain. Boot.dev read. Manual captions (no word timing): the cut is on estimated word times. The end reminder 29:25-29:37 ('Before we go, I just wanted to say thanks again to Boot.dev for sponsoring this video ... use that checkout code for 25% off.') was added when the repeat pass found it (post v22); the first snapshot had missed it.",
       "expect": [
         {
           "action": "skip",
           "category": "sponsor",
           "start": 520.13,
           "end": 581.0
+        },
+        {
+          "action": "skip",
+          "category": "sponsor",
+          "start": 1765.39,
+          "end": 1777.71
         },
         {
           "action": "show",

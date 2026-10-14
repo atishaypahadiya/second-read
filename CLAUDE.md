@@ -322,6 +322,11 @@ Every GET/POST for a video counts as a poll.
   over the content between) into regions that go **straight to refine** as candidates (`source: hint`). Regions run
   before any detect window; detect windows overlapping a region ± 60s run after them, still (post v13: the
   description often names one of several sponsors, and the others were never detected). Synthetic suite, s21/s24.
+- **Reminders by brand** (`repeat_candidates`, post v22): after the last planned unit, a found sponsor skip's brand
+  named again ≥ 30 s away from its reads, outside every found segment, with a sponsor cue in that line or the one
+  right after it, goes to refine once more ("thanks again to Boot.dev for sponsoring this video … 25% off", Veritasium
+  kS-CGkiPetQ 29:25, missed before; synthetic s24 with no description hint). A line right next to a read is not a
+  reminder: it extended a person-checked end by 3 s.
 - **Back-to-back reads stay apart:** detect candidates that touch are merged into one only if they do not name
   clearly different brands (`other_brand`, post v19: "Udo"/"Odoo" merge, "Wealthfront"/"Ledgerly" do not). A
   podcast's three-read break became one candidate that overlapped the third read's skip and was never refined
