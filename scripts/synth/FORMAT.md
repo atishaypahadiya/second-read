@@ -1,7 +1,8 @@
 # Synthetic transcript format
 
 One JSON file per variant: `scripts/synth/<split>/s<NN>_<split letter><n>.json`, e.g. `held/s05_h2.json`,
-`dev/s05_d1.json`. Writers produce the *text* and the *truth tags*; `build.py` turns it into caption lines with
+`dev/s05_d1.json`. A HELD file that a fix was made for afterwards moves to DEV as `_d4` and up, and a fresh `_h4` and up
+replaces it, so HELD keeps exactly 3 per scenario. Writers produce the *text* and the *truth tags*; `build.py` turns it into caption lines with
 realistic timings (clean: sentence lines with word timing; noisy: lowercase, no punctuation, swaps applied, ~8 s
 lines, word timing removed).
 

@@ -343,6 +343,8 @@ gap over 4 s. DEV on the same code: 56/75 clean, 42/75 noisy (56→49,
 - Synthetic text is cleaner than real captions.
 - The noisy twin also drops word timing, harsher than most real auto tracks.
 - HELD ran on commit `52e9e3a` (post 22), HELD sha256 `742699…f65a`.
+- Since then the three HELD files behind the content cuts in s10, s14 and s22 moved to DEV (`_d4`) and
+  fresh ones replaced them (`_h4`, HELD sha256 `d02137…6507`); the numbers above are from the old set.
 - This is not the real-video held-out evaluation above.
 
 Speed, on a 24 GB M4 Pro with `qwen3:14b`. Each cell is total job time, time
