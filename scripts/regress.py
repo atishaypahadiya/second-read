@@ -423,6 +423,13 @@ def unit_checks():
         server.stored_matches("storedVid10", 1030.0, h12)[0], server.stored_matches("storedVid10", 1012.0, "0" * 12)[0],
         server.stored_matches("storedVid10", None, h12)[0], server.stored_matches("storedVid00", 1012.0, h12)[0]],
        [True, True, False, False, False, False])
+    # ... and only for a week after the result was last checked against the captions
+    old = time.time() - server.REVALIDATE_AFTER_S - 3600
+    os.utime(server.cache_path("storedVid10"), (old, old))
+    stale = server.stored_matches("storedVid10", 1012.0, h12)
+    server.mark_validated("storedVid10")
+    eq("stored result: no longer matches once it was last checked against the captions over a week ago; a confirming read resets that",
+       (stale[0], "days ago" in stale[1], server.stored_matches("storedVid10", 1012.0, h12)[0]), (False, True, True))
     said = []
     keep_log, server.log = server.log, said.append
     server.instant_served["storedVid00"] = server.segments_signature(done["segments"])

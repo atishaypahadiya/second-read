@@ -59,7 +59,8 @@ Opening a video the server has already analyzed does not wait for any of that:
 the extension first asks for the stored result by video ID and, if it was made
 by the current pipeline versions, draws the markers and skips by it at once.
 If the page reports the same duration and description the result was made
-for, the captions are not read at all. Otherwise the caption read runs as
+for, and the result was checked against captions within the last week, the
+captions are not read at all. Otherwise the caption read runs as
 usual and its answer confirms the stored result or replaces it; a stored
 result that cannot be checked stops skipping.
 
@@ -264,7 +265,7 @@ separately:
   snapshot row catches a change, not an error: a wrong result snapshotted
   stays wrong until someone labels it;
 
-It also runs 72 rule checks and the extension wiring test. At versions detect
+It also runs 73 rule checks and the extension wiring test. At versions detect
 3, refine 3, post 23, lead-in 2 all verified and snapshot rows pass, and every
 transcript-labeled row but the known issue. The
 expectations were written from the same videos the prompt and thresholds were
