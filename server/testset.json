@@ -620,10 +620,16 @@
       "creator": "The Rest Is Science",
       "meta": "cached",
       "verified": false,
-      "source": "needs-label",
-      "question": "Times of the Cancer Research UK read ('This episode is brought to you by Cancer Research UK', 1:36 to about 2:47; paid flag true). Nothing was found: a missed ad, so it is not snapshotted as 'no skip'.",
-      "note": "You (Don't) Know Where You Are. Replay at snapshot time: show interaction 59:18.5-59:26.0 ''; show outro 59:32.8-59:36.4 ''.",
-      "expect": []
+      "source": "transcript-labeled",
+      "note": "You (Don't) Know Where You Are. Labeled from the transcript: a Cancer Research UK read from 'This episode is brought to you by Cancer Research UK.' (1:37.0) to 'visit cancer research.org/therest is science.' (ends ~2:51.2); paid-promotion flag true. A charity paying for the spot is a sponsor read. Before post v8 the model's 'charity' label made it a label, then the subject filter dropped it (the word 'research' is in 3 other lines).",
+      "expect": [
+        {
+          "action": "skip",
+          "category": "sponsor",
+          "start": 96.97,
+          "end": 171.2
+        }
+      ]
     }
   ]
 }

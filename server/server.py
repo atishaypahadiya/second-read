@@ -75,7 +75,7 @@ KEEP_ALIVE = -1                                       # keep the model loaded be
 # Rubric changes in SYSTEM_PROMPT affect both passes: bump DETECT and REFINE.
 DETECT_VERSION = 3
 REFINE_VERSION = 3
-POST_VERSION = 7
+POST_VERSION = 8
 LEADIN_VERSION = 2   # the lead-in check: LEADIN_PROMPT / LEADIN_SYSTEM, the sentences it is shown, its caps
 NUM_CTX = 8192
 LLM_TIMEOUT_S = 600
@@ -1079,8 +1079,23 @@ def to_segment(raw, lines, first, last):
         "first_words": scrub(str(raw.get("first_words") or "")).strip()[:200],
         "last_words": scrub(str(raw.get("last_words") or "")).strip()[:200],
     }
+    if out["category"] == "charity" and paid_spot(out, lines):
+        # "This episode is brought to you by Cancer Research UK": a charity PAYING for the spot is a sponsor read (the
+        # rubric says so, but the model labels it by who the brand is). A charity cannot be an integration.
+        out.update(category="sponsor", style="read", reason=f"[charity paying for the spot: sponsor] {out['reason']}"[:1000])
     out["action"] = action_for(out)
     return out
+
+
+PAID_SPOT_RE = re.compile(r"\b(?:brought to you by|sponsored by|(?:supported|made possible|presented) by|in partnership with|"
+                          r"partnered with|today'?s sponsor|thanks to [\w .'&-]{1,40} for sponsoring)\b", re.I)
+
+
+def paid_spot(seg, lines):
+    """Sponsorship language in the evidence quote or the segment's first lines: someone paid for this spot."""
+    s, e = seg["start_line"], seg["end_line"]
+    text = " ".join([seg.get("evidence", "")] + [lines[i]["text"] for i in range(s, min(e, s + 2) + 1)])
+    return bool(PAID_SPOT_RE.search(text))
 
 
 LINE_LABEL_RE = re.compile(r"\bL\d+\s*(\[\d+:\d{2}(?::\d{2})?\])?\s*|\[\d+:\d{2}(?::\d{2})?\]")
