@@ -642,6 +642,10 @@ def unit_checks():
         "go to notewell.app slash hana and you get two months",
         "my friend slash roommate", "the app slash the website", "reddit.com is huge")],
        [True, True, True, True, False, False, False])
+    # ---- self-promotion gets a window: "my own course" is a cue like "my course" (synthetic s15)
+    eq("prefilter: 'my own course' sends the window for the non-sponsor categories",
+       [bool(server.window_cues("That's exactly why I made my own course, it's called Habla Real.", [])),
+        bool(server.window_cues("That's exactly why I made my own lunch today.", []))], [True, False])
     # ---- back-to-back reads for different brands stay separate candidates (synthetic s22); one ad seen twice merges
     def cnd(a, b, la, lb, brand):
         return {"start": a, "end": b, "start_line": la, "end_line": lb, "category": "sponsor", "style": "read",
