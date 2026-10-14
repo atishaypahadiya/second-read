@@ -37,13 +37,21 @@ verdict here turns a row into a verified one.
 | _phJIm8mUT8 | Dhruv Rathee | hi | manual | nothing (Hindi track only) | | the English translation the live run used is not cached |
 | yTV22sMVHPQ | Dhruv Rathee | hi | asr | nothing (Hindi track only) | | same |
 
+### Transcript-labeled (labeled from the transcript, not checked by a human)
+
+`"verified": false, "source": "transcript-labeled"`: the labels come from reading the transcript, independently of
+what the pipeline produced; nobody has checked them against the audio. Reported apart from verified rows.
+
+| video | creator | label | notes |
+| --- | --- | --- | --- |
+| 4zxG_oUxBg4 | fern | SKIP DeleteMe read 5:28.8–6:16.9 (from the segue "But there's your way out…" to "…link in the description."); SKIP reminder 24:40.2–24:49.0 | the skip may start ≤ 4 s late / end ≤ 4.5 s early |
+
 ### Needs a label (replayed, not checked)
 
 | video | creator | question |
 | --- | --- | --- |
 | FBeMrUWX73s | RAINBOLT | Any ad at all? Post v6 still keeps "sponsors" 61:42–62:02 (an interviewee's community project "got all kinds of sponsors"); the word itself counts as an ad marker. |
 | lyMTD1eAZAw | Dhruv Rathee | Times of the NordVPN read (live: skip 9:35–10:10 named "Na VPN"). The description line "Get an exclusive NordVPN deal here" was not read as a sponsor line; "Viewer" from the sponsor disclaimer line became the hint brand. |
-| 4zxG_oUxBg4 | fern | Two DeleteMe segments, read 5:32–6:13 and reminder 24:40–24:49: confirm both and the bounds. Canonical brand shows "Joindeleteme". |
 | yS0ML6cwEYQ | The Rest Is Science | Times of the Cancer Research UK read (from 1:36, "This episode is brought to you by Cancer Research UK"; paid flag true). Nothing was found: a miss. |
 
 Rule-based categories currently expected by `testset.json` (label-only, guard against regressions):
