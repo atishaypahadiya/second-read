@@ -75,7 +75,7 @@ KEEP_ALIVE = -1                                       # keep the model loaded be
 # Rubric changes in SYSTEM_PROMPT affect both passes: bump DETECT and REFINE.
 DETECT_VERSION = 3
 REFINE_VERSION = 3
-POST_VERSION = 8
+POST_VERSION = 9
 LEADIN_VERSION = 2   # the lead-in check: LEADIN_PROMPT / LEADIN_SYSTEM, the sentences it is shown, its caps
 NUM_CTX = 8192
 LLM_TIMEOUT_S = 600
@@ -301,9 +301,14 @@ STRONG_CUE_RE = re.compile(
 # Ad markers: what separates an ad from a brand that merely comes up in the story ("we're shooting for Fossil
 # today"). Sponsorship language, a code, an offer, a link or a call to action. A sponsor label that is not a skip
 # (an integration, or a read that was downgraded) needs one; a skip already needs a cue in its evidence.
+# The bare word "sponsor" is not one: "we got all kinds of sponsors" in an interview about a community project is the
+# story (FBeMrUWX73s); only sponsorship of this video or episode counts.
+SPONSORING_THIS_RE = (r"sponsored by|(?:today'?s|our|this (?:video'?s|episode'?s)) sponsor\b|for sponsoring|"
+                      r"sponsor(?:s|ed|ing)? (?:of )?(?:this|today'?s) (?:video|episode|vlog|stream|podcast)|"
+                      r"(?:video|episode|vlog|podcast) is sponsored")
 AD_MARKER_RE = re.compile(
-    STRONG_CUE_RE.pattern + r"|link (?:below|in (?:the|my) bio)|use (?:my|the|this|our) link|\.com\b|sign ?up|"
-    r"check (?:them|it) out", re.I)
+    STRONG_CUE_RE.pattern.replace("sponsor|", SPONSORING_THIS_RE + "|", 1)
+    + r"|link (?:below|in (?:the|my) bio)|use (?:my|the|this|our) link|\.com\b|sign ?up|check (?:them|it) out", re.I)
 # Cues for the other model categories (affiliate, selfpromo, membership, crosspromo, charity, giveaway): they get
 # a window to the model, but they never count as evidence for a sponsor skip.
 OTHER_CUE_PATTERNS = [
