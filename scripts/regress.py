@@ -464,37 +464,37 @@ def unit_checks():
                                            "My worst sponsor deal ever", "Partner programs explained", "The history of the promo code",
                                            "The Fake Ad, Line By Line")],
        [True] * 9 + [False] * 6)
-    def said(t0, text):
+    def said_line(t0, text):
         ws = text.split()
         return {"start": t0, "end": t0 + 0.4 * len(ws), "text": text, "timed": False,
                 "words": [[round(t0 + 0.4 * i, 2), round(t0 + 0.4 * (i + 1), 2), w] for i, w in enumerate(ws)]}
-    disc = [said(2.0, "part of this video is sponsored by wonderly okay so lisbon")]
-    remind = [said(100.0, "thanks again to blinkist for supporting this video remember you get a seven day free trial at blinkist.com")]
+    disc = [said_line(2.0, "part of this video is sponsored by wonderly okay so lisbon")]
+    remind = [said_line(100.0, "thanks again to blinkist for supporting this video remember you get a seven day free trial at blinkist.com")]
     eq("skips: a disclosure line is labeled (2 s, or 5.8 s with no offer); a 9 s reminder with an offer and a link stays a skip",
        [bool(server.disclosure_only({"start": 2.0, "end": 4.0}, disc)), bool(server.disclosure_only({"start": 2.0, "end": 7.8}, disc)),
         bool(server.disclosure_only({"start": 100.0, "end": 109.0}, remind)), server.MIN_SKIP_S], [True, True, False, 3.0])
-    quoted = [said(20.0, "i wrote it down word for word"), said(23.0, "use code moon50 for fifty percent off at the link below"),
-              said(28.0, "thats it thats the whole ad")]
-    read = [said(20.0, "this video is sponsored by lumen"), said(23.0, "use code grow for ten percent off at the link below")]
+    quoted = [said_line(20.0, "i wrote it down word for word"), said_line(23.0, "use code moon50 for fifty percent off at the link below"),
+              said_line(28.0, "thats it thats the whole ad")]
+    read = [said_line(20.0, "this video is sponsored by lumen"), said_line(23.0, "use code grow for ten percent off at the link below")]
     eq("skips: a pitch framed as quoted (s14: 'word for word', 'that's the whole ad') is not a read; a plain read is",
        [server.quoted_ad({"start": 23.0, "end": 27.4}, quoted), server.quoted_ad({"start": 23.0, "end": 27.4}, quoted[2:]),
         server.quoted_ad({"start": 20.0, "end": 27.4}, read)], ["word for word", "thats it thats the whole ad", None])
-    garden = [said(0.0, "this video is sponsored by lumen"), said(3.0, "lumen keeps your plants alive all year"),
-              said(10.0, "head to lumen dot com slash grow okay so back to the garden"), said(16.0, "the soil here is mostly clay"),
-              said(30.0, "we dug three beds this week"), said(45.0, "next spring we try tomatoes")]
+    garden = [said_line(0.0, "this video is sponsored by lumen"), said_line(3.0, "lumen keeps your plants alive all year"),
+              said_line(10.0, "head to lumen dot com slash grow okay so back to the garden"), said_line(16.0, "the soil here is mostly clay"),
+              said_line(30.0, "we dug three beds this week"), said_line(45.0, "next spring we try tomatoes")]
     cjob = {"video_id": "unitChapter0", "lines": garden, "alines": garden, "chapter_times": [(0.0, "Sponsor"), (60.0, "The beds")],
             "duration": 120.0, "terms": [], "hints": {"brands": []}}
     eq("chapters: a chapter running 20+ s past its last sponsor cue ends at that cue's last word (s22: 52 s of podcast skipped)",
        [(s["start"], s["end"]) for s in server.chapter_segments(cjob)], [(0.0, 12.8)])
     # integrations: where a sponsor's product may be in use, then the keep marker from the line labels
-    build = [said(0.0, "today we build a bakery site"), said(10.0, "i am building it in pagecraft and they are sponsoring this part of the video"),
-             said(20.0, "first the header with her logo"), said(30.0, "then the hours block"), said(40.0, "the menu goes in a grid"),
-             said(50.0, "my mom wants rye first"), said(60.0, "then the gallery of photos"), said(70.0, "and i hit publish")]
-    pitch = [said(0.0, "for the rough cut i drop the footage into frame cut"), said(10.0, "it transcribes everything"),
-             said(20.0, "i delete the bad takes"), said(30.0, "and remove the silences"), said(40.0, "framecut is sponsoring this video"),
-             said(46.0, "use code edit for ten percent off")]
-    read = [said(0.0, "so speaking of frame cut"), said(10.0, "go to framecut dot com"), said(20.0, "it transcribes everything"),
-            said(40.0, "framecut is sponsoring this video"), said(46.0, "use code edit for ten percent off")]
+    build = [said_line(0.0, "today we build a bakery site"), said_line(10.0, "i am building it in pagecraft and they are sponsoring this part of the video"),
+             said_line(20.0, "first the header with her logo"), said_line(30.0, "then the hours block"), said_line(40.0, "the menu goes in a grid"),
+             said_line(50.0, "my mom wants rye first"), said_line(60.0, "then the gallery of photos"), said_line(70.0, "and i hit publish")]
+    pitch = [said_line(0.0, "for the rough cut i drop the footage into frame cut"), said_line(10.0, "it transcribes everything"),
+             said_line(20.0, "i delete the bad takes"), said_line(30.0, "and remove the silences"), said_line(40.0, "framecut is sponsoring this video"),
+             said_line(46.0, "use code edit for ten percent off")]
+    read = [said_line(0.0, "so speaking of frame cut"), said_line(10.0, "go to framecut dot com"), said_line(20.0, "it transcribes everything"),
+            said_line(40.0, "framecut is sponsoring this video"), said_line(46.0, "use code edit for ten percent off")]
     skip = lambda a, b: {"start": a, "end": b, "action": "skip", "category": "sponsor", "brand": "Framecut", "source": "hint"}
     ijob = lambda al, fin: {"video_id": "unitInteg000", "alines": al, "final": fin, "hints": {"brands": []}}
     eq("integrations: anchors are a sponsor-supports-this-part line outside skips, and a pitch's brand named 15-150 s before it "

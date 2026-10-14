@@ -2196,6 +2196,8 @@ def cue_word_times(line, terms):
         if w0 < b:
             last = w[1]
         pos = w1 + 1
+    if first is None or last is None:
+        return None
     return first, last
 
 
