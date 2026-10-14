@@ -309,8 +309,10 @@ Every GET/POST for a video counts as a poll.
   name ("fern" from fern.deals/coddy, "HARRIS" for Johnny Harris) is dropped from the hint terms. Generic capitalized
   words on a sponsor line ("Coddy Pro Plan for Tech lovers" → only Coddy; `stats.GENERIC_WORDS`) are not brands either. Reason: hint terms
   count as sponsor cues for the skip gate, so they must never include things the creator says in ordinary content.
-- **Chapter fast path:** a description chapter whose title reads like an ad (sponsor, ad, advert, promo, partner,
-  paid promotion, and common non-English equivalents) ≤ 4 min long becomes a `skip` segment from its bounds
+- **Chapter fast path:** a description chapter whose title is a sponsor label (sponsor, ad, advert, promo, partner,
+  paid promotion, and common non-English equivalents, plus at most the brand: `chapter_is_ad`, post v14; a title
+  *about* ads such as "The fake ad, line by line" or "Why Super Bowl ads cost so much" is not one, synthetic s14)
+  ≤ 4 min long becomes a `skip` segment from its bounds
   immediately, snapped to pauses but never past the chapter end, `source: chapter`, no model call; the evidence is
   the chapter title. Detect windows it covers are deferred like hint regions. **Trade-off:** this trusts the
   creator's own chapter label over the evidence gate (a description is page-supplied); it is bounded by the chapter

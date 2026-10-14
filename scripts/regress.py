@@ -436,6 +436,13 @@ def unit_checks():
     server.run_unit({"alines": hl, "final": [{"start": 60.0, "end": 80.0, "category": "sponsor"}]}, ("win", 0, 4, True))
     server.run_window = keep_rw
     eq("hint regions: a window behind one still gets detect after the hint refine found an ad there", ran, [(0, 4)])
+    eq("chapters: a sponsor label is an ad chapter; a title about ads is not (s14: 'The fake ad, line by line')",
+       [server.chapter_is_ad(t) for t in ("Sponsor", "Today's sponsor: Odoo", "Ad break", "A word from our sponsor",
+                                           "Thanks to Raycon (ad)", "Werbung", "Sponsored segment - Ground News", "sponsor: squarespace",
+                                           "विज्ञापन", "The fake ad, line by line", "Why Super Bowl ads cost so much",
+                                           "My worst sponsor deal ever", "Partner programs explained", "The history of the promo code",
+                                           "The Fake Ad, Line By Line")],
+       [True] * 9 + [False] * 6)
     # description hints: only sponsor lines count; the creator's own links, socials and name do not
     h = server.extract_hints("Learn to code with Coddy (ad): https://fern.deals/coddy")
     eq("hints: (ad) line -> brand + link", (h["brands"], h["domains"]), (["Coddy"], ["fern.deals/coddy"]))

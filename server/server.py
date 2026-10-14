@@ -75,7 +75,7 @@ KEEP_ALIVE = -1                                       # keep the model loaded be
 # Rubric changes in SYSTEM_PROMPT affect both passes: bump DETECT and REFINE.
 DETECT_VERSION = 3
 REFINE_VERSION = 3
-POST_VERSION = 13
+POST_VERSION = 14
 LEADIN_VERSION = 2   # the lead-in check: LEADIN_PROMPT / LEADIN_SYSTEM, the sentences it is shown, its caps
 NUM_CTX = 8192
 LLM_TIMEOUT_S = 600
@@ -2017,6 +2017,29 @@ def hint_candidates(job):
     return out
 
 
+# Words a sponsor chapter's title is made of, besides the brand: "Sponsor", "Today's sponsor: Odoo", "Ad break",
+# "A word from our sponsor", "Thanks to Raycon (ad)", "Werbung". A title with more than CHAPTER_OTHER_MAX other words
+# talks ABOUT ads ("The fake ad, line by line" in a scam-awareness video, s14 of the synthetic suite): no fast path.
+CHAPTER_LABEL_WORDS = {"sponsor", "sponsors", "sponsored", "sponsorship", "segment", "message", "spot", "read", "ad", "ads",
+                       "advert", "advertisement", "break", "paid", "promotion", "promo", "partner", "partnership", "our",
+                       "today's", "todays", "today", "a", "word", "words", "from", "the", "by", "brought", "to", "you",
+                       "thanks", "thank", "with", "this", "video", "is", "and", "quick", "short", "werbung", "publicité",
+                       "anuncio", "patrocinio", "patrocinado", "広告", "スポンサー", "विज्ञापन", "प्रायोजक"}
+CHAPTER_OTHER_MAX = 2   # ... and two of them must look like a name (capitalized, or with a digit or a dot): the brand
+CHAPTER_TOPIC_RE = re.compile(r"\b(?:explained|explain|history|why|how|what|review|reviews|fake|scam|scams|worst|best|"
+                              r"funniest|banned|vs|versus|react|reacting|reaction|analysis|breakdown|programs?|deals?)\b", re.I)
+
+
+def chapter_is_ad(title):
+    if not CHAPTER_AD_RE.search(title) or CHAPTER_TOPIC_RE.search(title):
+        return False
+    words = [w.strip(".!?\"'") for w in re.split(r"[\s:,;()\[\]|/–—-]+", title.replace("’", "'"))]
+    others = [w for w in words if w and w.lower() not in CHAPTER_LABEL_WORDS]
+    if len(others) <= 1:
+        return True   # one other word is the brand ("sponsor: squarespace")
+    return len(others) <= CHAPTER_OTHER_MAX and all(w[0].isupper() or any(c.isdigit() or c == "." for c in w) for w in others)
+
+
 def chapter_segments(job):
     """7a: a chapter titled like an ad/sponsor becomes a skip segment from its bounds, immediately, no model call.
     Bounds are snapped to pauses on the original track. Over MAX_CHAPTER_AD_S the chapter is ignored (the model
@@ -2026,7 +2049,7 @@ def chapter_segments(job):
     duration = job.get("duration") or (lines[-1]["end"] if lines else 0)
     out = []
     for i, (cs, title) in enumerate(chapters):
-        if not CHAPTER_AD_RE.search(title):
+        if not chapter_is_ad(title):
             continue
         ce = chapters[i + 1][0] if i + 1 < len(chapters) else duration
         if ce <= cs or ce - cs > MAX_CHAPTER_AD_S:
