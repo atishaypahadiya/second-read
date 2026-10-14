@@ -1923,20 +1923,46 @@ def stored_result(video_id, build):
 
 
 STORED_DURATION_TOL_S = 2.0   # the page's lengthSeconds is whole seconds, the stored duration is the player's float
+# Skipping the caption read also skips the one check that used to run on every visit: the stored result against
+# the captions. Without it a wrong stored result (a bad caption read, captions the creator has since replaced,
+# something another client planted) would be served for as long as duration and description stay the same. So the
+# shortcut holds only for a while after the result was last checked against captions; then one visit reads them again.
+REVALIDATE_AFTER_S = 7 * 24 * 3600
+
+
+def mark_validated(video_id, job=None):
+    """The result for this video has just been checked against the captions (analyzed from them, or confirmed by a
+    request that carried them). Remembered as the cache file's modification time, and on the job while it is in memory."""
+    if job is not None:
+        job["validated_at"] = time.time()
+    try:
+        os.utime(cache_path(video_id), None)
+    except OSError:
+        pass   # no file yet (a result still only in memory)
 
 
 def stored_matches(video_id, duration, desc_hash):
     """Is the stored result still for this video as the page reports it now? (matches, why). The check that lets
     the extension skip the caption read altogether: same video id (the lookup), same duration (within
     STORED_DURATION_TOL_S) and the same description (by SHA-1 of its text, first 12 hex digits). A stored result
-    without a duration never matches."""
+    without a duration never matches, nor does one last checked against the captions more than
+    REVALIDATE_AFTER_S ago."""
     with jobs_lock:
         job = jobs.get(video_id)
-        known = (job.get("duration"), job.get("description") or "") if job and job.get("status") == "done" else None
+        known = ((job.get("duration"), job.get("description") or "", job.get("validated_at") or 0)
+                 if job and job.get("status") == "done" else None)
     if known is None:
         meta = (load_cache(video_id) or {}).get("meta") or {}
-        known = (meta.get("duration"), meta.get("description") or "")
-    stored_duration, stored_description = known
+        try:
+            checked = os.path.getmtime(cache_path(video_id))
+        except OSError:
+            checked = 0
+        known = (meta.get("duration"), meta.get("description") or "", checked)
+    stored_duration, stored_description, checked = known
+    age = time.time() - checked
+    if age > REVALIDATE_AFTER_S:
+        return False, (f"last checked against the captions {age / 86400:.0f} days ago" if checked else
+                       "not checked against the captions since the server started")
     if not stored_duration:
         return False, "the stored result has no duration"
     if duration is None or abs(float(stored_duration) - duration) > STORED_DURATION_TOL_S:
@@ -2414,6 +2440,7 @@ def finish_job(job):
             return
     log_segments(video_id, segments)
     settle_instant(video_id, segments, "re-analyzed: the transcript, the metadata or the versions differ from the stored result")
+    job["validated_at"] = time.time()   # made from the captions just now (the cache file is written below)
     sync_stats(job, segments)  # also sets brand_canonical on each segment
     save_cache(video_id, {"videoId": video_id, "versions": versions(), "hash": job["hash"], "inputs": job.get("inputs"),
                           "lang": job["lang"], "title": job["title"], "meta": job_meta(job), "model": MODEL,
@@ -2717,6 +2744,7 @@ def start_or_get_job(video_id, lang, lines, title="", meta=None, alines=None, al
             changed = apply_meta(job, meta)
             if job["status"] == "done":
                 settle_instant(video_id, job["segments"], "same transcript and metadata, result still in memory")
+                mark_validated(video_id, job)
                 job["cached"] = True  # reused, not computed for this request
                 if changed:
                     resync = (job, job["segments"], f"metadata arrived later: {', '.join(changed)}")
@@ -2730,6 +2758,7 @@ def start_or_get_job(video_id, lang, lines, title="", meta=None, alines=None, al
                 jobs[video_id] = job
                 log(f"[{video_id}] cache hit ({len(job['segments'])} segment(s))")
                 settle_instant(video_id, job["segments"], "same transcript and metadata, result on disk")
+                mark_validated(video_id, job)
                 resync = (job, job["segments"], "cache hit")
             else:
                 why = ""

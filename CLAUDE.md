@@ -470,6 +470,10 @@ Every GET/POST for a video counts as a poll.
   stored result still fits: same video id, duration within 2 s, same description (SHA-1). If so the captions are
   never read; the server logs `cache: instant (no re-read)`. Any mismatch, a stored result without a duration, or
   no answer from page.js within 4 s → the captions are read as before (`cache: reading captions to validate …`).
+  **The shortcut expires:** it holds only while the result was checked against captions in the last 7 days
+  (`REVALIDATE_AFTER_S`; the cache file's mtime, bumped by every analysis and every confirming read). Skipping the
+  read skips the one check that used to run on every visit, so without this a wrong stored result (a bad caption
+  read, captions the creator replaced, something another client stored) would persist indefinitely.
 - **Fails closed.** The stored result is on screen before anything has checked it against this video's captions.
   If that check cannot be made (captions unreadable or malformed, server unreachable, analysis failed), or has
   not even started 30 s after the result was drawn, the result is withdrawn: its segments stay as labels
