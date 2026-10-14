@@ -373,6 +373,20 @@ def unit_checks():
     eq("lead-in: checked when the analysis track is in the same language as the cut track, not when it is a translation",
        [lead(both, {"alines": list(talk)})[0], lead(both, {"alines": list(talk), "lang": "hi", "alang": "en"})[0]], [True, False])
     server.ollama_chat = real_chat
+    # a podcast's break announcement before a read is its lead-in, by rule (synthetic s21/s22: one sentence of 7 s)
+    pod = server.clean_lines([
+        spoken(160.0, 166.0, "I drove to the county records office the next morning."),
+        spoken(166.0, 173.0, "Alright, we're going to take a short break, and when we come back I want to get into the passengers."),
+        spoken(173.0, 176.0, "This episode is sponsored by Factor."),
+        spoken(176.0, 190.0, "Head to factormeals.com slash ledger and use code LEDGER50 for fifty percent off.")])
+    hike = server.clean_lines([
+        spoken(60.0, 64.0, "Let's take a quick break from the climb."),
+        spoken(64.0, 71.0, "The view from up here is unreal and honestly I could sit here for an hour."),
+        spoken(71.0, 75.0, "This video is sponsored by Trailpath."),
+        spoken(75.0, 90.0, "Use code HIKE for twenty percent off at trailpath.com slash hike.")])
+    brk = lambda ls, cut, floor=0.0: (server.break_leadin(ls, cut, floor) or (None,))[0]
+    eq("lead-in: a break announcement right before a read starts it; one with content in between, or before the previous segment, does not",
+       [brk(pod, 173.0), brk(hike, 71.0), brk(pod, 173.0, floor=168.0), brk(pod, 166.0)], [166.0, None, None, None])
     # the start phrase the refine call found is kept over the word pass's later pick, if it is at most one line earlier
     chat_lines = server.clean_lines([
         spoken(280.0, 288.6, "her award-winning documentary. Nice work, Mona. Thanks, Don. Do you actually know about today's"),
