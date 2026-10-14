@@ -76,7 +76,7 @@ KEEP_ALIVE = -1                                       # keep the model loaded be
 # Rubric changes in SYSTEM_PROMPT affect both passes: bump DETECT and REFINE.
 DETECT_VERSION = 3
 REFINE_VERSION = 3
-POST_VERSION = 19
+POST_VERSION = 20
 LEADIN_VERSION = 2   # the lead-in check: LEADIN_PROMPT / LEADIN_SYSTEM, the sentences it is shown, its caps
 NUM_CTX = 8192
 LLM_TIMEOUT_S = 600
@@ -302,7 +302,7 @@ CUE_RE = re.compile("|".join(CUE_PATTERNS), re.I)
 # with a path does ("notewell.app/hana", spoken "notewell app slash hana", "fern dot deals slash coddy"): a
 # creator-specific link is the sponsor pattern, and a pitch without any disclosure words may have nothing else
 # (synthetic s07: a read ending "go to notewell.app slash hana, two months of premium on me" was only labeled).
-LINK_PATH_RE = (r"\.(?:com|app|io|co|net|org|gg|ai|tv|me|deals|shop)/\w|"
+LINK_PATH_RE = (r"\.(?:com|app|io|co|net|org|gg|ai|tv|me|deals|shop)(?:/| slash )\w|"
                 r"\b(?!(?:the|an?|this|that|our|your|my|their|its)\b)\w+ (?:dot )?(?:com|app|io|co|net|org|gg|ai|tv|deals|shop) slash \w")
 STRONG_CUE_RE = re.compile(
     r"sponsor|brought to you|promo ?code|use (?:the |my |your )?code|\bcode [A-Z0-9]{3,}|discount|\d+ ?(?:%|percent) off|"

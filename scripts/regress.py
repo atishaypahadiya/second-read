@@ -639,8 +639,9 @@ def unit_checks():
     eq("evidence gate: a link with a path is a strong cue, written or spoken; 'X slash Y' in talk and a bare domain are not",
        [bool(server.STRONG_CUE_RE.search(t)) for t in ("go to notewell.app/hana for two months of premium",
         "if you go to note well app slash hana you get two months", "head to fern dot deals slash coddy",
+        "go to notewell.app slash hana and you get two months",
         "my friend slash roommate", "the app slash the website", "reddit.com is huge")],
-       [True, True, True, False, False, False])
+       [True, True, True, True, False, False, False])
     # ---- back-to-back reads for different brands stay separate candidates (synthetic s22); one ad seen twice merges
     def cnd(a, b, la, lb, brand):
         return {"start": a, "end": b, "start_line": la, "end_line": lb, "category": "sponsor", "style": "read",
