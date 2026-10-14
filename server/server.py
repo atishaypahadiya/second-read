@@ -75,7 +75,7 @@ KEEP_ALIVE = -1                                       # keep the model loaded be
 # Rubric changes in SYSTEM_PROMPT affect both passes: bump DETECT and REFINE.
 DETECT_VERSION = 3
 REFINE_VERSION = 3
-POST_VERSION = 11
+POST_VERSION = 12
 LEADIN_VERSION = 2   # the lead-in check: LEADIN_PROMPT / LEADIN_SYSTEM, the sentences it is shown, its caps
 NUM_CTX = 8192
 LLM_TIMEOUT_S = 600
@@ -2455,8 +2455,38 @@ def touch(job):
     job["last_poll"] = time.time()
 
 
+NON_LATIN_LANGS = {"ar", "fa", "ur", "he", "hi", "mr", "ne", "bn", "pa", "gu", "ta", "te", "kn", "ml", "si", "th", "lo",
+                   "km", "my", "ka", "hy", "am", "el", "ru", "uk", "be", "bg", "sr", "mk", "kk", "ky", "mn", "zh", "ja", "ko"}
+EN_STOPWORDS = {"the", "and", "to", "of", "a", "is", "that", "it", "in", "you", "i", "was", "for", "this", "on", "with",
+                "but", "so", "like", "what", "we", "they", "he", "she", "are", "be", "have", "do", "not", "just", "my",
+                "me", "at", "there", "if", "can", "all", "about", "know", "your", "one", "it's", "that's", "i'm"}
+
+
+def plausible_lang(video_id, lang, lines):
+    """A track label that cannot be right: a language written in a non-Latin script whose text is Latin-script English
+    (g5BMdEpLLZE, an English podcast, arrived labeled 'ar' from an as-is read of an older build). The text decides:
+    under 5% non-Latin letters and English function words at least 30% of the words -> 'en'. Romanized Hindi
+    ('Hinglish') stays as labeled: it has far fewer English function words."""
+    base = (lang or "").split("-")[0].lower()
+    if base not in NON_LATIN_LANGS or not lines:
+        return lang
+    text = " ".join(l["text"] for l in lines[:400])
+    letters = [ch for ch in text if ch.isalpha()]
+    words = re.findall(r"[a-z']+", text.lower())
+    if not letters or not words:
+        return lang
+    non_latin = sum(1 for ch in letters if ord(ch) > 0x24F) / len(letters)
+    function = sum(1 for w in words if w in EN_STOPWORDS) / len(words)
+    if non_latin < 0.05 and function >= 0.30:
+        log(f"[{video_id}] WARNING: track labeled {lang!r} but the text is Latin-script English "
+            f"({non_latin:.0%} non-Latin letters, {function:.0%} English function words): analyzing as 'en'")
+        return "en"
+    return lang
+
+
 def start_or_get_job(video_id, lang, lines, title="", meta=None, alines=None, alang=None, position=0.0, description=""):
     meta = meta or {}
+    lang = plausible_lang(video_id, lang, lines)
     thash = transcript_hash(lines)
     paid = meta.get("paid_promotion")
     inputs = inputs_digest(thash, title, description, paid, alines, lines)

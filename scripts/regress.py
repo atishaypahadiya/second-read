@@ -193,6 +193,8 @@ def check_meta(entry, job):
     if em.get("duration"):
         got = row["duration_s"] if row else None
         out.append((bool(got), f"stats duration {got}"))
+    if "lang" in em:
+        out.append((job.get("lang") == em["lang"], f"analyzed as {job.get('lang')!r}" + ("" if job.get("lang") == em["lang"] else f", expected {em['lang']!r}")))
     if "disclosure" in em:
         got = sorted({s.get("disclosure") for s in job["segments"] if s.get("category") == "sponsor" and s.get("style") == "read"})
         out.append((got == [em["disclosure"]], f"disclosure {got}" + ("" if got == [em["disclosure"]] else f", expected {em['disclosure']!r}")))
@@ -444,6 +446,13 @@ def unit_checks():
        (False, False, True))
     eq("hints: an offer line with the sponsor's own link names the brand, without the word 'sponsor' (lyMTD1eAZAw)",
        server.extract_hints("Get an exclusive NordVPN deal here \u27b5  https://NordVPN.com/dhruv")["brands"], ["NordVPN"])
+    eng = [{"start": 0.0, "end": 4.0, "text": "Okay, so what was it like when you got there? I mean, you know, it's the kind of place that you"},
+           {"start": 4.0, "end": 8.0, "text": "don't just go to. And they asked me if I was a journalist and I said no, I'm just here for the food."}]
+    hinglish = [{"start": 0.0, "end": 4.0, "text": "Aaj hum log Delhi mein hai aur bahut maza aa raha hai yaar, chalo shoot karte hain"}]
+    deva = [{"start": 0.0, "end": 4.0, "text": "आज हम लोग दिल्ली में हैं और बहुत मज़ा आ रहा है"}]
+    eq("language: an English text labeled 'ar' is analyzed as English; Hinglish and Devanagari labeled 'hi' stay 'hi'",
+       [server.plausible_lang("v", "ar", eng), server.plausible_lang("v", "hi", hinglish), server.plausible_lang("v", "hi", deva),
+        server.plausible_lang("v", "fr", eng)], ["en", "hi", "hi", "fr"])
     eq("ad lines: a denial is not a sponsorship marker",
        [server.is_ad_line(l) for l in ("Coddy (ad): https://fern.deals/coddy", "This video is sponsored by Odoo.",
                                        "This video is not sponsored.", "No sponsor today.")], [True, True, False, False])

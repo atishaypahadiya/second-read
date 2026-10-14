@@ -129,6 +129,9 @@ second-read/                 (the folder may still be called sponsor-skipper on 
   differed between the two reads. A different transcript is a different cache key.
 - **An as-is read is labeled by what was fetched**, not by the picked track: the player's own request can be for
   another track (two English transcripts went out labeled `ar`).
+  The server checks too (`plausible_lang`, post v12): a non-Latin-script language label on Latin-script text with
+  ≥ 30% English function words is analyzed as `en` and logged as a WARNING (it5G_rIan6g and g5BMdEpLLZE were cached
+  as `ar` by builds before 20). Romanized Hindi keeps its label.
 - **Short-read guard.** A transcript whose last line ends more than 15% before the video's length
   (`videoDetails.lengthSeconds`) is read once more: a second read ending later replaces the first; one ending in
   the same place (± 2 s) means the tail really has no speech.
