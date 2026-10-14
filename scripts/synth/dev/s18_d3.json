@@ -1,0 +1,183 @@
+{
+  "id": "s18_d3",
+  "scenario": 18,
+  "split": "dev",
+  "lang": "hi",
+  "title": "मनाली से काजा | स्पीति वैली रोड ट्रिप Day 1",
+  "creator": "Ghumakkad Aman",
+  "description": "Manali se Kaza, hamari Spiti road trip ka pehla din. 13 ghante, 200 km aur bahut saari dhool.\n\nSponsored by Lenskart - pehla pair sirf Rs 1 mein, code AMAN1: https://www.lenskart.com/aman\n\nRoute: Manali - Atal Tunnel - Sissu - Gramphu - Batal - Kunzum Pass - Kaza\nGaadi: Mahindra Thar (2019)\nShot on GoPro aur iPhone\n\nInstagram: @ghumakkadaman",
+  "paid_promotion": false,
+  "sentences": [
+    {
+      "t": "तो दोस्तों, सुबह के छह बजे हैं और हम मनाली से निकल चुके हैं.",
+      "en": "So friends, it is six in the morning and we have left from Manali."
+    },
+    {
+      "t": "आज का प्लान है अटल टनल से होते हुए काजा तक पहुंचना, जो लगभग दो सौ किलोमीटर है.",
+      "en": "Today's plan is to reach Kaza via Atal Tunnel, which is about two hundred kilometers."
+    },
+    {
+      "t": "सुनने में कम लगता है लेकिन ये रास्ता इतना खराब है कि पूरा दिन लग जाता है.",
+      "en": "It sounds less but this road is so bad that it takes the whole day."
+    },
+    {
+      "t": "मेरे साथ हैं मेरे दो दोस्त, विक्की और साहिल, और हमारी पुरानी थार.",
+      "en": "With me are my two friends, Vicky and Sahil, and our old Thar."
+    },
+    {
+      "t": "अटल टनल पार करते ही पूरा नजारा बदल जाता है.",
+      "en": "As soon as you cross the Atal Tunnel the whole view changes.",
+      "gap": 1.0
+    },
+    {
+      "t": "एक तरफ हरे भरे पहाड़ थे और दूसरी तरफ एकदम सूखा, भूरा, चांद जैसा लैंडस्केप.",
+      "en": "On one side there were lush green mountains and on the other side a completely dry, brown, moon-like landscape."
+    },
+    {
+      "t": "सिस्सू में हमने रुककर मैगी और चाय ली, पहाड़ों में इससे अच्छा नाश्ता कुछ नहीं हो सकता.",
+      "en": "In Sissu we stopped and had Maggi and tea, there can be no better breakfast than this in the mountains."
+    },
+    {
+      "t": "वहां पर एक छोटा सा झरना भी है जहां हमने ड्रोन से कुछ शॉट्स लिए, वो आपको वीडियो में दिखेंगे.",
+      "en": "There is also a small waterfall there where we took some shots with the drone, you will see them in the video."
+    },
+    {
+      "t": "ग्राम्फू के बाद असली सड़क शुरू होती है, या फिर ये कहो कि सड़क खत्म होती है.",
+      "en": "After Gramphu the real road starts, or say that the road ends."
+    },
+    {
+      "t": "पूरे रास्ते पत्थर, पानी के नाले और धूल ही धूल.",
+      "en": "The whole way, stones, water streams and dust, only dust."
+    },
+    {
+      "t": "छतड़ू के पास एक नाला इतना तेज था कि हमें आधा घंटा रुककर इंतजार करना पड़ा.",
+      "en": "Near Chhatru one stream was so fast that we had to stop and wait for half an hour."
+    },
+    {
+      "t": "और यहां ऊपर धूप इतनी तेज है कि आंखें खोलना मुश्किल हो जाता है.",
+      "en": "And up here the sunlight is so strong that it becomes difficult to open the eyes."
+    },
+    {
+      "t": "इसीलिए इस ट्रिप पर मेरे साथ हैं लेंसकार्ट के सनग्लासेस, जो आज के वीडियो के स्पॉन्सर भी हैं.",
+      "en": "That is why on this trip I have Lenskart's sunglasses with me, who are also the sponsor of today's video.",
+      "seg": "A",
+      "gap": 0.6
+    },
+    {
+      "t": "इतनी ऊंचाई पर यूवी किरणें बहुत खतरनाक होती हैं, और ये सनग्लासेस सौ परसेंट यूवी प्रोटेक्शन के साथ आते हैं.",
+      "en": "At such a height UV rays are very dangerous, and these sunglasses come with hundred percent UV protection.",
+      "seg": "A"
+    },
+    {
+      "t": "पोलराइज्ड लेंस की वजह से बर्फ और पानी पर जो चमक आती है वो भी बिल्कुल कम हो जाती है.",
+      "en": "Because of the polarized lens, the glare that comes on snow and water also gets reduced completely.",
+      "seg": "A"
+    },
+    {
+      "t": "और अगर आपको मेरी तरह नंबर वाला चश्मा लगता है, तो लेंसकार्ट पर पावर वाले सनग्लासेस भी मिल जाते हैं.",
+      "en": "And if like me you wear glasses with a number, then you also get sunglasses with power on Lenskart.",
+      "seg": "A"
+    },
+    {
+      "t": "आप घर बैठे फ्री आई टेस्ट भी बुक कर सकते हैं.",
+      "en": "You can also book a free eye test sitting at home.",
+      "seg": "A"
+    },
+    {
+      "t": "डिस्क्रिप्शन में दिए गए लिंक पर जाइए और कोड अमन वन लगाइए, आपको पहला पेयर सिर्फ एक रुपये में मिलेगा.",
+      "en": "Go to the link given in the description and apply the code Aman one, you will get the first pair for only one rupee.",
+      "seg": "A"
+    },
+    {
+      "t": "ये ऑफर लिमिटेड टाइम के लिए है, तो जल्दी चेक कर लीजिए.",
+      "en": "This offer is for a limited time, so check it quickly.",
+      "seg": "A"
+    },
+    {
+      "t": "चलिए, अब आगे बढ़ते हैं.",
+      "en": "Come on, let's move ahead now.",
+      "gap": 0.9
+    },
+    {
+      "t": "बातल पहुंचे तो वहां चंद्रा ढाबा पर दाल चावल खाया.",
+      "en": "When we reached Batal we ate dal rice at Chandra Dhaba there."
+    },
+    {
+      "t": "ये ढाबा चाचा चाची चलाते हैं और पिछले चालीस साल से यहीं पर हैं.",
+      "en": "This dhaba is run by uncle and aunty and they have been here for the last forty years."
+    },
+    {
+      "t": "कितने ही ट्रैवलर्स की जान इन्होंने बचाई है जब वो रास्ते में बर्फ में फंस जाते थे.",
+      "en": "They have saved the lives of so many travelers when they used to get stuck in the snow on the way."
+    },
+    {
+      "t": "इसके बाद आता है कुंजुम पास, लगभग पंद्रह हजार फीट की ऊंचाई पर.",
+      "en": "After this comes Kunzum Pass, at a height of about fifteen thousand feet.",
+      "gap": 0.8
+    },
+    {
+      "t": "ऊपर पहुंचते ही साहिल को हल्का सिर दर्द शुरू हो गया.",
+      "en": "As soon as we reached the top, Sahil started having a mild headache."
+    },
+    {
+      "t": "हमने उसे थोड़ा गरम पानी और ड्राई फ्रूट्स दिए और दस मिनट में वो ठीक हो गया.",
+      "en": "We gave him some warm water and dry fruits and in ten minutes he became fine."
+    },
+    {
+      "t": "इसीलिए मैं हमेशा बोलता हूं, पानी खूब पीते रहिए और ऊपर ज्यादा देर मत रुकिए.",
+      "en": "That is why I always say, keep drinking lots of water and don't stay up there for too long."
+    },
+    {
+      "t": "कुंजुम माता के मंदिर पर हमने माथा टेका और फिर नीचे की तरफ निकल गए.",
+      "en": "We bowed our heads at the Kunzum Mata temple and then left towards the bottom."
+    },
+    {
+      "t": "शाम को लगभग सात बजे हम काजा पहुंचे, पूरे तेरह घंटे की ड्राइव के बाद.",
+      "en": "In the evening at about seven we reached Kaza, after a full thirteen hour drive.",
+      "gap": 1.0
+    },
+    {
+      "t": "रास्ते में दो बार टायर पंचर हुआ, लेकिन विक्की ने इतनी जल्दी बदला कि हमें पता भी नहीं चला.",
+      "en": "On the way the tyre got punctured twice, but Vicky changed it so fast that we didn't even realize."
+    },
+    {
+      "t": "थार पूरी धूल से ढकी हुई है, और हम तीनों भी.",
+      "en": "The Thar is fully covered with dust, and the three of us too."
+    },
+    {
+      "t": "होमस्टे वाले अंकल ने गरम गरम थुकपा बनाया है, और सच में इससे अच्छा कुछ नहीं लग रहा.",
+      "en": "The homestay uncle has made hot thukpa, and truly nothing feels better than this."
+    },
+    {
+      "t": "कल हम जाएंगे की मोनेस्ट्री और दुनिया के सबसे ऊंचे गांवों में से एक, हिक्किम.",
+      "en": "Tomorrow we will go to Key Monastery and one of the highest villages in the world, Hikkim."
+    },
+    {
+      "t": "वहां दुनिया का सबसे ऊंचा पोस्ट ऑफिस है, तो मैं आप लोगों को पोस्टकार्ड भी भेजूंगा, कमेंट में अपना शहर लिखिए.",
+      "en": "There is the highest post office in the world there, so I will also send you people a postcard, write your city in the comments."
+    },
+    {
+      "t": "वीडियो पसंद आया हो तो लाइक और शेयर करिए, मिलते हैं कल, स्पीति से.",
+      "en": "If you liked the video then like and share, see you tomorrow, from Spiti."
+    }
+  ],
+  "segments": {
+    "A": {
+      "expect": "skip",
+      "category": "sponsor",
+      "brand": "Lenskart"
+    }
+  },
+  "noisy": {
+    "swaps": [
+      [
+        "लेंसकार्ट",
+        "लेंस कार्ट"
+      ],
+      [
+        "कुंजुम",
+        "कुंजम"
+      ]
+    ]
+  }
+}

@@ -1,0 +1,141 @@
+{
+  "id": "s05_d1",
+  "scenario": 5,
+  "split": "dev",
+  "lang": "en",
+  "title": "My 2026 Desk Setup (I Finally Got It Right)",
+  "creator": "Kai Tanaka",
+  "description": "A full tour of my desk setup: what I changed this year, what I got rid of, and what finally stuck.\n\nSponsors:\nNotion: try Notion free at https://notion.com/kai\nRidge: up to 40% off with code KAI at https://ridge.com/kai\n\nDesk, chair and monitor details are in the pinned comment.",
+  "paid_promotion": true,
+  "sentences": [
+    {
+      "t": "Every year I redo my desk setup, and every year I tell myself this is the last time."
+    },
+    {
+      "t": "This year I think I actually mean it, so let's go through what changed and why."
+    },
+    {
+      "t": "First, the desk itself is the same oak top I've had for three years, but I finally got rid of the motorized frame."
+    },
+    {
+      "t": "I tracked it, and I stood up at this desk maybe four times last year, so it was a very expensive wobble."
+    },
+    {
+      "t": "Now it's a fixed frame at exactly the right height for me, and it's rock solid."
+    },
+    {
+      "t": "Monitor-wise, I went from two screens down to one big one, and that was the biggest productivity change of the whole year."
+    },
+    {
+      "t": "With two screens, I always had something distracting on the second one, chat, email, a video I was half watching."
+    },
+    {
+      "t": "With one, whatever I'm working on is the only thing in front of me."
+    },
+    {
+      "t": "Keyboard is a low-profile mechanical with really quiet switches, because I record voiceovers at this desk and the clacky one was showing up in the audio."
+    },
+    {
+      "t": "Before we get to lighting, which was the other big change, a quick word from the two sponsors of this video.",
+      "seg": "A",
+      "gap": 0.8
+    },
+    {
+      "t": "First up, this video is sponsored by Notion.",
+      "seg": "A"
+    },
+    {
+      "t": "Notion is one workspace for your notes, your tasks, your docs, and your projects, instead of having them spread across five different apps.",
+      "seg": "A"
+    },
+    {
+      "t": "I plan my whole week in it, and it's the reason I stopped losing track of client deadlines.",
+      "seg": "A"
+    },
+    {
+      "t": "And with Notion AI built in, you can ask it things like, what did I promise in last month's meeting notes, and it actually finds it.",
+      "seg": "A"
+    },
+    {
+      "t": "Try Notion for free at notion.com/kai, the link is in the description.",
+      "seg": "A"
+    },
+    {
+      "t": "And our second sponsor today is Ridge, which, yes, is a wallet, and I promise it's relevant to sitting at a desk.",
+      "seg": "B",
+      "gap": 0.6
+    },
+    {
+      "t": "I used to keep this giant leather wallet in my back pocket, and sitting at a desk all day with it was genuinely giving me back pain.",
+      "seg": "B"
+    },
+    {
+      "t": "The Ridge is this slim aluminum wallet that holds up to twelve cards and has RFID blocking built in.",
+      "seg": "B"
+    },
+    {
+      "t": "It lives in my front pocket now, and I barely notice it's there.",
+      "seg": "B"
+    },
+    {
+      "t": "It's got a lifetime warranty too, so it's probably the last wallet I'll ever buy.",
+      "seg": "B"
+    },
+    {
+      "t": "Use code KAI at ridge.com/kai for up to forty percent off.",
+      "seg": "B"
+    },
+    {
+      "t": "Okay, so, lighting.",
+      "gap": 1.0
+    },
+    {
+      "t": "I got rid of the overhead light completely and replaced it with a lamp behind the monitor that bounces off the wall."
+    },
+    {
+      "t": "Way less eye strain, and on camera it looks a hundred times better."
+    },
+    {
+      "t": "There's also a little warm lamp on the shelf, mostly because it makes me happy."
+    },
+    {
+      "t": "Cable management, I'm not going to pretend it's perfect, but everything runs through one tray under the desk, so from the front you see one cable."
+    },
+    {
+      "t": "That one cable is the monitor, and I've made peace with it."
+    },
+    {
+      "t": "And the last thing is the plant, which I have now kept alive for eleven months, a personal record."
+    },
+    {
+      "t": "If you've got questions about any of the gear, leave them in the comments and I'll answer as many as I can."
+    },
+    {
+      "t": "Thanks for watching, see you next time."
+    }
+  ],
+  "segments": {
+    "A": {
+      "expect": "skip",
+      "category": "sponsor",
+      "brand": "Notion"
+    },
+    "B": {
+      "expect": "skip",
+      "category": "sponsor",
+      "brand": "Ridge"
+    }
+  },
+  "noisy": {
+    "swaps": [
+      [
+        "Notion",
+        "motion"
+      ],
+      [
+        "RFID",
+        "our fid"
+      ]
+    ]
+  }
+}

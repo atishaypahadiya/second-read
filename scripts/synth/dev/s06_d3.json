@@ -1,0 +1,150 @@
+{
+  "id": "s06_d3",
+  "scenario": 6,
+  "split": "dev",
+  "lang": "en",
+  "title": "24 Hours in Lisbon: Custard Tarts, Hills and Sunsets",
+  "creator": "Ines on the Road",
+  "description": "Day one in Lisbon! Belém, Alfama, two miradouros and way too many pastéis de nata.\n\nThanks to Airalo for sponsoring this video! Get 15% off your first eSIM with code INES15 in the Airalo app.\n\nPlaces in this video:\nPastéis de Belém\nJerónimos Monastery\nMiradouro de Santa Luzia\nMiradouro da Senhora do Monte\nTime Out Market\n\nNext: Sintra day trip",
+  "paid_promotion": false,
+  "sentences": [
+    {
+      "t": "Good morning from Lisbon!"
+    },
+    {
+      "t": "It is seven a.m., and I'm up early because I have one goal today, and it's to get to Pastéis de Belém before the line wraps around the block."
+    },
+    {
+      "t": "Spoiler, I did not make it before the line."
+    },
+    {
+      "t": "But it moves fast, maybe fifteen minutes."
+    },
+    {
+      "t": "And honestly, the custard tarts are worth it, they come out warm and you dust the cinnamon on top yourself."
+    },
+    {
+      "t": "I had three."
+    },
+    {
+      "t": "I'm not going to apologize for that."
+    },
+    {
+      "t": "After that we walked over to the Jerónimos Monastery, which is right next door."
+    },
+    {
+      "t": "The cloister is unreal, every column is carved differently, ropes and sea creatures and little faces."
+    },
+    {
+      "t": "Get there right when it opens if you can, because by eleven it's packed with tour groups."
+    },
+    {
+      "t": "From Belém we took the tram, the fifteen, back toward the center."
+    },
+    {
+      "t": "Everyone talks about tram twenty-eight, and yes, it's charming, but it is also basically a sardine can full of tourists and pickpockets."
+    },
+    {
+      "t": "My tip is to ride it really early or really late, or just walk the route, it's all hills anyway."
+    },
+    {
+      "t": "Speaking of hills, Lisbon will destroy your calves."
+    },
+    {
+      "t": "Wear real shoes, because the sidewalks are these polished limestone tiles, and when they're wet they're like ice."
+    },
+    {
+      "t": "I saw two people slip today, and one of them was me."
+    },
+    {
+      "t": "For lunch we went to a tiny place in Alfama with no menu, the owner just tells you what's cooking."
+    },
+    {
+      "t": "Today it was grilled sardines, boiled potatoes, and a salad, plus a jug of house wine, and the whole thing was like fourteen euros."
+    },
+    {
+      "t": "After lunch we wandered around Alfama with no plan, which is the best way to do it."
+    },
+    {
+      "t": "You get lost, you climb some stairs, and you end up at a viewpoint you didn't know existed."
+    },
+    {
+      "t": "This one is Miradouro de Santa Luzia, and look at those orange rooftops going all the way down to the river."
+    },
+    {
+      "t": "Then sunset at Miradouro da Senhora do Monte, which is the highest viewpoint in the city."
+    },
+    {
+      "t": "Bring a drink, everybody else does, and there's usually someone with a guitar."
+    },
+    {
+      "t": "Dinner was at Time Out Market, which locals kind of roll their eyes at."
+    },
+    {
+      "t": "But if you're tired and everyone wants something different, it's perfect."
+    },
+    {
+      "t": "I got a steak sandwich called a prego, and it was so good I'm thinking about it right now."
+    },
+    {
+      "t": "So that was day one in Lisbon."
+    },
+    {
+      "t": "Tomorrow we're doing a day trip to Sintra, and I've been told to book the palace tickets ahead, so I'm doing that tonight."
+    },
+    {
+      "t": "Thanks so much for watching, and if you've been to Lisbon, leave your favorite spot in the comments."
+    },
+    {
+      "t": "See you in Sintra!"
+    },
+    {
+      "t": "Oh, and one more thing, this trip was made possible by today's sponsor, Airalo.",
+      "gap": 1.5,
+      "seg": "A"
+    },
+    {
+      "t": "Airalo is an app where you buy an eSIM for the country you're going to before you even leave home.",
+      "seg": "A"
+    },
+    {
+      "t": "I landed in Lisbon, switched it on, and had data before I got to baggage claim.",
+      "seg": "A"
+    },
+    {
+      "t": "No hunting for a SIM card kiosk at the airport, and no roaming charges from my carrier waiting for me when I get home.",
+      "seg": "A"
+    },
+    {
+      "t": "They have plans in over two hundred countries, and the Portugal one I used cost less than one day of roaming.",
+      "seg": "A"
+    },
+    {
+      "t": "So download the app and use code INES15 for fifteen percent off your first eSIM.",
+      "seg": "A"
+    },
+    {
+      "t": "The link's down in the description.",
+      "seg": "A"
+    }
+  ],
+  "segments": {
+    "A": {
+      "expect": "skip",
+      "category": "sponsor",
+      "brand": "Airalo"
+    }
+  },
+  "noisy": {
+    "swaps": [
+      [
+        "Airalo",
+        "air a low"
+      ],
+      [
+        "Jerónimos",
+        "hieronymus"
+      ]
+    ]
+  }
+}

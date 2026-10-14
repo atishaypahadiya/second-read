@@ -1,0 +1,162 @@
+{
+  "id": "s08_d1",
+  "scenario": 8,
+  "split": "dev",
+  "lang": "en",
+  "title": "Ranking Every Ocarina of Time Dungeon (Worst to Best)",
+  "creator": "Nate Plays",
+  "description": "All eight main dungeons in Ocarina of Time, ranked. Fight me in the comments.\n\nThis video is sponsored by Raycon. Get 15% off at https://raycon.com/nate\n\nWhat's your #1? Wrong answers only.",
+  "paid_promotion": true,
+  "sentences": [
+    {
+      "t": "Okay, today we're ranking every main dungeon in Ocarina of Time from worst to best, and some of you are going to be very upset."
+    },
+    {
+      "t": "Quick ground rules, I'm only counting the eight main dungeons, so no Bottom of the Well, no Ice Cavern, and no Ganon's Castle."
+    },
+    {
+      "t": "Starting at the bottom, number eight, Jabu-Jabu's Belly."
+    },
+    {
+      "t": "You spend the whole dungeon carrying Princess Ruto around like a sack of potatoes, and she complains the entire time."
+    },
+    {
+      "t": "The visuals are gross in a fun way, but the layout is just confusing, and the boss is forgettable."
+    },
+    {
+      "t": "Number seven, the Water Temple."
+    },
+    {
+      "t": "I know, I know, everyone expects it at the bottom."
+    },
+    {
+      "t": "But honestly, once you understand the three water levels, it's a really clever design, it's just punishing if you miss one key."
+    },
+    {
+      "t": "The iron boots menuing is what kills it, and the 3DS version fixed most of that."
+    },
+    {
+      "t": "Number six, Dodongo's Cavern."
+    },
+    {
+      "t": "It's the second dungeon, so it's short, but blowing up walls with bomb flowers is so satisfying."
+    },
+    {
+      "t": "And King Dodongo eating bombs is one of the most iconic boss fights in the series."
+    },
+    {
+      "t": "Number five, the Fire Temple."
+    },
+    {
+      "t": "Great music, or at least the original version with the chanting, before they changed it."
+    },
+    {
+      "t": "And the climb up the tower at the end is a lot of fun."
+    },
+    {
+      "t": "Number four, the Great Deku Tree."
+    },
+    {
+      "t": "It's a tutorial, but it's a perfect tutorial, it teaches you everything without saying a word."
+    },
+    {
+      "t": "Okay, before the top three, this video is sponsored by Ray Con.",
+      "seg": "A"
+    },
+    {
+      "t": "I've been using Ray Con earbuds for basically every recording session this year.",
+      "seg": "A"
+    },
+    {
+      "t": "They've got active noise cancelling, so when my neighbor starts his leaf blower at nine a.m. on a Sunday, I can't hear a thing.",
+      "seg": "A"
+    },
+    {
+      "t": "The battery lasts about eight hours on a charge, plus another twenty-four in the case, and they're so light I forget I'm wearing them.",
+      "seg": "A"
+    },
+    {
+      "t": "They also just added a gaming mode that cuts the audio delay, which actually matters when you're timing your shield in a boss fight.",
+      "seg": "A"
+    },
+    {
+      "t": "And they're way cheaper than the big-name earbuds that sound about the same.",
+      "seg": "A"
+    },
+    {
+      "t": "Go to ray con dot com slash nate to get fifteen percent off your order.",
+      "seg": "A"
+    },
+    {
+      "t": "That's ray con dot com slash nate.",
+      "seg": "A"
+    },
+    {
+      "t": "Alright, number three, the Forest Temple."
+    },
+    {
+      "t": "This is where Ocarina goes from a kid's adventure to something actually creepy."
+    },
+    {
+      "t": "The twisted hallways, the four Poe sisters, Phantom Ganon riding out of the paintings."
+    },
+    {
+      "t": "The only thing keeping it from number one is the block puzzles, which go on a little long."
+    },
+    {
+      "t": "Number two, the Spirit Temple."
+    },
+    {
+      "t": "You play it as young Link and adult Link, and the way the two halves connect is genius."
+    },
+    {
+      "t": "Plus Twinrova is a great boss, you're bouncing their fire and ice back at each other with the mirror shield."
+    },
+    {
+      "t": "And number one."
+    },
+    {
+      "t": "It's the Water Temple."
+    },
+    {
+      "t": "No, I'm kidding, put the pitchfork down."
+    },
+    {
+      "t": "Number one is the Shadow Temple."
+    },
+    {
+      "t": "Invisible walls, guillotines, a boat ride across a river of the dead, and the Lens of Truth actually matters for once."
+    },
+    {
+      "t": "It was the darkest thing Nintendo had made at that point, and it still holds up."
+    },
+    {
+      "t": "Bongo Bongo is a weird boss, but the drum music in that room lives in my head rent-free."
+    },
+    {
+      "t": "So that's my list."
+    },
+    {
+      "t": "Tell me which one I got completely wrong in the comments, and I'll see you in the next one."
+    }
+  ],
+  "segments": {
+    "A": {
+      "expect": "skip",
+      "category": "sponsor",
+      "brand": "Raycon"
+    }
+  },
+  "noisy": {
+    "swaps": [
+      [
+        "Dodongo",
+        "do dongo"
+      ],
+      [
+        "Twinrova",
+        "twin rover"
+      ]
+    ]
+  }
+}

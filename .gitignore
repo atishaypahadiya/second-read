@@ -3,3 +3,6 @@ __pycache__/
 .env
 server/testset.calls.local.json
 server/testset.inputs.local.json
+
+# synthetic suite run outputs (per-run logs and scores)
+scripts/synth/results/

@@ -1,0 +1,280 @@
+{
+  "id": "s09_d2",
+  "scenario": 9,
+  "split": "dev",
+  "lang": "en",
+  "title": "I Built a $600 Gaming PC That Actually Runs Everything",
+  "creator": "Drift Tech",
+  "description": "$598 in parts, 1080p high settings, 60+ fps in every game I tested. Full parts list below.\n\nDownload Ember Legends for free and get the starter pack: https://emberlegends.gg/drift\n\nPARTS\nCPU: Ryzen 5 7600 ($179)\nMotherboard: B650 ($109)\nRAM: 32GB DDR5-6000 ($85)\nSSD: 1TB NVMe ($55)\nGPU: RX 6700 XT, used ($220)\nCase + PSU: reused from my old build",
+  "paid_promotion": null,
+  "sentences": [
+    {
+      "t": "Six hundred dollars."
+    },
+    {
+      "t": "That's the budget, and the goal is a PC that plays every big game at 1080p, high settings, sixty frames or better."
+    },
+    {
+      "t": "A few years ago, that would've been a joke."
+    },
+    {
+      "t": "Today, I think it's actually doable, but only if you're willing to be a little bit sneaky."
+    },
+    {
+      "t": "So let's go through the parts list, and I'll tell you where I saved and where I absolutely did not."
+    },
+    {
+      "t": "Starting with the CPU, I went with a Ryzen 5 7600."
+    },
+    {
+      "t": "It's six cores, twelve threads, and it was on sale for a hundred and seventy-nine dollars."
+    },
+    {
+      "t": "Could I have gone cheaper with last generation's chips?"
+    },
+    {
+      "t": "Sure, but the AM5 platform means you can drop in a much faster CPU in three or four years without changing the motherboard."
+    },
+    {
+      "t": "That's the kind of saving that doesn't show up on day one."
+    },
+    {
+      "t": "Motherboard, a basic B650 board for a hundred and nine dollars."
+    },
+    {
+      "t": "No fancy lights, no WiFi seven, nothing you don't need."
+    },
+    {
+      "t": "It's got two M.2 slots and decent power delivery, and that's it."
+    },
+    {
+      "t": "Memory, thirty-two gigs of DDR5 at six thousand, two sticks, eighty-five dollars."
+    },
+    {
+      "t": "I know some people will say sixteen is enough, and for a lot of games right now, it is."
+    },
+    {
+      "t": "But the price difference was twenty bucks, and newer games are getting hungrier every year."
+    },
+    {
+      "t": "Storage, a one-terabyte NVMe drive for fifty-five dollars."
+    },
+    {
+      "t": "It's not the fastest drive on the market, but you will genuinely not notice the difference while gaming."
+    },
+    {
+      "t": "Now, the graphics card, which is where most of the budget goes."
+    },
+    {
+      "t": "I found a used RX 6700 XT on a local marketplace for two hundred and twenty dollars."
+    },
+    {
+      "t": "And yes, I know, buying used is scary."
+    },
+    {
+      "t": "So here's what I do."
+    },
+    {
+      "t": "Meet in person, ask the seller to run a benchmark in front of you, and look at the fans and the ports for damage."
+    },
+    {
+      "t": "This one ran a full loop of a stress test at normal temperatures, and the seller even had the original box."
+    },
+    {
+      "t": "New, that card would be about a hundred dollars more."
+    },
+    {
+      "t": "For the case, I'm reusing the one from my old build, and the power supply is a six-hundred-fifty-watt gold unit I already had."
+    },
+    {
+      "t": "If you're buying those new, add about a hundred and twenty dollars, and you're slightly over budget, but not by much."
+    },
+    {
+      "t": "So the total, for the parts I actually bought, comes to five hundred and ninety-eight dollars."
+    },
+    {
+      "t": "Two dollars to spare."
+    },
+    {
+      "t": "I'm going to spend it on a coffee."
+    },
+    {
+      "t": "The build itself went smoothly, except for the part where I forgot to plug in the CPU power cable and spent ten minutes staring at a black screen."
+    },
+    {
+      "t": "Classic."
+    },
+    {
+      "t": "And speaking of games, this video is brought to you by Ember Legends.",
+      "gap": 1.0,
+      "seg": "A"
+    },
+    {
+      "t": "Ember Legends is a free-to-play fantasy RPG that you can play on your phone or on PC, and your progress carries over between the two.",
+      "seg": "A"
+    },
+    {
+      "t": "The story is that the world's last dragon has been killed, and every kingdom is fighting over what's left of its fire.",
+      "seg": "A"
+    },
+    {
+      "t": "You build a team of heroes from over two hundred characters, each with their own abilities, and take them into turn-based battles.",
+      "seg": "A"
+    },
+    {
+      "t": "And this is not one of those games where you just mash auto-battle and watch.",
+      "seg": "A"
+    },
+    {
+      "t": "The fights are actually tactical, so you have to think about turn order, elemental weaknesses, and which hero is going to soak up the damage.",
+      "seg": "A"
+    },
+    {
+      "t": "I've been playing it on the new PC for the last couple of weeks, and it runs at a locked hundred and forty-four frames.",
+      "seg": "A"
+    },
+    {
+      "t": "The art style is gorgeous, every hero has this hand-painted look, and the ultimate attacks have big animated cinematics.",
+      "seg": "A"
+    },
+    {
+      "t": "My favorite hero right now is a fire mage named Seraphine, who can chain burning damage across the whole enemy team, and when she gets going, it's absolute chaos.",
+      "seg": "A"
+    },
+    {
+      "t": "There's also a guild system, so you can team up with friends, take on raid bosses together, and trade gear.",
+      "seg": "A"
+    },
+    {
+      "t": "My guild is called Budget Builders, and we are, I'll be honest, mid at best.",
+      "seg": "A"
+    },
+    {
+      "t": "But it's fun, and the community is surprisingly friendly.",
+      "seg": "A"
+    },
+    {
+      "t": "I've had people in my guild message me at two in the morning asking for team advice, and honestly, I've done the same thing to them.",
+      "seg": "A"
+    },
+    {
+      "t": "There's a PvP arena too, if you want to test your team against other players, with seasonal rankings and rewards.",
+      "seg": "A"
+    },
+    {
+      "t": "And there's a new event running right now called the Ashfall Festival, which has its own story chapter and an exclusive hero you can unlock just by playing.",
+      "seg": "A"
+    },
+    {
+      "t": "The game gets a content update every month, so there's always something new to do.",
+      "seg": "A"
+    },
+    {
+      "t": "Last month they added a whole new region, a frozen archipelago with its own heroes, its own boss, and a story that actually made me want to finish it.",
+      "seg": "A"
+    },
+    {
+      "t": "And if you're worried about pay-to-win, I've been playing completely free, and my team is holding its own in the arena.",
+      "seg": "A"
+    },
+    {
+      "t": "Now, the part you actually care about.",
+      "seg": "A"
+    },
+    {
+      "t": "If you download Ember Legends using the link in the description, you'll get a starter pack with fifty thousand gold, ten summon scrolls, and an epic hero of your choice.",
+      "seg": "A"
+    },
+    {
+      "t": "That's a really strong head start, because it took me about a week to earn that much on my own account.",
+      "seg": "A"
+    },
+    {
+      "t": "Those summon scrolls are the main way you get new heroes, so having ten of them on day one is a big deal.",
+      "seg": "A"
+    },
+    {
+      "t": "There's also a daily login reward, so even if you just open the game for a minute, you're building toward something.",
+      "seg": "A"
+    },
+    {
+      "t": "On top of that, if you reach level ten in your first seven days, you unlock a bonus legendary summon.",
+      "seg": "A"
+    },
+    {
+      "t": "The game is completely free to download, on iOS, Android, and PC.",
+      "seg": "A"
+    },
+    {
+      "t": "And the link works like a promo code, so you'll get the rewards automatically, and you don't need to type anything in.",
+      "seg": "A"
+    },
+    {
+      "t": "Again, that's the link in the description, or you can scan the QR code on screen right now.",
+      "seg": "A"
+    },
+    {
+      "t": "Give it a shot, and if you join, look for the Budget Builders guild, because we need all the help we can get.",
+      "seg": "A"
+    },
+    {
+      "t": "Thanks to Ember Legends for supporting the channel.",
+      "seg": "A"
+    },
+    {
+      "t": "Okay, benchmarks, the moment of truth."
+    },
+    {
+      "t": "Cyberpunk at 1080p, high settings, no ray tracing, averaged sixty-eight frames."
+    },
+    {
+      "t": "Turn on FSR quality mode, and that jumps to about eighty-five."
+    },
+    {
+      "t": "Fortnite on high, around a hundred and sixty."
+    },
+    {
+      "t": "Baldur's Gate 3 on ultra, sixty-two in the city, which is the toughest part of that game."
+    },
+    {
+      "t": "And temperatures stayed under seventy-five degrees on both the CPU and the GPU, even after an hour."
+    },
+    {
+      "t": "So, did we hit the goal?"
+    },
+    {
+      "t": "Yes, comfortably, in every game I tried."
+    },
+    {
+      "t": "The one caveat is that this relies on finding a good used graphics card, and that takes a bit of patience."
+    },
+    {
+      "t": "If you want everything new, budget about seven hundred."
+    },
+    {
+      "t": "The full parts list is in the description, with the prices I paid."
+    },
+    {
+      "t": "Let me know what you'd change in the comments, and I'll see you in the next build."
+    }
+  ],
+  "segments": {
+    "A": {
+      "expect": "skip",
+      "category": "sponsor",
+      "brand": "Ember Legends"
+    }
+  },
+  "noisy": {
+    "swaps": [
+      [
+        "Ember Legends",
+        "amber legends"
+      ],
+      [
+        "Seraphine",
+        "sarah fein"
+      ]
+    ]
+  }
+}

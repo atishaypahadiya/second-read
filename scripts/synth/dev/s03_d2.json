@@ -1,0 +1,155 @@
+{
+  "id": "s03_d2",
+  "scenario": 3,
+  "split": "dev",
+  "lang": "en",
+  "title": "Silksong Finally Has DLC, Switch 2 Price Hike, and the Worst Patch of the Year | Respawn Weekly #212",
+  "creator": "Respawn Weekly",
+  "description": "Rach and Dan talk the week in games: Silksong's first expansion, the Switch 2 price bump, and a patch notes disaster.\n\nJoin the Discord: https://discord.gg/respawnweekly\nSubmit questions: https://respawnweekly.com/ask",
+  "paid_promotion": true,
+  "sentences": [
+    {
+      "t": "Welcome back to Respawn Weekly, I'm Rach, and as always I'm joined by Dan."
+    },
+    {
+      "t": "Hello, hello, I've had four hours of sleep and it's entirely Silksong's fault."
+    },
+    {
+      "t": "Which is perfect, because that's our first story, Team Cherry dropped a trailer for the first Silksong expansion, and it's coming out in, like, spring."
+    },
+    {
+      "t": "I genuinely did not expect them to announce anything this fast."
+    },
+    {
+      "t": "Right, these are the people who went quiet for six years."
+    },
+    {
+      "t": "The trailer has a whole new area that looks like it's underwater, and there's a new tool that I think is a grappling hook."
+    },
+    {
+      "t": "If that's a grappling hook, I'm gonna lose my mind, the movement in this game is already so good."
+    },
+    {
+      "t": "They also said it's free, which, in this economy, wow."
+    },
+    {
+      "t": "Speaking of this economy, story number two, Nintendo is raising the price of the Switch 2 in a bunch of regions."
+    },
+    {
+      "t": "Yeah, about thirty to fifty bucks depending on where you live, and they're blaming tariffs and component costs."
+    },
+    {
+      "t": "I get it, but it still stings, especially for people who were waiting for a holiday deal."
+    },
+    {
+      "t": "My take is, if you were on the fence, this is the week to buy before it changes, but don't panic buy either."
+    },
+    {
+      "t": "Very balanced, very responsible, I hate it."
+    },
+    {
+      "t": "Hey Dan, do you know who's sponsoring this week's episode?",
+      "seg": "A",
+      "gap": 1.0
+    },
+    {
+      "t": "Uh, is it the snack people again?",
+      "seg": "A"
+    },
+    {
+      "t": "Nope, it's Raycon!",
+      "seg": "A"
+    },
+    {
+      "t": "Oh nice, I literally have mine in right now.",
+      "seg": "A"
+    },
+    {
+      "t": "So Raycon makes wireless earbuds that sound great and don't cost three hundred dollars.",
+      "seg": "A"
+    },
+    {
+      "t": "I use the gaming ones on my Switch because the latency is super low, so the audio actually lines up with what's happening on screen.",
+      "seg": "A"
+    },
+    {
+      "t": "And the battery lasts forever, I think I charged mine last Tuesday.",
+      "seg": "A"
+    },
+    {
+      "t": "Go to buyraycon.com/respawn to get fifteen percent off sitewide, that's buyraycon.com/respawn.",
+      "seg": "A"
+    },
+    {
+      "t": "Okay, story number three, and this one is a mess.",
+      "gap": 1.0
+    },
+    {
+      "t": "So you know that big extraction shooter that's been in early access forever?"
+    },
+    {
+      "t": "The one with the frog mascot?"
+    },
+    {
+      "t": "That one, they pushed a patch on Monday that was supposed to fix matchmaking, and instead it wiped a bunch of people's stashes."
+    },
+    {
+      "t": "Like, months of loot, just gone."
+    },
+    {
+      "t": "I saw one guy post that he'd been saving a legendary rifle for a tournament, and it just vanished."
+    },
+    {
+      "t": "That's genuinely heartbreaking, I would quit for a week."
+    },
+    {
+      "t": "And the patch notes said, minor bug fixes, which is just incredible."
+    },
+    {
+      "t": "To their credit they rolled it back in about twelve hours and they're giving everyone a compensation package."
+    },
+    {
+      "t": "Sure, but people put a hundred hours into some of those stashes, a free skin doesn't fix that."
+    },
+    {
+      "t": "Honestly, the bigger problem is trust, people are going to be scared every time there's a patch now."
+    },
+    {
+      "t": "Yeah, they really need to start testing these on a public server first."
+    },
+    {
+      "t": "Okay, listener question time, this one's from Marco in Ohio."
+    },
+    {
+      "t": "He asks, what's a game you love that you would never recommend to anyone?"
+    },
+    {
+      "t": "Oh, easy, for me it's a farming game where every crop can kill you, and I will not elaborate."
+    },
+    {
+      "t": "You absolutely have to elaborate, but we're out of time, so next week."
+    },
+    {
+      "t": "Thanks for listening, everybody, send us your questions, and we'll see you next week."
+    }
+  ],
+  "segments": {
+    "A": {
+      "expect": "skip",
+      "category": "sponsor",
+      "brand": "Raycon"
+    }
+  },
+  "noisy": {
+    "swaps": [
+      [
+        "Raycon",
+        "ray con"
+      ],
+      [
+        "Silksong",
+        "silk song"
+      ]
+    ]
+  }
+}

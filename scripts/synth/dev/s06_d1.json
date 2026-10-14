@@ -1,0 +1,195 @@
+{
+  "id": "s06_d1",
+  "scenario": 6,
+  "split": "dev",
+  "lang": "en",
+  "title": "One-Pan Lemon Orzo (25 Minutes, One Pan to Wash)",
+  "creator": "Priya Bakes",
+  "description": "The weeknight dinner I make more than anything else: creamy lemon orzo with spinach and parmesan, all in one pan.\n\nThis video is sponsored by Hearthbox. Get 60% off your first box plus free shipping with code PRIYA60 at https://hearthbox.com/priya\n\nRECIPE\n1 shallot, 3 garlic cloves, 1.5 cups orzo, 3.5 cups warm stock, 2 lemons, 2 handfuls spinach, butter, parmesan, pine nuts, basil.\n\nInstagram: @priyabakes",
+  "paid_promotion": true,
+  "sentences": [
+    {
+      "t": "Hey everyone, welcome back to the kitchen."
+    },
+    {
+      "t": "Today we are making my one-pan lemon orzo, and I promise you it takes about twenty-five minutes start to finish."
+    },
+    {
+      "t": "Which, on a Tuesday, is about all the energy I have."
+    },
+    {
+      "t": "So first thing, get a wide pan going on medium heat with a good glug of olive oil."
+    },
+    {
+      "t": "I'm using a twelve-inch stainless pan, but honestly a nonstick works fine here too."
+    },
+    {
+      "t": "In goes one diced shallot and a pinch of salt."
+    },
+    {
+      "t": "You just want it soft, not brown, so keep it moving."
+    },
+    {
+      "t": "Okay, that smells amazing already."
+    },
+    {
+      "t": "Now three cloves of garlic, grated straight in."
+    },
+    {
+      "t": "Thirty seconds, tops, because burnt garlic is the enemy."
+    },
+    {
+      "t": "Next, the orzo goes in dry, about a cup and a half."
+    },
+    {
+      "t": "And here's the trick most recipes skip, you toast it."
+    },
+    {
+      "t": "Stir it around in the oil for two or three minutes until some of the pieces turn golden."
+    },
+    {
+      "t": "That gives you this nutty, almost popcorn-y flavor that makes the whole dish taste way more complicated than it is."
+    },
+    {
+      "t": "See how it's going a little tan at the edges?"
+    },
+    {
+      "t": "That's what we want."
+    },
+    {
+      "t": "Now the liquid."
+    },
+    {
+      "t": "Three and a half cups of warm chicken stock, or veggie stock if you want to keep it vegetarian."
+    },
+    {
+      "t": "Pour it in slowly, it's going to hiss at you, that's fine."
+    },
+    {
+      "t": "Bring it up to a simmer and then turn it down low."
+    },
+    {
+      "t": "You're going to stir this every couple of minutes, kind of like a lazy risotto."
+    },
+    {
+      "t": "Not constantly, I'm not a monster."
+    },
+    {
+      "t": "While that's going, zest two lemons."
+    },
+    {
+      "t": "Get the zest only, not the white pith, because the pith is bitter."
+    },
+    {
+      "t": "And then juice them, and catch the seeds with your fingers like this."
+    },
+    {
+      "t": "Okay, it's been about ten minutes, let's check."
+    },
+    {
+      "t": "The orzo's almost tender, still a little bite in the middle, and most of the stock is absorbed."
+    },
+    {
+      "t": "This is where the spinach goes in, a big handful, maybe two."
+    },
+    {
+      "t": "It looks like way too much, it is not too much, it wilts down to nothing."
+    },
+    {
+      "t": "Then the lemon zest, the juice, and a knob of butter."
+    },
+    {
+      "t": "And a big handful of parmesan, like a really generous one."
+    },
+    {
+      "t": "Stir that until it goes glossy and creamy."
+    },
+    {
+      "t": "If it gets too thick, splash in a little more stock or some pasta water, whatever you've got."
+    },
+    {
+      "t": "Taste it."
+    },
+    {
+      "t": "Mm, okay, it needs more salt, it always needs more salt."
+    },
+    {
+      "t": "And a crack of black pepper."
+    },
+    {
+      "t": "I like to finish it with some toasted pine nuts and a few torn basil leaves on top."
+    },
+    {
+      "t": "Look at that."
+    },
+    {
+      "t": "Bright, creamy, a little bit cheesy, and literally one pan to wash."
+    },
+    {
+      "t": "If you want protein, this is great with a piece of seared salmon or some white beans stirred in at the end."
+    },
+    {
+      "t": "Leftovers keep about three days in the fridge, just loosen it with a splash of water when you reheat."
+    },
+    {
+      "t": "Alright, that is it for today."
+    },
+    {
+      "t": "Thank you so much for watching, and if you make this, tag me, I genuinely love seeing your versions."
+    },
+    {
+      "t": "I'll see you next week with something chocolate, I think."
+    },
+    {
+      "t": "Bye!"
+    },
+    {
+      "t": "Oh wait, before you go, this video is sponsored by Hearthbox.",
+      "gap": 1.0,
+      "seg": "A"
+    },
+    {
+      "t": "Hearthbox is a meal kit, but the thing I actually like is that the recipes are written by real home cooks, not a test kitchen.",
+      "seg": "A"
+    },
+    {
+      "t": "Every box comes with pre-portioned ingredients, so no buying a whole bunch of tarragon for one teaspoon.",
+      "seg": "A"
+    },
+    {
+      "t": "You pick your meals each week, you can skip weeks whenever you want, and the packaging is all recyclable or compostable.",
+      "seg": "A"
+    },
+    {
+      "t": "I've been using it on the nights I'm not filming, and it's genuinely saved me from ordering takeout more times than I'd like to admit.",
+      "seg": "A"
+    },
+    {
+      "t": "If you want to try it, go to hearthbox.com slash priya and use code PRIYA60 to get sixty percent off your first box and free shipping.",
+      "seg": "A"
+    },
+    {
+      "t": "That's hearthbox.com slash priya, and the link's in the description.",
+      "seg": "A"
+    }
+  ],
+  "segments": {
+    "A": {
+      "expect": "skip",
+      "category": "sponsor",
+      "brand": "Hearthbox"
+    }
+  },
+  "noisy": {
+    "swaps": [
+      [
+        "Hearthbox",
+        "hearth box"
+      ],
+      [
+        "orzo",
+        "or so"
+      ]
+    ]
+  }
+}

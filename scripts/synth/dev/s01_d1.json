@@ -1,0 +1,170 @@
+{
+  "id": "s01_d1",
+  "scenario": 1,
+  "split": "dev",
+  "lang": "en",
+  "title": "Building a Walnut Side Table With Hand Tools Only",
+  "creator": "Oak & Iron Shop",
+  "description": "No power tools, no shortcuts: a small walnut side table with hand-cut mortise and tenon joints and a drawbored finish.\n\nThanks to Surfshark for sponsoring this video! Get 4 extra months at https://surfshark.deals/oakandiron with code OAKANDIRON\n\nPlans for this table: https://oakandironshop.com/plans\n\n0:00 Mortises\n2:10 Tenons\n3:30 Glue-up",
+  "paid_promotion": true,
+  "sentences": [
+    {
+      "t": "Alright, so the legs are roughed out, and now comes the part I always dread, which is the mortises."
+    },
+    {
+      "t": "I'm doing these by hand today, no router, just a chisel, a mallet, and a lot of patience."
+    },
+    {
+      "t": "The trick is to start in the middle and work your way out toward the lines."
+    },
+    {
+      "t": "If you start right on the line, the chisel wants to lever back and you end up with a mortise that's a sixteenth too wide."
+    },
+    {
+      "t": "Ask me how I know."
+    },
+    {
+      "t": "Okay, that's one down, seven to go."
+    },
+    {
+      "t": "One thing I'll say, keep paring back to your knife line every few chops, don't just bash away at the bottom."
+    },
+    {
+      "t": "And check your chisel is vertical from the side, because a mortise that wanders off square is really hard to fix later."
+    },
+    {
+      "t": "I keep a little square standing right next to the leg as a reference, it helps a lot."
+    },
+    {
+      "t": "I'm gonna speed this up, because nobody needs to watch me chop walnut for forty minutes."
+    },
+    {
+      "t": "And while that's going, this video is sponsored by Surfshark.",
+      "seg": "A",
+      "gap": 1.0
+    },
+    {
+      "t": "So, weirdly enough, I spend a lot of time on public Wi-Fi, because my shop is in a shared maker space and the network there is, let's say, wide open.",
+      "seg": "A"
+    },
+    {
+      "t": "Surfshark is a VPN, which means it encrypts your connection so nobody else on that network can see what you're doing.",
+      "seg": "A"
+    },
+    {
+      "t": "It also lets you change your virtual location, so when I'm traveling I can still pull up the streaming stuff I pay for back home.",
+      "seg": "A"
+    },
+    {
+      "t": "One account covers unlimited devices, so my laptop, my phone, and the beat-up tablet I keep by the bandsaw for plans are all covered.",
+      "seg": "A"
+    },
+    {
+      "t": "And there's a thirty-day money-back guarantee, so you can try it with basically zero risk.",
+      "seg": "A"
+    },
+    {
+      "t": "Go to surfshark.deals/oakandiron and enter code OAKANDIRON to get four extra months for free.",
+      "seg": "A"
+    },
+    {
+      "t": "That's surfshark.deals/oakandiron, and the link is down in the description.",
+      "seg": "A"
+    },
+    {
+      "t": "Alright, back to the bench.",
+      "gap": 1.2
+    },
+    {
+      "t": "All eight mortises are chopped, and honestly, they came out cleaner than I expected."
+    },
+    {
+      "t": "Now for the tenons on the aprons."
+    },
+    {
+      "t": "I mark these off the actual mortises rather than off a ruler, because no two hand-cut mortises are ever exactly the same."
+    },
+    {
+      "t": "Each leg gets a number in pencil, and each apron end gets the matching number."
+    },
+    {
+      "t": "If you skip this step, you will spend an afternoon trying every tenon in every hole like a really sad jigsaw puzzle."
+    },
+    {
+      "t": "For the cheeks I'm using my rip saw, and I'm sawing a hair proud of the line."
+    },
+    {
+      "t": "Then I sneak up on the fit with a shoulder plane."
+    },
+    {
+      "t": "Listen to that, that's the sound of a plane that's actually sharp for once."
+    },
+    {
+      "t": "Okay, test fit."
+    },
+    {
+      "t": "Oh, that's nice, that's snug without needing the mallet."
+    },
+    {
+      "t": "You want it to go in with firm hand pressure, and you want it to stay put if you pick the whole thing up."
+    },
+    {
+      "t": "If it falls apart when you lift it, it's too loose, and glue is not going to save you."
+    },
+    {
+      "t": "Next up is drawboring, which is my favorite old-timey trick."
+    },
+    {
+      "t": "You drill the peg hole through the mortise first, then you assemble the joint and mark the hole on the tenon."
+    },
+    {
+      "t": "Then you pull it apart and drill the tenon hole about a millimeter closer to the shoulder."
+    },
+    {
+      "t": "So when you drive the oak peg in, it pulls the joint tight, and it'll hold even if the glue fails a hundred years from now."
+    },
+    {
+      "t": "Pegs are split from a scrap of white oak, not sawn, because a split peg follows the grain and won't snap."
+    },
+    {
+      "t": "I shave a little taper on the end so it finds its way through the offset holes."
+    },
+    {
+      "t": "Glue-up time, which is always the most stressful five minutes of any build."
+    },
+    {
+      "t": "Glue on both cheeks, tap it home, and in go the pegs."
+    },
+    {
+      "t": "Oh, listen to that, you can hear it pulling tight."
+    },
+    {
+      "t": "Square check across the diagonals, and we are within a sixteenth, which for hand tools I'll take every day."
+    },
+    {
+      "t": "I'll let that sit overnight, and next time we'll flatten the top and get some oil on it."
+    },
+    {
+      "t": "If you're building along, the plans are linked below, and let me know how your mortises turn out."
+    }
+  ],
+  "segments": {
+    "A": {
+      "expect": "skip",
+      "category": "sponsor",
+      "brand": "Surfshark"
+    }
+  },
+  "noisy": {
+    "swaps": [
+      [
+        "Surfshark",
+        "surf shark"
+      ],
+      [
+        "drawboring",
+        "draw boring"
+      ]
+    ]
+  }
+}
