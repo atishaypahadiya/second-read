@@ -75,7 +75,7 @@ KEEP_ALIVE = -1                                       # keep the model loaded be
 # Rubric changes in SYSTEM_PROMPT affect both passes: bump DETECT and REFINE.
 DETECT_VERSION = 3
 REFINE_VERSION = 3
-POST_VERSION = 15
+POST_VERSION = 16
 LEADIN_VERSION = 2   # the lead-in check: LEADIN_PROMPT / LEADIN_SYSTEM, the sentences it is shown, its caps
 NUM_CTX = 8192
 LLM_TIMEOUT_S = 600
@@ -1211,6 +1211,32 @@ def overlaps(a, b, gap=0.0):
     return a["start"] <= b["end"] + gap and b["start"] <= a["end"] + gap
 
 
+UNCOVERED_REFINE_S = 30.0   # a candidate that overlaps found segments is still refined if this much of it is new
+
+
+def new_s(cand, final):
+    """Seconds of cand, from the start of the earliest found segment it overlaps, that no found segment covers: a
+    gap between found segments or a run past their end (0 if it overlaps none)."""
+    spans = sorted((max(cand["start"], f["start"]), min(cand["end"], f["end"])) for f in final if overlaps(cand, f))
+    if not spans:
+        return 0.0
+    left, t = 0.0, spans[0][0]
+    for a, b in spans:
+        left += max(0.0, a - t)
+        t = max(t, b)
+    return round(left + max(0.0, cand["end"] - t), 2)
+
+
+def covered(cand, final):
+    """Is cand already found? It overlaps a segment and less than UNCOVERED_REFINE_S of it is new. A long read
+    crosses a window edge or names the brand only near its start and end (two hint regions): each refine sees 90 s
+    around its own candidate, and the rest of the read, which a detect candidate spans, was dropped for overlapping
+    them (synthetic s09: a 3.7-minute read skipped to 5:44 of 6:37, or with a 65 s hole in it). What lies before the
+    found start does not count: that is the window's line ranges overshooting backwards, and refining it again moved
+    a checked start 31 s earlier (4zxG_oUxBg4)."""
+    return any(overlaps(cand, f) for f in final) and new_s(cand, final) < UNCOVERED_REFINE_S
+
+
 def same_brand(a, b):
     return a["brand"].strip().lower() == b["brand"].strip().lower() and a.get("category") == b.get("category")
 
@@ -2133,7 +2159,7 @@ def run_unit(job, unit):
         return
     if unit[0] == "hint":
         cand = unit[1]
-        if any(overlaps(cand, f) for f in job["final"]):
+        if covered(cand, job["final"]):
             return
         job["final"].extend(refine_candidate(job["alines"], job["lines"], cand, job["alang"], job["title"],
                                              job["calls"], job["header"], job["terms"]))
@@ -2159,8 +2185,11 @@ def run_window(job, first, last):
         else:
             log("  detect: dropped segment with out-of-window line indices")
     for cand in merge_candidates(cands):
-        if any(overlaps(cand, f) for f in final):
+        if covered(cand, final):
             continue  # already covered by another window
+        if any(overlaps(cand, f) for f in final):
+            log(f"  detect: candidate {fmt_time(cand['start'])}-{fmt_time(cand['end'])} overlaps a found segment, but "
+                f"{new_s(cand, final):.0f}s of it is new; refining it too")
         if cand["category"] != "sponsor":
             cand["hint_terms"] = list(terms)
             require_evidence(cand, alines)  # label-only categories still need a verbatim quote

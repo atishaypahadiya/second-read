@@ -322,6 +322,11 @@ Every GET/POST for a video counts as a poll.
   over the content between) into regions that go **straight to refine** as candidates (`source: hint`). Regions run
   before any detect window; detect windows overlapping a region ± 60s run after them, still (post v13: the
   description often names one of several sponsors, and the others were never detected). Synthetic suite, s21/s24.
+- **A long read across a window edge:** a later candidate that overlaps what was already found is dropped, unless
+  ≥ 30 s of it is new: a run past the found end or a hole between found pieces (`covered`, post v16). Each refine
+  sees only 90 s around its own candidate, and a 3.7-minute read was skipped to 5:44 of 6:37, or with a 65 s hole
+  when the brand was named only near its start and end (synthetic s09). What lies before the found start does not
+  count: that is the window's line ranges, and re-refining it moved a checked start 31 s earlier (4zxG_oUxBg4).
 - **Merged refine + boundaries:** the refine call also returns `first_words` / `last_words` (3–5 verbatim words at
   the ad's start and end). If each phrase occurs exactly once in the boundary context (±1 line) they are used as the
   word picks, saving the separate word pass; otherwise the labeled word pass runs as the retry. Non-English videos

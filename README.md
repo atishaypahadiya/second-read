@@ -264,8 +264,8 @@ separately:
   snapshot row catches a change, not an error: a wrong result snapshotted
   stays wrong until someone labels it;
 
-It also runs 57 rule checks and the extension wiring test. At versions detect
-3, refine 3, post 11, lead-in 2 all verified and snapshot rows pass, and every
+It also runs 67 rule checks and the extension wiring test. At versions detect
+3, refine 3, post 16, lead-in 2 all verified and snapshot rows pass, and every
 transcript-labeled row but the known issue. The
 expectations were written from the same videos the prompt and thresholds were
 tuned on, so a pass says nothing has regressed and nothing about unseen
