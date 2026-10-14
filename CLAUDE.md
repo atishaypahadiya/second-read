@@ -409,7 +409,9 @@ Every GET/POST for a video counts as a poll.
   - **Evidence gate (every category):** each model-labeled segment must carry an `evidence` quote found verbatim
     in its lines (±1 line); otherwise a sponsor skip is downgraded to `show` and any other segment is dropped. A
     sponsor skip's quote must additionally contain a *sponsor* cue (prefilter sponsor cues + description hints; the
-    other-category cues such as patreon/merch/giveaway do not count). Chapter and rule segments are exempt (their
+    other-category cues such as patreon/merch/giveaway do not count), or else the segment's lines a strong one; a link
+    with a path is strong ("notewell.app/hana", spoken "notewell app slash hana", not "the app slash the website";
+    post v17, synthetic s07: a pitch without disclosure words has nothing else). Chapter and rule segments are exempt (their
     evidence is the chapter title / the matched phrase). Line labels/timestamps, quotes and ellipses are stripped from the evidence
     first; a full match (≥3 words) or any verbatim run of ≥6 words passes. Otherwise → downgraded to `show`.
   - Word pass fallback is inward only: invalid pick → retry once → start = end of first ad line, end = start of
