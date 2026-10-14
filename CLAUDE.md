@@ -434,6 +434,8 @@ Every GET/POST for a video counts as a poll.
     under `DISCLOSURE_MAX_S` (15 s) with no offer and no call to action in it (`CTA_RE`: code, %, off, link, .com,
     visit, head to, try, …). "Part of this video is sponsored by Shopify." (bCmwCkNY85g, 2 s, no read anywhere in the
     captions; synthetic s25, 5.8 s on a noisy track) gains nothing from a seek. A 9 s reminder with an offer stays.
+    The label then passes the label filters (post v23): a 4.7 s "skip" on "Google has a lot of servers" in a video
+    about Google Maps (kS-CGkiPetQ) had become a sponsor label on the video's own subject.
     (`MIN_SKIP_S` 3 s is the inward-fallback floor; post v10–v14 accidentally raised it to 5 s by declaring it twice.)
   - **Post-filter** (keep/show only; skips are never dropped here, only logged): drop if evidence/reason reads like
     a sponsor disclaimer; drop if the brand appears in the video title or is mentioned in ≥ 3 transcript lines
