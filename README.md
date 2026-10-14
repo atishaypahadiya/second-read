@@ -254,18 +254,19 @@ separately:
 - **verified** (13 rows, 9 videos): expectations checked against the video by
   a person, including three variants of one video with different request
   metadata and one with a stand-in English analysis track;
-- **transcript-labeled** (4 rows): labeled from a reading of the transcript,
+- **transcript-labeled** (5 rows): labeled from a reading of the transcript,
   independent of what the pipeline produced, not checked against the audio by
-  a person; never counted as verified;
+  a person; never counted as verified. One is an open known issue (the NordVPN
+  read in a Hindi video is skipped for 13 of its 69 seconds), printed and
+  counted apart;
 - **snapshot** (11 rows, 11 videos): what the pipeline produced when the row
   was added, marked `"verified": false, "source": "pipeline-snapshot"`. A
   snapshot row catches a change, not an error: a wrong result snapshotted
   stays wrong until someone labels it;
-- **needs label** (1 row): replayed and printed, not checked, until someone
-  labels it.
 
 It also runs 57 rule checks and the extension wiring test. At versions detect
-3, refine 3, post 6, lead-in 2 all verified, transcript-labeled and snapshot rows pass. The
+3, refine 3, post 11, lead-in 2 all verified and snapshot rows pass, and every
+transcript-labeled row but the known issue. The
 expectations were written from the same videos the prompt and thresholds were
 tuned on, so a pass says nothing has regressed and nothing about unseen
 videos.

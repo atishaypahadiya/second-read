@@ -28,7 +28,7 @@ def set_logger(fn):
 EVENT_KINDS = ("skip", "undo", "seek_into", "false_skip", "missed_ad", "allowlisted", "integration_played")
 HALL_MIN_SPOTS = 3  # spots a brand needs before it can enter the Hall of Shame or the Hall of Fame
 RULE_CATEGORIES = ("interaction", "intro", "outro", "recap")  # same as server.RULE_CATEGORIES: never carry a brand
-BRAND_RULES_VERSION = 3  # bump when canonical_brand's rules change: stored brands are re-derived once at startup
+BRAND_RULES_VERSION = 4  # bump when canonical_brand's rules change: stored brands are re-derived once at startup
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS videos (
@@ -268,7 +268,9 @@ def canonical_brand(conn, raw, hints=None, evidence="", category="sponsor", sour
         # weaker ones resolve for this video only and are re-derived from its own hints next time.
         if best_r >= 0.8:
             learn_alias(conn, key, best, f"hint fuzzy {best_r:.2f}", hints, evidence)
-        return (link_spelling(conn, best, hints) if category == "sponsor" else None) or (best, f"hint fuzzy {best_r:.2f}")
+        # The name the creator wrote on the sponsor line is their own spelling: a link does not respell it
+        # ("DeleteMe" stays DeleteMe next to joindeleteme.com, 4zxG_oUxBg4).
+        return best, f"hint fuzzy {best_r:.2f}"
     if category == "sponsor":
         linked = link_spelling(conn, raw, hints)
         if linked:

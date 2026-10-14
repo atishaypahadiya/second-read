@@ -43,12 +43,14 @@ everything runs on Atishay's M4 Pro MacBook.
   video is seen: YouTube does not always return the same captions for a video, and re-watching a test video
   rewrites its cache file, which moved an expectation once (`vGoRpjE-svI`, first line at 0:11 instead of 0:15).
   Delete a video's entry from that file to re-freeze it from the cache.
-  **Four kinds of rows**, reported separately (`video rows: 13/13 verified, 4/4 transcript-labeled, 11/11 snapshot,
-  1 needs a label`): verified (a person checked the expectations against the video; the default), `"verified": false,
+  **Four kinds of rows**, reported separately (`video rows: 13/13 verified, 4/5 (1 known issue) transcript-labeled,
+  11/11 snapshot, 0 need a label`): verified (a person checked the expectations against the video; the default), `"verified": false,
   "source": "transcript-labeled"` (labeled from a reading of the transcript, independent of the pipeline's output, not
   checked by a person), `"verified": false, "source": "pipeline-snapshot"` (the pipeline's output when the row was
   added: catches changes, not errors) and `"source": "needs-label"` (replayed and printed with its `question`, never
-  counted). `end_early_ok` / `start_late_ok` allow the safe direction (a little ad plays). Only verified rows back a "verified"
+  counted). `end_early_ok` / `start_late_ok` allow the safe direction (a little ad plays). A row with `known_issue`
+  (text) is an open, labeled failure: printed as KNOWN and counted apart (`, 1 known issue(s) open`), never as a pass;
+  when it starts passing the row says to remove the field. Only verified rows back a "verified"
   claim in the README. Gate commits on the pass line `N passed, 0 failed, 0 not run`.
 - If a decision in "Open decisions" comes up, ask; don't pick silently.
 
@@ -198,9 +200,10 @@ server adds the cached pipeline context and versions. Rows that predate validati
   against brands already in the DB (≥ 0.8) → raw spelling. Learned aliases are stored with how they were made.
   **The spoken name beats a domain label:** a sponsor link names the brand only when the model gave none and the
   description wrote none, and then without affixes and TLDs (`headspace-web.app` → Headspace). **A link corrects
-  a close match only:** a sponsor's spoken or written name whose letters are ≥ 0.75 alike with the link's name, or
+  a close match only:** a sponsor's spoken name whose letters are ≥ 0.75 alike with the link's name, or
   that sounds the same (vowel-blind key: "Udo"/"Udu" ↔ odoo), takes the link's spelling for that video (never
-  learned as an alias); a name that differs substantially is left alone. Rule segments
+  learned as an alias); a name the creator *wrote* on a sponsor line keeps its own spelling (DeleteMe next to
+  joindeleteme.com; brand rules v4); a name that differs substantially is left alone. Rule segments
   (recap, outro, intro, interaction) never get a brand; a non-sponsor segment never borrows the video's hint.
   **Generic words are never a brand** (`GENERIC_WORDS`: tech, pro, plan, sound, …): as a hint they are ignored, and
   as the model's brand they count as "no name". **An alias is learned** only when neither side is generic, the
@@ -293,7 +296,9 @@ Every GET/POST for a video counts as a poll.
 - **Description hints:** brands (capitalized words on "(ad)"/sponsor lines), promo codes, sponsor links and chapter
   titles are extracted from the description, added to the cue list, used for ordering, and shown to the model in the
   prompt header (so a misheard "Udo" can be matched to Odoo). **Only sponsor lines contribute links and brands:** a
-  line with an (ad)/sponsor/partner marker, a promo code or an offer, or the line right after one. The creator's own
+  line with an (ad)/sponsor/partner marker, a promo code or an offer ("exclusive … deal" counts), or the line right
+  after one. Brands come from a marked line or from an offer line that carries a non-social link ("Get an exclusive
+  NordVPN deal here https://NordVPN.com/dhruv"). The creator's own
   shop, socials (with or without `www.`) and source links are ignored, a standing disclaimer about sponsors in
   general ("Viewer's discretion is advised w.r.t. … the sponsors advertised on our platforms. We do not claim any
   responsibility …") is not a sponsor line unless it also says "sponsored by"/"(ad)" outright (it made "Viewer" a brand

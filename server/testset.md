@@ -47,12 +47,8 @@ what the pipeline produced; nobody has checked them against the audio. Reported 
 | yS0ML6cwEYQ | The Rest Is Science | SKIP Cancer Research UK read 1:37.0–2:51.2 | a charity paying for the spot; was missed before post v8 |
 | FBeMrUWX73s | RAINBOLT | NOTHING: no ad; 61:42–62:02 ("got all kinds of uh sponsors") is an interview about a community project | was kept as a "Sponsors" integration before post v9 |
 | bCmwCkNY85g | Cleo Abram | LABEL (no skip) the disclosure 'Part of this video is sponsored by Shopify.' 1:28–1:30; no read in the captions | was a 2 s skip before post v10 |
+| lyMTD1eAZAw | Dhruv Rathee | SKIP NordVPN read 9:14.2–10:23.5 (segue "this is not just about aviation safety…" to "…check it yourself"); a start at the brand (9:35) is accepted; brand NordVPN | replayed on a stand-in English translation (mine); KNOWN ISSUE: skipped only 10:05–10:18 (both model passes start at "sponsored this video") |
 
-### Needs a label (replayed, not checked)
-
-| video | creator | question |
-| --- | --- | --- |
-| lyMTD1eAZAw | Dhruv Rathee | Times of the NordVPN read (live: skip 9:35–10:10 named "Na VPN"). The description line "Get an exclusive NordVPN deal here" was not read as a sponsor line; "Viewer" from the sponsor disclaimer line became the hint brand. |
 
 Rule-based categories currently expected by `testset.json` (label-only, guard against regressions):
 fern dU7gCt-7kKk outro 46:29–46:35 ("byebye"); Hindi vlog intro 0:00–0:15 (no speech); Sidemen outro + selfpromo above.
