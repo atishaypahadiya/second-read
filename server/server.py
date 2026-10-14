@@ -76,7 +76,7 @@ KEEP_ALIVE = -1                                       # keep the model loaded be
 # Rubric changes in SYSTEM_PROMPT affect both passes: bump DETECT and REFINE.
 DETECT_VERSION = 3
 REFINE_VERSION = 3
-POST_VERSION = 20
+POST_VERSION = 21
 LEADIN_VERSION = 2   # the lead-in check: LEADIN_PROMPT / LEADIN_SYSTEM, the sentences it is shown, its caps
 NUM_CTX = 8192
 LLM_TIMEOUT_S = 600
@@ -323,7 +323,7 @@ AD_MARKER_RE = re.compile(
 # Cues for the other model categories (affiliate, selfpromo, membership, crosspromo, charity, giveaway): they get
 # a window to the model, but they never count as evidence for a sponsor skip.
 OTHER_CUE_PATTERNS = [
-    r"patreon", r"membership", r"\bmembers?\b", r"join (?:the|my|our) channel", r"\bmerch\b", r"my (?:new )?(?:course|book|app|newsletter|podcast|game|album)",
+    r"patreon", r"membership", r"\bmembers?\b", r"join (?:the|my|our) channel", r"\bmerch\b", r"my (?:new |own )?(?:course|book|app|newsletter|podcast|game|album)",
     r"giveaway", r"\bgive away\b", r"donat", r"fundrais", r"charity", r"affiliate", r"amazon (?:link|store|storefront)",
     r"links? (?:below|in the description) (?:for|to)", r"my other (?:video|channel)", r"check out (?:my|their|his|her) (?:channel|video)",
     r"friend'?s channel", r"\bcollab", r"go watch", r"our (?:store|shop)", r"\bshop\b", r"super ?thanks", r"ko-?fi", r"buy me a coffee",
