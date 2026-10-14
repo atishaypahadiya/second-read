@@ -621,6 +621,12 @@ def unit_checks():
     eq("disclosure: only (False, False) is undisclosed", sorted(k for k, v in table.items() if v == "undisclosed"), [(False, False)])
     eq("disclosure: any missing signal without a positive one is unknown",
        [table[(None, None)], table[(False, None)], table[(None, False)]], ["unknown"] * 3)
+    # ---- a pitch with no disclosure words may have only its link: a link with a path is a strong cue (synthetic s07)
+    eq("evidence gate: a link with a path is a strong cue, written or spoken; 'X slash Y' in talk and a bare domain are not",
+       [bool(server.STRONG_CUE_RE.search(t)) for t in ("go to notewell.app/hana for two months of premium",
+        "if you go to note well app slash hana you get two months", "head to fern dot deals slash coddy",
+        "my friend slash roommate", "the app slash the website", "reddit.com is huge")],
+       [True, True, True, False, False, False])
     # ---- a candidate overlapping what was found is dropped unless it runs >= 30 s past it (synthetic s09: a long
     # read crossing a window edge ended where the first refine's context ended; 4zxG: a backward overshoot is no reason)
     found = [{"start": 175.4, "end": 344.4, "action": "skip"}]
