@@ -78,6 +78,7 @@ DETECT_VERSION = 3
 REFINE_VERSION = 3
 POST_VERSION = 24
 LEADIN_VERSION = 2   # the lead-in check: LEADIN_PROMPT / LEADIN_SYSTEM, the sentences it is shown, its caps
+INTEGRATION_VERSION = 1   # the integration check: INTEGRATION_PROMPT / _SYSTEM, its anchors and the lines it is shown
 NUM_CTX = 8192
 LLM_TIMEOUT_S = 600
 MAX_BODY_BYTES = 8 * 1024 * 1024
@@ -316,6 +317,7 @@ STRONG_CUE_RE = re.compile(
 # story (FBeMrUWX73s); only sponsorship of this video or episode counts.
 SPONSORING_THIS_RE = (r"sponsored by|(?:today'?s|our|this (?:video'?s|episode'?s)) sponsor\b|for sponsoring|"
                       r"sponsor(?:s|ed|ing)? (?:of )?(?:this|today'?s) (?:video|episode|vlog|stream|podcast)|"
+                      r"sponsor(?:s|ed|ing)? (?:this|that) (?:part|section|segment|portion|bit|tutorial|step)|"
                       r"(?:video|episode|vlog|podcast) is sponsored")
 AD_MARKER_RE = re.compile(
     STRONG_CUE_RE.pattern.replace("sponsor|", SPONSORING_THIS_RE + "|", 1)
@@ -1471,7 +1473,8 @@ def check_leadin(job, seg):
     if job.get("alang") != job.get("lang"):
         log(f"  lead-in {rng}: not checked (the analysis runs on a translated track; the cut is on the original)")
         return False
-    floor = max([f["end"] for f in job["final"] if f is not seg and f.get("action") != "drop" and f["end"] <= cut] + [0.0])
+    floor = max([f["end"] for f in job["final"] if f is not seg and f.get("action") != "drop" and f["end"] <= cut
+                 and f.get("source") != "integration"] + [0.0])
     hit = break_leadin(lines, cut, floor)
     if hit:
         new_start, text = hit
@@ -1574,14 +1577,16 @@ def brand_terms(brand):
     return terms
 
 
-def mentions_outside(seg, lines):
-    """Number of lines outside the segment that mention its brand."""
-    terms = brand_terms(seg["brand"])
+def mentions_outside(seg, lines, skips=(), whole=False):
+    """Number of lines outside the segment (and outside the given skips) that mention its brand (with whole, only its
+    full name: an integration's brand is the model's spelling of what it heard, 'trail path', and 'trail' is everywhere
+    in a hiking video)."""
+    terms = brand_terms(seg["brand"])[:1] if whole else brand_terms(seg["brand"])
     if not terms:
         return 0
     n = 0
     for i, l in enumerate(lines):
-        if seg["start_line"] <= i <= seg["end_line"]:
+        if seg["start_line"] <= i <= seg["end_line"] or any(k["start"] - 1 <= l["start"] < k["end"] for k in skips):
             continue
         t = " " + " ".join(normalize(l["text"])) + " "
         if any(f" {term} " in t for term in terms):
@@ -1639,7 +1644,9 @@ def post_filter(segments, title, lines, verbose=True, terms=(), paid=None):
             if brand_in_title(s["brand"], title):
                 say(f"  filter: dropped {s['action']} {rng} {s['brand']!r}: brand is the video's subject (in title)")
                 continue
-            n = mentions_outside(s, lines) if "start_line" in s else 0
+            mine = s.get("source") == "integration"
+            n = mentions_outside(s, lines, [x for x in segments if x["action"] == "skip"] if mine else (), whole=mine) \
+                if "start_line" in s else 0
             if n >= TOPIC_MENTIONS:
                 say(f"  filter: dropped {s['action']} {rng} {s['brand']!r}: brand mentioned in {n} lines outside the segment (subject)")
                 continue
@@ -1867,7 +1874,8 @@ def public_job(job):
 
 
 def versions():
-    return {"detect": DETECT_VERSION, "refine": REFINE_VERSION, "post": POST_VERSION, "leadin": LEADIN_VERSION}
+    return {"detect": DETECT_VERSION, "refine": REFINE_VERSION, "post": POST_VERSION, "leadin": LEADIN_VERSION,
+            "integration": INTEGRATION_VERSION}
 
 
 def inputs_digest(thash, title, description, paid, alines, lines=()):
@@ -2348,9 +2356,177 @@ def plan_repeats(job):
     return True
 
 
+# Integrations: the model finds the creator's usage of a sponsor's product poorly. It returns nothing, or only the
+# one-line disclosure ("I'm building it in Pagecraft, and they're sponsoring this part of the video"), and the
+# usage runs on for one to two minutes without naming the product again (synthetic s10), or names it once where
+# the usage starts, a minute before the pitch (s23). A keep marker plays exactly like no marker; this only puts
+# the marker where the usage is. Two anchors, then one small model call that labels the lines after the anchor.
+INTEGRATION_PART_RE = re.compile(
+    r"\b(?:sponsor(?:s|ed|ing)?|partner(?:s|ed|ing)?(?: with)?|brought to you by|supported by|thanks to)\b[^.!?]{0,40}?"
+    r"\b(?:this|that|today'?s) (?:part|section|segment|portion|bit|tutorial|step)\b|"
+    r"\b(?:this|that) (?:part|section|segment|portion) (?:of (?:the|this) video )?(?:is |was )?(?:sponsored|brought to you|supported)\b", re.I)
+INTEGRATION_BEFORE_S = (15.0, 150.0)   # a pitch's brand named this far before it (min, max) may be where its usage starts
+INTEGRATION_AFTER_S = 180.0            # a "sponsoring this part" line: its usage is looked for this far after it
+INTEGRATION_MAX_LINES = 30
+INTEGRATION_MIN_S = 15.0
+INTEGRATION_GAP_LINES = 2   # up to this many 'other' lines between two 'use' lines do not end the run
+INTEGRATION_SYSTEM = "You decide which lines of a YouTube transcript show the creator using a product. Answer only with the JSON schema."
+INTEGRATION_PROMPT = """Video title: {title}
+
+{why}
+
+LINES, in order:
+{lines}
+
+Label every line "use" or "other".
+use: the creator is using, setting up, showing or describing the product while doing what the video is about
+(building, cooking, editing, navigating with it), including lines that call it "it", "the app", "the probe" or that
+describe what it does on screen. When the video's task is done in or with the product (a site built in it, a video
+cut in it, a hike navigated with it), every step of that task counts as use, even a line that doesn't name it.
+other: anything else: the video's subject without the product, a story, small talk, a line about another product,
+or a pitch to the viewer (a code, a link, a discount, a free trial, "check them out").
+product: the product's name as spoken."""
+
+
+def integration_anchors(job):
+    """Where a sponsor's product may be in use: (1) a line saying a sponsor supports this part of the video, outside
+    every skip, with the lines up to INTEGRATION_AFTER_S after it (and before the next skip); (2) the earliest line
+    naming a sponsor skip's brand INTEGRATION_BEFORE_S before that skip, outside every segment and with no other
+    segment in between, with the lines from it up to the skip. On cached real videos (1) appears only inside a
+    read and (2) only within 5 s of one, in its lead-in line."""
+    alines, final = job["alines"], [f for f in job["final"] if f.get("action") != "drop"]
+    # a skip that finalize will label as a disclosure line ("they're sponsoring this part of the hike", 7 s) is not one
+    skips = [f for f in final if f.get("action") == "skip" and not disclosure_only(f, alines)]
+    squash = lambda x: re.sub(r"[^a-z0-9]", "", (x or "").lower())
+    inside = lambda l, segs: any(l["start"] < f["end"] and l["end"] > f["start"] for f in segs)
+    out = []
+    for i, l in enumerate(alines):
+        if INTEGRATION_PART_RE.search(l["text"]) and not inside(l, skips):
+            stop = min([f["start"] for f in skips if f["start"] > l["start"]] + [l["start"] + INTEGRATION_AFTER_S])
+            idx = [k for k in range(i, len(alines)) if alines[k]["start"] < stop][:INTEGRATION_MAX_LINES]
+            out.append({"kind": "part", "lines": idx, "brand": "", "stop": stop,
+                        "why": "Line L0 says a sponsor supports this part of the video. Find the lines where the creator uses "
+                               "that sponsor's product."})
+    for s in skips:
+        if s.get("category") != "sponsor" or s.get("source") == "chapter":
+            continue
+        b = squash(s.get("brand"))
+        if len(b) < 4 or b in stats.GENERIC_WORDS:
+            continue
+        lo, hi = s["start"] - INTEGRATION_BEFORE_S[1], s["start"] - INTEGRATION_BEFORE_S[0]
+        named = [k for k, l in enumerate(alines) if lo <= l["start"] <= hi and not inside(l, final)
+                 and b in squash(l["text"])]   # letters and digits only: 'frame cut' is 'Framecut'
+
+        if not named or any(f is not s and alines[named[0]]["start"] < f["start"] < s["start"] for f in final):
+            continue
+        if any(a["kind"] == "part" and a["lines"] and a["lines"][0] <= named[0] <= a["lines"][-1] for a in out):
+            continue
+        idx = [k for k in range(named[0], len(alines)) if alines[k]["start"] < s["start"] - 0.5][:INTEGRATION_MAX_LINES]
+        # usage is not pitched: a sponsor cue after the first line means these lines are the read's own start, which
+        # the skip left out (the Hindi NordVPN read on lyMTD1eAZAw, named at 9:34 and skipped from later on)
+        cued = [k for k in idx[1:] if alines[k]["end"] <= s["start"] + 0.5 and   # not the line the skip starts in
+                (window_cues(alines[k]["text"], [], sponsor_only=True) or STRONG_CUE_RE.search(alines[k]["text"]))]
+        if cued:
+            log(f"[{job['video_id']}] integration: not from {fmt_time(alines[named[0]]['start'])}: a sponsor cue at "
+                f"{fmt_time(alines[cued[0]]['start'])} ({(window_cues(alines[cued[0]]['text'], [], sponsor_only=True) or ['link'])[0]!r})")
+            continue
+        out.append({"kind": "before", "lines": idx, "brand": s.get("brand") or "", "stop": s["start"],
+                    "why": f"Right after these lines the creator pitches {s.get('brand')!r} to the viewer (that pitch is "
+                           f"already handled). Find the lines before it where the creator uses {s.get('brand')!r}."})
+    return [a for a in out if a["lines"]]
+
+
+def plan_integrations(job):
+    """Once per job, after everything else: queue one integration check per anchor. True if any were queued."""
+    job["integrations_planned"] = True
+    anchors = integration_anchors(job)
+    if not anchors:
+        return False
+    with jobs_lock:
+        job["pending"].extend(("integration", a) for a in anchors)
+    for a in anchors:
+        l = job["alines"][a["lines"][0]]
+        log(f"[{job['video_id']}] integration check from {fmt_time(l['start'])} ({a['kind']}): {l['text'][:80]!r}")
+    return True
+
+
+def check_integration(job, anchor):
+    """One model call: which of the anchor's lines show the product in use. The unbroken run of 'use' lines from the
+    anchor (one 'other' line between two 'use' lines does not break it) becomes a keep marker, ending before any
+    skip; a model keep/label on the disclosure line inside it is replaced. Nothing that skips is touched. A failed
+    call, an unusable answer or a run under INTEGRATION_MIN_S adds nothing."""
+    alines, idx = job["alines"], anchor["lines"]
+    labels = [f"L{n}" for n in range(len(idx))]
+    prompt = INTEGRATION_PROMPT.format(title=job.get("title", ""), why=anchor["why"],
+                                       lines="\n".join(f"{lab}: {alines[k]['text']}" for lab, k in zip(labels, idx)))
+    kinds = {"type": "string", "enum": ["use", "other"]}
+    schema = {"type": "object", "properties": {**{lab: kinds for lab in labels}, "product": {"type": "string"}},
+              "required": labels + ["product"]}
+    first = alines[idx[0]]
+    where = f"integration {fmt_time(first['start'])}"
+    t0 = time.time()
+
+    def compute():
+        with llm_lock:
+            result, _meta = ollama_chat(prompt, schema, system=INTEGRATION_SYSTEM, timeout=LEADIN_TIMEOUT_S)
+        return {**{lab: result.get(lab) for lab in labels}, "product": str(result.get("product") or "")[:60]}
+
+    try:
+        out, reused = job["calls"].get("integration|" + hashlib.sha1(prompt.encode("utf-8")).hexdigest()[:16],
+                                       INTEGRATION_VERSION, compute)
+    except (OSError, ValueError, AttributeError) as e:
+        log(f"  {where}: check failed ({e!r}); no marker")
+        return False
+    how = "REUSED from cache" if reused else f"in {time.time() - t0:.1f}s"
+    verdicts = [out.get(lab) for lab in labels] if isinstance(out, dict) else []
+    if not verdicts or any(v not in ("use", "other") for v in verdicts):
+        log(f"  {where}: unusable answer {out!r} {how}; no marker")
+        return False
+    # the disclosure line of a 'part' anchor may itself be labeled other: the run may start on the line after it
+    start = 0 if verdicts[0] == "use" or anchor["kind"] == "before" else 1
+    if start >= len(verdicts) or verdicts[start] != "use":
+        log(f"  {where}: no use from the anchor {how}: {''.join('u' if v == 'use' else '.' for v in verdicts)}")
+        return False
+    end = start
+    while True:   # the next 'use' within INTEGRATION_GAP_LINES + 1 lines continues the run
+        nxt = next((k for k in range(end + 1, min(len(verdicts), end + 2 + INTEGRATION_GAP_LINES)) if verdicts[k] == "use"), None)
+        if nxt is None:
+            break
+        end = nxt
+    s_t, e_t = alines[idx[0]]["start"], min(alines[idx[end]]["end"], anchor["stop"])
+    pattern = "".join("u" if v == "use" else "." for v in verdicts)
+    if e_t - s_t < INTEGRATION_MIN_S:
+        log(f"  {where}: use run {fmt_time(s_t)}-{fmt_time(e_t)} under {INTEGRATION_MIN_S:.0f}s {how}: {pattern}; no marker")
+        return False
+    replaced = [f for f in job["final"] if f.get("category") == "sponsor" and f["start"] >= s_t - 1.0 and f["end"] <= e_t + 1.0
+                and (f.get("action") in ("keep", "show") or (f.get("action") == "skip" and disclosure_only(f, alines)))]
+    # the brand: the pitch's, a description hint named in the anchor line, the replaced label's, then the model's
+    # name for it unless that is generic ("the app")
+    squash = lambda x: re.sub(r"[^a-z0-9]", "", (x or "").lower())
+    product = out.get("product") or ""
+    hints = [b for b in job["hints"].get("brands") or [] if squash(b) and squash(b) in squash(first["text"])]
+    brand = (anchor["brand"] or (hints[0] if hints else "") or next((f.get("brand") for f in replaced if f.get("brand")), "")
+             or ("" if re.fullmatch(r"(?:the |this |my |that )?(?:app|product|tool|software|site|website|service|sponsor|it)",
+                                    product.strip().lower()) else product))
+    for f in replaced:
+        f["action"] = "drop"
+    seg = {"start": round(s_t, 2), "end": round(e_t, 2), "start_line": idx[0], "end_line": idx[end],
+           "line_start": round(s_t, 2), "line_end": round(e_t, 2), "category": "sponsor", "style": "integration",
+           "brand": brand, "confidence": 0.9, "evidence": first["text"], "action": "keep", "source": "integration",
+           "reason": f"the creator uses {brand or 'the product'} here ({end + 1} lines from {fmt_time(s_t)}, "
+                     f"{'after a sponsor-supports-this-part line' if anchor['kind'] == 'part' else 'before its pitch'})"}
+    job["final"].append(seg)
+    log(f"  {where}: KEEP {fmt_time(s_t)}-{fmt_time(e_t)} {brand!r} {how}: {pattern}"
+        + (f"; replaces {len(replaced)} label(s) inside it" if replaced else ""))
+    return True
+
+
 def run_unit(job, unit):
     if unit[0] == "leadin":
         check_leadin(job, unit[1])
+        return
+    if unit[0] == "integration":
+        check_integration(job, unit[1])
         return
     if unit[0] == "hint":
         cand = unit[1]
@@ -2648,7 +2824,8 @@ def worker_step():
         if needs_plan:
             plan_job(job)  # the next step pops the first window
         elif unit is None:
-            if job.get("repeats_planned") or not plan_repeats(job):
+            if (job.get("repeats_planned") or not plan_repeats(job)) and \
+                    (job.get("integrations_planned") or not plan_integrations(job)):
                 finish_job(job)
         else:
             t0 = time.time()

@@ -486,6 +486,32 @@ def unit_checks():
             "duration": 120.0, "terms": [], "hints": {"brands": []}}
     eq("chapters: a chapter running 20+ s past its last sponsor cue ends at that cue's last word (s22: 52 s of podcast skipped)",
        [(s["start"], s["end"]) for s in server.chapter_segments(cjob)], [(0.0, 12.8)])
+    # integrations: where a sponsor's product may be in use, then the keep marker from the line labels
+    build = [said(0.0, "today we build a bakery site"), said(10.0, "i am building it in pagecraft and they are sponsoring this part of the video"),
+             said(20.0, "first the header with her logo"), said(30.0, "then the hours block"), said(40.0, "the menu goes in a grid"),
+             said(50.0, "my mom wants rye first"), said(60.0, "then the gallery of photos"), said(70.0, "and i hit publish")]
+    pitch = [said(0.0, "for the rough cut i drop the footage into frame cut"), said(10.0, "it transcribes everything"),
+             said(20.0, "i delete the bad takes"), said(30.0, "and remove the silences"), said(40.0, "framecut is sponsoring this video"),
+             said(46.0, "use code edit for ten percent off")]
+    read = [said(0.0, "so speaking of frame cut"), said(10.0, "go to framecut dot com"), said(20.0, "it transcribes everything"),
+            said(40.0, "framecut is sponsoring this video"), said(46.0, "use code edit for ten percent off")]
+    skip = lambda a, b: {"start": a, "end": b, "action": "skip", "category": "sponsor", "brand": "Framecut", "source": "hint"}
+    ijob = lambda al, fin: {"video_id": "unitInteg000", "alines": al, "final": fin, "hints": {"brands": []}}
+    eq("integrations: anchors are a sponsor-supports-this-part line outside skips, and a pitch's brand named 15-150 s before it "
+       "with no sponsor cue in between; not the same line inside a read, nor a mention right before or inside one",
+       [[(a["kind"], a["lines"][0], a["lines"][-1]) for a in server.integration_anchors(ijob(al, fin))] for al, fin in
+        ((build, []), (build, [skip(9.0, 30.0)]), (pitch, [skip(40.0, 50.0)]), (pitch[2:], [skip(40.0, 50.0)]), (read, [skip(40.0, 50.0)]))],
+       [[("part", 1, 7)], [], [("before", 0, 3)], [], []])
+    class Labels:
+        def __init__(self, v): self.v = v
+        def get(self, key, version, compute): return ({**{f"L{i}": x for i, x in enumerate(self.v)}, "product": "the app"}, True)
+    j = ijob(build, [{"start": 10.0, "end": 16.0, "action": "show", "category": "sponsor", "brand": "Pagecraft", "source": "detect"}])
+    j.update(calls=Labels(["other", "use", "use", "other", "other", "use", "other", "other"]), title="")
+    server.check_integration(j, server.integration_anchors(j)[0])
+    eq("integrations: the run of use lines from the anchor (two other lines inside it do not end it) becomes a keep and replaces the "
+       "label on the disclosure line; nothing else is touched",
+       [(f["action"], f["start"], f.get("source"), f.get("brand")) for f in j["final"]],
+       [("drop", 10.0, "detect", "Pagecraft"), ("keep", 10.0, "integration", "Pagecraft")])
     # description hints: only sponsor lines count; the creator's own links, socials and name do not
     h = server.extract_hints("Learn to code with Coddy (ad): https://fern.deals/coddy")
     eq("hints: (ad) line -> brand + link", (h["brands"], h["domains"]), (["Coddy"], ["fern.deals/coddy"]))
