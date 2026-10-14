@@ -75,7 +75,7 @@ KEEP_ALIVE = -1                                       # keep the model loaded be
 # Rubric changes in SYSTEM_PROMPT affect both passes: bump DETECT and REFINE.
 DETECT_VERSION = 3
 REFINE_VERSION = 3
-POST_VERSION = 12
+POST_VERSION = 13
 LEADIN_VERSION = 2   # the lead-in check: LEADIN_PROMPT / LEADIN_SYSTEM, the sentences it is shown, its caps
 NUM_CTX = 8192
 LLM_TIMEOUT_S = 600
@@ -96,8 +96,10 @@ SNAP_GAP_S = 0.25           # an inter-word gap this long counts as a pause
 SNAP_FORWARD_MAX_S = 5.0    # never move a start later than this to find a clean cut
 MIN_SKIP_S = 5.0            # a skip shorter than this is a one-line disclosure, not a read: labeled instead
 TOPIC_MENTIONS = 3          # brand mentioned in this many lines outside the segment -> it's the subject
-HINT_CLUSTER_GAP_S = 120.0  # transcript mentions of a description hint closer than this form one region
-HINT_REGION_PAD_S = 60.0    # detect windows overlapping a hint region (+- this) are skipped: refine runs directly
+HINT_CLUSTER_GAP_S = 40.0   # transcript mentions of a description hint closer than this form one region (was 120 s: a read
+                            # and its end reminder, or a usage and its pitch, became one region and one skip over the content
+                            # between them; a region only seeds refine, which finds the read's full extent by itself)
+HINT_REGION_PAD_S = 60.0    # detect windows overlapping a hint region (+- this) run after the hint regions, not first
 ANCHOR_CUE_WORDS = 25       # a start anchor is trusted only if a sponsor cue follows within this many words
 LEADIN_MAX_S = 6.0          # the lead-in check may move a skip's start back by at most this much (largest seen: 5 s)
 LEADIN_MAX_SENTENCES = 3    # ... and by at most this many whole sentences
@@ -2114,12 +2116,10 @@ def run_unit(job, unit):
         return
     _, first, last, deferred = unit
     if deferred:
-        alines = job["alines"]
-        w = {"start": alines[first]["start"], "end": alines[last]["end"]}
-        if any(overlaps(w, f) and f["category"] == "sponsor" for f in job["final"]):
-            log(f"  detect  L{first}-L{last}: skipped, hint-region refine already found a sponsor segment here")
-            return
-        log(f"  detect  L{first}-L{last}: hint region produced nothing here; running detect after all")
+        # A window behind a hint region still gets detect, after the hint regions: the description often names only
+        # one of several sponsors (podcasts), and the others sit in the same windows. Candidates that overlap what
+        # the hint refine already found are dropped in run_window.
+        log(f"  detect  L{first}-L{last}: behind a hint region; detecting other ads in it")
     run_window(job, first, last)
 
 

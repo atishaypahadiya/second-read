@@ -424,6 +424,18 @@ def unit_checks():
                              "request": {"params": {"lang": "en", "kind": "asr"}, "others": ["pot", "signature"]}, "junk": {"a": [1] * 999}}),
        {"path": "B", "via": "as-is", "how": "cc click", "events": 807, "withOffset": 0, "tracks": ["en:asr", "ar:asr"],
         "params": {"lang": "en", "kind": "asr"}, "others": ["pot", "signature"]})
+    # hint regions: a read and its reminder 90 s later are two regions, not one (one region became one skip over the
+    # content between them); a window behind a hint region still gets detect (other sponsors in it)
+    hl = [{"start": float(t), "end": float(t) + 5, "text": txt, "words": [], "timed": False} for t, txt in (
+        (60, "today's sponsor is Blinkist and here is why"), (75, "Blinkist has fifteen minute summaries"),
+        (90, "back to the bronze age"), (130, "the sea peoples arrived"), (165, "thanks again to Blinkist for supporting this video"))]
+    regions = server.hint_candidates({"alines": hl, "terms": ["Blinkist"], "hints": {"brands": ["Blinkist"], "codes": []}, "video_id": "t"})
+    eq("hint regions: mentions 85 s apart are two regions", [(r["start_line"], r["end_line"]) for r in regions], [(0, 1), (4, 4)])
+    ran = []
+    keep_rw, server.run_window = server.run_window, lambda job, f, l: ran.append((f, l))
+    server.run_unit({"alines": hl, "final": [{"start": 60.0, "end": 80.0, "category": "sponsor"}]}, ("win", 0, 4, True))
+    server.run_window = keep_rw
+    eq("hint regions: a window behind one still gets detect after the hint refine found an ad there", ran, [(0, 4)])
     # description hints: only sponsor lines count; the creator's own links, socials and name do not
     h = server.extract_hints("Learn to code with Coddy (ad): https://fern.deals/coddy")
     eq("hints: (ad) line -> brand + link", (h["brands"], h["domains"]), (["Coddy"], ["fern.deals/coddy"]))
