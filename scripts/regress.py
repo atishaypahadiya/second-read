@@ -443,6 +443,15 @@ def unit_checks():
                                            "My worst sponsor deal ever", "Partner programs explained", "The history of the promo code",
                                            "The Fake Ad, Line By Line")],
        [True] * 9 + [False] * 6)
+    def said(t0, text):
+        ws = text.split()
+        return {"start": t0, "end": t0 + 0.4 * len(ws), "text": text, "timed": False,
+                "words": [[round(t0 + 0.4 * i, 2), round(t0 + 0.4 * (i + 1), 2), w] for i, w in enumerate(ws)]}
+    disc = [said(2.0, "part of this video is sponsored by wonderly okay so lisbon")]
+    remind = [said(100.0, "thanks again to blinkist for supporting this video remember you get a seven day free trial at blinkist.com")]
+    eq("skips: a disclosure line is labeled (2 s, or 5.8 s with no offer); a 9 s reminder with an offer and a link stays a skip",
+       [bool(server.disclosure_only({"start": 2.0, "end": 4.0}, disc)), bool(server.disclosure_only({"start": 2.0, "end": 7.8}, disc)),
+        bool(server.disclosure_only({"start": 100.0, "end": 109.0}, remind)), server.MIN_SKIP_S], [True, True, False, 3.0])
     # description hints: only sponsor lines count; the creator's own links, socials and name do not
     h = server.extract_hints("Learn to code with Coddy (ad): https://fern.deals/coddy")
     eq("hints: (ad) line -> brand + link", (h["brands"], h["domains"]), (["Coddy"], ["fern.deals/coddy"]))

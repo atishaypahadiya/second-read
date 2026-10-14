@@ -75,7 +75,7 @@ KEEP_ALIVE = -1                                       # keep the model loaded be
 # Rubric changes in SYSTEM_PROMPT affect both passes: bump DETECT and REFINE.
 DETECT_VERSION = 3
 REFINE_VERSION = 3
-POST_VERSION = 14
+POST_VERSION = 15
 LEADIN_VERSION = 2   # the lead-in check: LEADIN_PROMPT / LEADIN_SYSTEM, the sentences it is shown, its caps
 NUM_CTX = 8192
 LLM_TIMEOUT_S = 600
@@ -94,7 +94,8 @@ MERGE_GAP_S = 1.0           # merge same-action, same-brand segments this close
 MIN_SKIP_S = 3.0            # a skip shorter than this after inward fallback is too uncertain -> show
 SNAP_GAP_S = 0.25           # an inter-word gap this long counts as a pause
 SNAP_FORWARD_MAX_S = 5.0    # never move a start later than this to find a clean cut
-MIN_SKIP_S = 5.0            # a skip shorter than this is a one-line disclosure, not a read: labeled instead
+SHORT_SKIP_S = 5.0          # a final skip shorter than this is a one-line disclosure, not a read: labeled instead
+DISCLOSURE_MAX_S = 15.0     # ... and so is one up to this long that carries no offer and no call to action
 TOPIC_MENTIONS = 3          # brand mentioned in this many lines outside the segment -> it's the subject
 HINT_CLUSTER_GAP_S = 40.0   # transcript mentions of a description hint closer than this form one region (was 120 s: a read
                             # and its end reminder, or a usage and its pitch, became one region and one skip over the content
@@ -2181,19 +2182,39 @@ def disclosure_state(paid, described):
     return "unknown"
 
 
+CTA_RE = re.compile(r"\bcodes?\b|\d+ ?(?:%|percent)|\boff\b|discount|coupon|free (?:trial|for|month|week|shipping)|"
+                    r"\blinks?\b|\.(?:com|co|io|app|deals|net|org)\b|\bdot com\b|\bslash\b|sign ?up|\bvisit\b|"
+                    r"head (?:over )?to|go to|check (?:them|it) out|download|\btry\b|\bdeal\b|\boffer\b|\bget (?:your|yours|started)\b", re.I)
+
+
+def disclosure_only(seg, lines):
+    """Why a skip is really a one-line disclosure ("Part of this video is sponsored by X."), or None: shorter than
+    SHORT_SKIP_S, or shorter than DISCLOSURE_MAX_S with no offer and no call to action in its lines."""
+    dur = seg["end"] - seg["start"]
+    if dur < SHORT_SKIP_S:
+        return f"{dur:.1f}s (< {SHORT_SKIP_S:.0f}s)"
+    if dur >= DISCLOSURE_MAX_S:
+        return None
+    text = " ".join(w[2] for l in lines if l["end"] > seg["start"] and l["start"] < seg["end"]
+                    for w in l["words"] if seg["start"] - 0.05 <= w[0] < seg["end"])
+    return None if CTA_RE.search(text) else f"{dur:.1f}s with no offer or call to action"
+
+
 def finalize(job, verbose):
     out = []
     kept = [x for x in job["final"] if x.get("action") != "drop"]
     state = disclosure_state(job.get("paid_promotion"), job.get("disclosed"))
     for x in post_filter(merge_segments(kept), job["title"], job["alines"], verbose, job.get("terms") or (),
                          job.get("paid_promotion")):
-        if x.get("action") == "skip" and x["end"] - x["start"] < MIN_SKIP_S:
-            # "Part of this video is sponsored by Shopify." (bCmwCkNY85g, 2 s) is a disclosure line, not a read: a seek
-            # that short gains nothing and jars. A label instead. (A copy: the lead-in check may still lengthen it.)
+        why = disclosure_only(x, job["alines"]) if x.get("action") == "skip" else None
+        if why:
+            # "Part of this video is sponsored by Shopify." (bCmwCkNY85g, 2 s; synthetic s25 at 5.8 s on a noisy track) is
+            # a disclosure line, not a read: a seek over it gains nothing and jars. A label instead. (A copy: the
+            # lead-in check may still lengthen it.)
             if verbose:
-                log(f"  filter: {fmt_time(x['start'])}-{fmt_time(x['end'])} {x.get('brand')!r} is {x['end'] - x['start']:.1f}s "
-                    f"(< {MIN_SKIP_S:.0f}s): a disclosure line, labeled instead of skipped")
-            x = {**x, "action": "show", "reason": f"[under {MIN_SKIP_S:.0f}s: a disclosure, not a read] {x.get('reason', '')}"[:1000]}
+                log(f"  filter: {fmt_time(x['start'])}-{fmt_time(x['end'])} {x.get('brand')!r} {why}: a disclosure line, "
+                    f"labeled instead of skipped")
+            x = {**x, "action": "show", "reason": f"[disclosure, not a read: {why}] {x.get('reason', '')}"[:1000]}
         x.pop("undisclosed", None)
         if x.get("category") == "sponsor" and x.get("style") == "read":
             x["disclosure"] = state
