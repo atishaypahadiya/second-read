@@ -288,6 +288,63 @@ anywhere in this repository. The protocol, when it is run:
    boundary error (start and end offsets against the labels), each with the
    list of videos behind it.
 
+### Behavioral tests (synthetic)
+
+`scripts/synth/` holds 25 scenarios (`taxonomy.json`), each written three
+times for tuning (DEV) and three more times for one scored run (HELD,
+written by separate writers and never read while tuning). `run.py` builds
+every file twice, clean (a line per sentence, word timing, punctuation) and
+noisy (lowercase, no punctuation, a misheard brand, 8 s lines, no word
+timing), sends both to a second server instance running the real model, and
+scores them against the scripted truth.
+
+HELD, run once (150 runs):
+
+| | Clean | Noisy |
+| --- | --- | --- |
+| Runs that cut content, seconds cut | 7 runs, 103.9 s (4 over 1.5 s: 101.9 s) | 31 runs, 163.1 s (12 over 1.5 s: 154.8 s) |
+| Scripted reads missed (of 63) | 4 (2 not skipped at all, 2 under half) | 8 (6 not skipped at all, 2 under half) |
+| Median start / end error, reads found (+ = later) | 0.0 s / 0.0 s | +1.4 s / 0.0 s |
+| Runs passing | 49/75 | 34/75 |
+
+A run passes with nothing missed or mislabeled, at most 1.5 s of content cut,
+and a skip that starts at most 4 s late, ends at most 4 s early and leaves no
+gap over 4 s. DEV on the same code: 56/75 clean, 42/75 noisy (56→49,
+42→34 on HELD). The gap is overfitting to the DEV scripts.
+
+| # | Scenario | Expected | Clean | Noisy | Outcome |
+| --- | --- | --- | --- | --- | --- |
+| 1 | Classic mid-roll | skip | 3/3 | 2/3 | content cut 5.7 s (noisy overshoot) |
+| 2 | Soft segue | skip | 1/3 | 0/3 | late, ad plays (7–12 s) |
+| 3 | Question segue | skip | 1/3 | 0/3 | late, ad plays (7–13 s); noisy overshoots ≤ 1.7 s |
+| 4 | Cold-open ad | skip | 3/3 | 2/3 | content cut 5.3 s (noisy overshoot) |
+| 5 | Two sponsors back to back | skip | 3/3 | 1/3 | noisy: one read missed; 2.5 s cut |
+| 6 | Ad after the outro | skip | 1/3 | 1/3 | missed or late, ad plays |
+| 7 | No disclosure words | skip | 0/3 | 0/3 | missed or late, ad plays (7–11 s) |
+| 8 | Misheard brand | skip | 3/3 | 1/3 | late, ad plays (5–7 s, noisy) |
+| 9 | Long read across a window edge | skip | 0/3 | 0/3 | early end or gap, ad plays |
+| 10 | Integration | keep | 0/3 | 0/3 | labeled, not kept (plays); **content cut 23.7 s** once (noisy) |
+| 11 | Creator's own brand work | none | 3/3 | 3/3 | ✓ |
+| 12 | Brand is the subject | none | 3/3 | 3/3 | ✓ |
+| 13 | Sponsor disclaimer | none | 2/3 | 3/3 | **content cut 19.3 s** once (clean) |
+| 14 | Ad-like content | none | 2/3 | 2/3 | **content cut 22.1 / 27.3 s**, one file, both variants |
+| 15 | Self-promo | label | 3/3 | 2/3 | one label missing (noisy) |
+| 16 | Affiliate link | label | 3/3 | 3/3 | ✓ |
+| 17 | Paid charity spot | skip | 2/3 | 1/3 | late, ad plays (9–10 s); 2.5 s cut once |
+| 18 | Non-English read (Hindi) | skip | 1/3 | 1/3 | early end, ad plays; content cut 7.7 s, one file, both |
+| 19 | Description disclaimer, no ad | none | 3/3 | 3/3 | ✓ |
+| 20 | 'Sponsors' in conversation | none | 3/3 | 3/3 | ✓ |
+| 21 | Podcast with sponsors spread out | skip | 2/3 | 0/3 | late or missed, ad plays; 3.4 s cut once |
+| 22 | Podcast ad break, reads back to back | skip | 2/3 | 0/3 | **content cut 52.8 s**, one file, both variants; noisy misses |
+| 23 | Integration ending in a pitch | keep | 0/3 | 0/3 | pitch skipped, integration unmarked (plays) |
+| 24 | Read plus a reminder | skip | 2/3 | 0/3 | missed, ad plays; **content cut 20.6 s** once (noisy) |
+| 25 | Disclosure line, no read | noskip | 3/3 | 3/3 | ✓ |
+
+- Synthetic text is cleaner than real captions.
+- The noisy twin also drops word timing, harsher than most real auto tracks.
+- HELD ran on commit `52e9e3a` (post 22), HELD sha256 `742699…f65a`.
+- This is not the real-video held-out evaluation above.
+
 Speed, on a 24 GB M4 Pro with `qwen3:14b`. Each cell is total job time, time
 to the first published skip, and Ollama calls, for a first visit; a revisit is
 served from the cache.
