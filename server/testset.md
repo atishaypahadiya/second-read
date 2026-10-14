@@ -25,7 +25,7 @@ verdict here turns a row into a verified one.
 
 | video | creator | lang | kind | snapshot | verdict | notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| kS-CGkiPetQ | Veritasium | en | manual | SKIP Boot.dev 8:40–9:41 | | manual captions, estimated word times |
+| kS-CGkiPetQ | Veritasium | en | manual | SKIP Boot.dev 8:40–9:41, end reminder 29:25–29:37 | | manual captions, estimated word times |
 | RDoVLHaYfgM | Cleo Abram | en | manual | SKIP Ground News 7:13–8:12 | | |
 | iX6w1P60m8M | Cleo Abram | en | asr | SKIP Rhinoshield 7:11–8:28 | | |
 | E1BeAUHnLIg | Mrwhosetheboss | en | asr | SKIP Eight Sleep 11:17–11:59 | | |

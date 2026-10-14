@@ -646,6 +646,16 @@ def unit_checks():
     eq("prefilter: 'my own course' sends the window for the non-sponsor categories",
        [bool(server.window_cues("That's exactly why I made my own course, it's called Habla Real.", [])),
         bool(server.window_cues("That's exactly why I made my own lunch today.", []))], [True, False])
+    # ---- a found sponsor named again later with a sponsor cue is looked at as a reminder (synthetic s24, kS-CGkiPetQ)
+    rl = lambda a, b, t: {"start": a, "end": b, "text": t}
+    rj = {"alines": [rl(60, 106, "this is where today's sponsor comes in oatbound protein oats"),
+                     rl(107, 112, "and use code PRIYA20 at oat bound com for twenty percent off"),
+                     rl(150, 158, "oat bound is what i eat before every swim"),
+                     rl(215, 223, "and thank you again to oat bound for sponsoring today's video"),
+                     rl(223, 229, "code priya 20 still gets you twenty percent off")],
+          "final": [{"start": 60, "end": 106, "action": "skip", "category": "sponsor", "brand": "Oatbound"}]}
+    eq("repeat: a found brand named again with a sponsor cue, away from its read, becomes a candidate; next to the read or without a cue it does not",
+       [(c["start"], c["end"], c["brand"], c["source"]) for c in server.repeat_candidates(rj)], [(215, 223, "Oatbound", "repeat")])
     # ---- back-to-back reads for different brands stay separate candidates (synthetic s22); one ad seen twice merges
     def cnd(a, b, la, lb, brand):
         return {"start": a, "end": b, "start_line": la, "end_line": lb, "category": "sponsor", "style": "read",

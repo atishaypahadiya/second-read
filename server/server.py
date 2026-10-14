@@ -76,7 +76,7 @@ KEEP_ALIVE = -1                                       # keep the model loaded be
 # Rubric changes in SYSTEM_PROMPT affect both passes: bump DETECT and REFINE.
 DETECT_VERSION = 3
 REFINE_VERSION = 3
-POST_VERSION = 21
+POST_VERSION = 22
 LEADIN_VERSION = 2   # the lead-in check: LEADIN_PROMPT / LEADIN_SYSTEM, the sentences it is shown, its caps
 NUM_CTX = 8192
 LLM_TIMEOUT_S = 600
@@ -2221,6 +2221,63 @@ def plan_job(job):
         publish(job)
 
 
+REPEAT_GAP_S = 30.0         # a found sponsor's brand named again this far from its reads is looked at as a reminder
+
+
+def repeat_candidates(job):
+    """A brand already found as a sponsor read and named again later next to a sponsor cue: the end-of-video reminder
+    ("and thank you again to Oatbound for sponsoring today's video, code PRIYA20 still gets you twenty percent off")
+    that detect left out (synthetic s24, with no description hint to find it by; Veritasium kS-CGkiPetQ's "thanks
+    again to Boot.dev for sponsoring this video ... 25% off" at 29:25). Lines at least REPEAT_GAP_S away from every
+    found read of that brand and outside every found segment, that name the brand of a found sponsor skip (letters
+    and digits only: 'oat bound' is 'Oatbound') with a sponsor cue in that line or the next, become refine
+    candidates, clustered like hint regions. A line right next to a read is the read's own edge, which refine has
+    already judged (it extended a person-checked end by 3 s on uI8oJYmCaz0)."""
+    squash = lambda t: re.sub(r"[^a-z0-9]", "", (t or "").lower())
+    alines, final = job["alines"], job["final"]
+    found, reads = {}, []
+    for f in final:
+        b = squash(f.get("brand"))
+        if f.get("action") == "skip" and f.get("category") == "sponsor" and len(b) >= 4 and b not in stats.GENERIC_WORDS:
+            found.setdefault(b, f["brand"])
+            reads.append((b, f["start"], f["end"]))
+    if not found:
+        return []
+    kept = [f for f in final if f.get("action") != "drop"]
+    cands = []
+    for i, l in enumerate(alines):
+        if any(l["start"] < f["end"] and l["end"] > f["start"] for f in kept):
+            continue
+        named = [b for b in found if b in squash(l["text"]) and
+                 all(l["end"] <= a - REPEAT_GAP_S or l["start"] >= e + REPEAT_GAP_S for x, a, e in reads if x == b)]
+        nxt = alines[i + 1]["text"] if i + 1 < len(alines) and alines[i + 1]["start"] - l["end"] <= 2.0 else ""
+        if not named or not window_cues(l["text"] + " " + nxt, [], sponsor_only=True):
+            continue
+        c = cands[-1] if cands else None
+        if c and c["brand"] == found[named[0]] and l["start"] - c["end"] <= HINT_CLUSTER_GAP_S:
+            c["end_line"], c["end"] = i, l["end"]
+            continue
+        cands.append({"start_line": i, "end_line": i, "start": l["start"], "end": l["end"], "category": "sponsor",
+                      "style": "read", "brand": found[named[0]], "confidence": 0.0, "evidence": "",
+                      "reason": f"{found[named[0]]!r}, found as a sponsor read, named again with a sponsor cue",
+                      "action": "show", "source": "repeat"})
+    return cands
+
+
+def plan_repeats(job):
+    """Once per job, after the last planned unit: queue repeat_candidates as refine units. True if any were queued."""
+    job["repeats_planned"] = True
+    cands = repeat_candidates(job)
+    if not cands:
+        return False
+    with jobs_lock:
+        job["pending"].extend(("hint", c) for c in cands)
+        job["units_all"] = list(job.get("units_all") or []) + [("hint", c) for c in cands]
+    for c in cands:
+        log(f"[{job['video_id']}] repeat {fmt_time(c['start'])}-{fmt_time(c['end'])} ({c['reason']}) -> refine")
+    return True
+
+
 def run_unit(job, unit):
     if unit[0] == "leadin":
         check_leadin(job, unit[1])
@@ -2476,7 +2533,8 @@ def worker_step():
         if needs_plan:
             plan_job(job)  # the next step pops the first window
         elif unit is None:
-            finish_job(job)
+            if job.get("repeats_planned") or not plan_repeats(job):
+                finish_job(job)
         else:
             t0 = time.time()
             run_unit(job, unit)
