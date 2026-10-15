@@ -350,6 +350,14 @@ and 37/75 on HELD. The gap is overfitting to the DEV scripts.
 | 24 | Read plus a reminder | skip | 2/3 | 0/3 | missed, ad plays; **content cut 20.6 s** once (noisy) |
 | 25 | Disclosure line, no read | noskip | 3/3 | 3/3 | ✓ |
 
+Open items, left as they are in `v1.0` (frozen; no fixes against HELD):
+
+- s14, ad-like content: the fresh file's quoted pitch is skipped (31.5 s clean, 30.1 s noisy); the
+  quoted-ad rule, written from the two DEV scam ads, does not catch its framing.
+- s13, sponsor disclaimer: one disclaimer skipped as a read (19.3 s, clean).
+- s24, read plus a reminder: one noisy run skips 20.6 s of content.
+- s18, Hindi read: one file skips 7.7 s past the read in both variants.
+
 - Synthetic text is cleaner than real captions.
 - The noisy twin also drops word timing, harsher than most real auto tracks.
 - No tuning after this run: a fix for a HELD failure moves that file to DEV and a fresh one replaces it.
