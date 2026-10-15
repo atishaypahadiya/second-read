@@ -609,6 +609,15 @@ Each stage ends with a "done when" check on a real video.
 - Videos without captions: do nothing (current) vs. a later fallback.
 - Qwen model tag: `qwen3:14b` vs `qwen2.5:14b-instruct` if qwen3 misbehaves with JSON.
 
+## v1.1 ideas (not started; v1.0 is frozen)
+
+- **Stronger evidence for an unbacked skip:** a skip with no description hint and no paid-promotion flag needs
+  more than one verbatim sponsor cue (s14/s13 on HELD skipped quoted or disclaimed ads that had both missing).
+  Test on real videos, not the synthetic suite.
+- **Cache key on normalized words, not line layout:** the transcript hash covers line starts and text, so the same
+  captions merged into different lines (`vpn3VmGvIXA`: 514 vs 807 lines) re-run everything. Key on the normalized
+  word sequence instead.
+
 ## Running locally
 
 ```bash
