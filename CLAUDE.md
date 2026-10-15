@@ -612,8 +612,8 @@ Each stage ends with a "done when" check on a real video.
 ## v1.1 ideas (not started; v1.0 is frozen)
 
 - **Stronger evidence for an unbacked skip:** a skip with no description hint and no paid-promotion flag needs
-  more than one verbatim sponsor cue (s14/s13 on HELD skipped quoted or disclaimed ads that had both missing).
-  Test on real videos, not the synthetic suite.
+  more than one verbatim sponsor cue. Motivated by the synthetic content cuts left open in v1.0 (s14, s13), but
+  test it on real videos, not the synthetic suite.
 - **Cache key on normalized words, not line layout:** the transcript hash covers line starts and text, so the same
   captions merged into different lines (`vpn3VmGvIXA`: 514 vs 807 lines) re-run everything. Key on the normalized
   word sequence instead.
