@@ -34,7 +34,8 @@ everything runs on Atishay's M4 Pro MacBook.
 - **README, `project.yml` and `docs/index.html` change together.** The project page (`docs/index.html`, GitHub
   Pages from `main` /docs) and its content file (`project.yml`) restate the README's numbers; `python3
   scripts/check_page.py` fails when any of them disagrees with the README (pass rates, missed reads, content-cut
-  seconds, error medians, DEV pass, regression rows, speed, lead-in caps). The page's images are rendered by
+  seconds, error medians, DEV pass, regression rows, speed, lead-in caps), and when a README section heading or
+  a page section is missing or either file leaves a code fence, `<!--`, `<details>` or `<picture>` open. The page's images are rendered by
   `node scripts/mockups/render.js` (the real UI, invented data); re-render after a UI change.
 - **Before every commit run `python3 scripts/regress.py` and `python3 scripts/check_page.py`.** regress.py replays `server/testset.json` from cached transcripts
   and cached model outputs (zero Ollama calls when versions match), checks expected segments within ±1.5s, asserts

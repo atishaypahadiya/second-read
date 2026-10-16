@@ -1,7 +1,7 @@
 # Second Read
 
 [Project page](https://atishaypahadiya.github.io/second-read/) · [source of the page](docs/index.html) ·
-[content](project.yml)
+[project.yml](project.yml)
 
 ![The player right after a skip: the read's marker has gone quiet, an integration is outlined further along, the next read is filled, and a toast reports 0:58 skipped with Undo and Wrong skip](docs/img/player-hero.png)
 
@@ -473,7 +473,7 @@ tail -f ~/Library/Logs/second-read.log
 
 # Before every commit
 python3 scripts/regress.py
-python3 scripts/check_page.py            # README, project.yml and docs/index.html agree on every number
+python3 scripts/check_page.py            # README, project.yml and docs/index.html agree on every number; nothing left unclosed
 
 scripts/uninstall.sh                     # stops and removes the agent
 ```
@@ -546,7 +546,7 @@ scripts/
   install.sh        installs the LaunchAgent; uninstall.sh removes it
   com.second-read.server.plist  LaunchAgent template
   make_icons.py     writes the extension icons
-  check_page.py     fails when docs/index.html or project.yml disagrees with a README number
+  check_page.py     fails when the page or project.yml disagrees with the README, or a section is missing or unclosed
   mockups/          render.js: the README images, the real UI with invented data
   synth/            the synthetic suite: taxonomy, DEV and HELD transcripts, builder, runner
 docs/               index.html: the project page (GitHub Pages); img/ and demo.gif: the mockups
