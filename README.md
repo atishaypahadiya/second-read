@@ -1,5 +1,13 @@
 # Second Read
 
+[Project page](https://atishaypahadiya.github.io/second-read/) · [source of the page](docs/index.html) ·
+[content](project.yml)
+
+![The player right after a skip: the read's marker has gone quiet, an integration is outlined further along, the next read is filled, and a toast reports 0:58 skipped with Undo and Wrong skip](docs/img/player-hero.png)
+
+*Right after a skip: the read's marker drains to dim, the integration further along is an outline, the next
+read is filled, and the toast says what was skipped. Mockup with illustrative data.*
+
 A Chrome extension (Manifest V3) that skips scripted sponsor reads on YouTube
 and lets integrated sponsors play.
 
@@ -147,7 +155,9 @@ call looks at the one to three sentences before it and, if they are a lead-in
 to the ad (a segue, a staged setup, a question about the sponsor), republishes
 the skip with an earlier start. It moves by whole sentences, by at most 6
 seconds, never before the skip is already out, and any failure, timeout or
-unclear answer leaves the start where it was. The second rule is
+unclear answer leaves the start where it was. A podcast's break announcement
+right before a read ("we're going to take a short break") moves the start back
+to it by rule, without the model, by at most 15 seconds. The second rule is
 to fail safe on missing information. A sponsor read is called undisclosed only
 when both disclosure signals (YouTube's paid-promotion flag and a sponsor line
 in the description) were received and are both negative; if either was not
@@ -213,6 +223,10 @@ will skip". Hovering a marker shows a tooltip with the
 brand, category, confidence, time range, what will happen, and the evidence
 quote.
 
+![The marker lane with the tooltip of a sponsor read: Northwind VPN, sponsor read, 0.96, 6:12 to 7:10, will skip, including a 4 second lead-in, and the evidence quote](docs/img/player-tooltip.png)
+
+*The tooltip on a read that has not played yet. Mockup with illustrative data.*
+
 When playback enters a skip segment the extension seeks to its end and shows a
 toast for 6 seconds: brand, category, seconds skipped, a hairline with the
 skipped span, the evidence quote, and two buttons. Undo returns to the
@@ -232,13 +246,30 @@ ad here" reports the current playhead. A status badge on the player (reading
 captions, analyzing 2/4, ready, no ads, no captions, server offline, analysis
 failed) is shown in dev mode only.
 
+<img src="docs/img/popup.png" width="360" alt="The popup: 3:12:40 saved all-time, today 4:12, 214 skips, 3 undone, 17 integrations left playing; this video's timeline with Northwind VPN skipped, Frameline playing and Pinecrest Coffee still to skip; the code ATLAS with Copy; the channel; the categories; the on switch">
+
+*The popup on the video in the shots above. Mockup with illustrative data.*
+
 The dashboard at `http://localhost:8765/dashboard` has three tabs: stats per
 brand, creator and category; one card per ad with its position, chapter,
 most-replayed curve and measured properties; and aggregates across all ads.
-Screenshots of the applied design are in `design/screenshots/`.
 
-<!-- Demo: docs/demo.gif, recorded from a live skip. Not in the repo yet, so the image is commented out.
-![Demo](docs/demo.gif) -->
+![The dashboard's stats tab: time saved, skips, videos analyzed, share of videos with a sponsor, ads per video, the position histogram, the halls of shame and fame, and the category table](docs/img/dashboard-stats.png)
+
+*The stats tab. Mockup with illustrative data.*
+
+<img src="docs/img/dashboard-adcard.png" width="560" alt="An ad card: Northwind VPN in A Quiet Week in the Fjords, its place on the video's timeline with chapters and replay peaks, position, chapter, segue, pace, calls to action, offers, template similarity, the viewer's skips, the opening line, the structure, persuasion tags with quotes and a better-placement suggestion">
+
+*One ad card. Mockup with illustrative data.*
+
+These images are the real extension and dashboard (`content.js`, `popup.js`, the server's `/dashboard`) rendered
+in headless Chrome with invented brands, channels and numbers: `node scripts/mockups/render.js` seeds a throwaway
+stats database through the server's own code and regenerates every image after a UI change. The screenshots in
+`design/screenshots/` are earlier ones, from the design merge (the popup's old layout), kept as its record.
+
+![Playback reaches the read, the player jumps to its end, the toast comes in and the marker goes quiet](docs/demo.gif)
+
+*A skip, from playback reaching the read to the toast. Mockup with illustrative data.*
 
 ## Evaluation
 
@@ -442,6 +473,7 @@ tail -f ~/Library/Logs/second-read.log
 
 # Before every commit
 python3 scripts/regress.py
+python3 scripts/check_page.py            # README, project.yml and docs/index.html agree on every number
 
 scripts/uninstall.sh                     # stops and removes the agent
 ```
@@ -514,7 +546,12 @@ scripts/
   install.sh        installs the LaunchAgent; uninstall.sh removes it
   com.second-read.server.plist  LaunchAgent template
   make_icons.py     writes the extension icons
-design/             gallery.html (every UI state), reference boards, screenshots
+  check_page.py     fails when docs/index.html or project.yml disagrees with a README number
+  mockups/          render.js: the README images, the real UI with invented data
+  synth/            the synthetic suite: taxonomy, DEV and HELD transcripts, builder, runner
+docs/               index.html: the project page (GitHub Pages); img/ and demo.gif: the mockups
+project.yml         the project page's content, field by field
+design/             gallery.html (every UI state), reference boards, earlier screenshots
 DESIGN.md           the design language; MERGE_NOTES.md: how it was applied
 CLAUDE.md           pipeline specification, constraints, build log
 ```

@@ -31,7 +31,12 @@ everything runs on Atishay's M4 Pro MacBook.
 - Keep each stage's change small and reviewable. Explain what you changed and how to test it.
 - After a stage passes: tick it in the checklist at the bottom and commit
   (`stage N: <summary>`).
-- **Before every commit run `python3 scripts/regress.py`.** It replays `server/testset.json` from cached transcripts
+- **README, `project.yml` and `docs/index.html` change together.** The project page (`docs/index.html`, GitHub
+  Pages from `main` /docs) and its content file (`project.yml`) restate the README's numbers; `python3
+  scripts/check_page.py` fails when any of them disagrees with the README (pass rates, missed reads, content-cut
+  seconds, error medians, DEV pass, regression rows, speed, lead-in caps). The page's images are rendered by
+  `node scripts/mockups/render.js` (the real UI, invented data); re-render after a UI change.
+- **Before every commit run `python3 scripts/regress.py` and `python3 scripts/check_page.py`.** regress.py replays `server/testset.json` from cached transcripts
   and cached model outputs (zero Ollama calls when versions match), checks expected segments within ±1.5s, asserts
   must-not-skip videos have no skips and forbidden ranges stay empty, and prints a pass/fail table. After a prompt
   change the stored outputs are outdated: run it once with `--allow-model`.
@@ -76,7 +81,12 @@ second-read/                 (the folder may still be called sponsor-skipper on 
 │   ├── install.sh / uninstall.sh          launchctl bootstrap / bootout
 │   ├── regress.py       regression harness over server/testset.json (run before every commit)
 │   ├── wiring_test.js   extension metadata path test (node, no deps; run by regress.py)
+│   ├── check_page.py    README vs docs/index.html and project.yml, number by number (run before every commit)
+│   ├── mockups/         render.js (+ seed.py, player.html, popup-stub.js, optimize.py): the README/page images
+│   ├── synth/           the synthetic suite (taxonomy, DEV/HELD transcripts, build.py, run.py, validate.py)
 │   └── make_icons.py    generates extension/icons
+├── docs/                index.html (the project page), img/*.png and demo.gif (mockups), reference/ (its approved sample; local, gitignored)
+├── project.yml          the project page's content, field by field
 └── server/
     ├── server.py        localhost:8765, runs Qwen on the transcript, returns segments
     ├── stats.py         SQLite stats (segments + client events), brand normalization, /stats.json, /dashboard

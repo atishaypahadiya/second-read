@@ -1,0 +1,157 @@
+# Second Read: the website-facing content of the project, one field per thing a project page shows.
+# docs/index.html is rendered from these fields by hand; a future personal site can render any project from the same
+# fields. Every number comes from README.md (the section is named next to it), and scripts/check_page.py fails when
+# this file, docs/index.html and the README disagree. README, project.yml and docs/index.html change together.
+
+name: Second Read
+slug: second-read
+one_liner: A Chrome extension that skips scripted YouTube sponsor reads and lets integrated sponsors play.
+headline: Skip the scripted read. Keep the video.
+lede: >-
+  Second Read reads a YouTube video's own captions, asks a model running on the laptop which lines are a paid
+  sponsor read, and skips only the part it can quote word for word. When the creator actually uses the product to do
+  the video's task, it plays.
+why: >-
+  The segue, the brand, the offer, the code. Most skippers depend on viewers submitting timestamps, so a new video
+  has nothing until someone tags it. Second Read works on the first view of any captioned video, decides from the
+  words themselves, and keeps everything on the machine.
+role: Solo project
+dates: October 2026
+stack:                       # README intro, "Stack"
+  - Chrome Manifest V3 JavaScript
+  - Python standard library
+  - SQLite
+model: qwen3:14b via Ollama, on a 24 GB M4 Pro      # README "Evaluation" (speed: "on a 24 GB M4 Pro with qwen3:14b")
+links:
+  source: https://github.com/atishaypahadiya/second-read
+  page: https://atishaypahadiya.github.io/second-read/
+
+goals:
+  - title: Text only
+    text: It reads the caption track YouTube already serves. No audio is downloaded or transcribed.
+  - title: Local
+    text: The model runs on the laptop. No third-party datasets, no SponsorBlock, no API keys.
+  - title: Never cut content
+    text: Every doubt resolves toward letting the ad play. A late skip is a nuisance; a cut sentence is a bug.
+  - title: Integrations play
+    text: A creator using the product to do the video's actual task is content, so it gets an outline, not a skip.
+
+steps:                       # README "How it works"
+  - title: Read the captions
+    text: >-
+      The player only serves captions with a proof-of-origin token, so the extension switches captions on for a
+      moment, reuses the player's own request and switches them off again. Word timing comes from the track's
+      tOffsetMs values. A revisit loads the stored result before anything is read.
+  - title: Find candidates
+    text: >-
+      A keyword prefilter keeps only the 240-second windows that contain a sponsor cue. Sponsor lines and chapters in
+      the description become hints. The model labels a line range, then a second pass asks for the read's full extent.
+  - title: Prove it
+    text: >-
+      A skip needs an evidence quote that appears in the transcript word for word and contains a sponsor cue, at 0.85
+      confidence or more. Anything weaker becomes a label on the progress bar.
+  - title: Cut inward
+    text: >-
+      Boundaries land on word timing, rounded 0.3 s inward and snapped to sentence starts. A lead-in check can move
+      the start back over the segue, by whole sentences and by at most 6 seconds; a podcast's break announcement, by
+      rule, by at most 15.
+
+rules:                       # README "How it works"
+  - title: Content is never cut on a guess.
+    text: Every fallback moves the cut inward. A post-filter can remove a label but never add a skip.
+  - title: Missing data means unknown.
+    text: >-
+      A read is called undisclosed only when both disclosure signals arrived and both say no. The dashboard never
+      accuses a creator over a field that failed to load.
+
+results:
+  synthetic:                 # README "Evaluation" > "Behavioral tests (synthetic)", the HELD run on v1.0-candidate
+    scripts: 75
+    scenarios: 25
+    clean:
+      pass: 54               # "Runs passing | 54/75"
+      runs: 75
+      missed: 4              # "Scripted reads missed (of 63) | 4"
+      reads: 63
+      cut_runs: 6            # "Runs that cut content, seconds cut | 6 runs, 60.4 s"
+      cut_s: 60.4
+      median_start_s: 0.0    # "Median start / end error | 0.0 s / 0.0 s"
+      median_end_s: 0.0
+    noisy:
+      pass: 37               # "Runs passing | ... | 37/75"
+      runs: 75
+      missed: 8              # "Scripted reads missed (of 63) | ... | 8"
+      reads: 63
+      cut_runs: 30           # "30 runs, 90.1 s"
+      cut_s: 90.1
+      median_start_s: +0.8   # "+0.8 s / 0.0 s"
+      median_end_s: 0.0
+    dev_pass:                # "DEV on the same code: 64/78 clean, 50/78 noisy"
+      clean: 64
+      noisy: 50
+      runs: 78
+    note: >-
+      Synthetic text is cleaner than real captions. The noisy twin also drops word timing, harsher than most real auto
+      tracks. The drop from the development scripts to the held-out ones is overfitting to the development scripts.
+  scenario_groups:           # README "Behavioral tests (synthetic)": per-scenario table and open items
+    - title: Holds on clean text
+      text: >-
+        Classic mid-roll reads, ads in the first 30 seconds, back-to-back sponsors, misheard brand names. It leaves
+        alone the creator's own brand work, videos about the brand, disclaimers in the description, "sponsors" in
+        conversation and affiliate links.
+    - title: The ad plays
+      sub: "safe direction: nothing is cut"
+      text: >-
+        Soft and question segues start 7 to 13 seconds late. Reads with no disclosure words, and long reads that cross
+        a window edge, are sometimes missed or cut short.
+    - title: Still cuts content
+      sub: open items for v1.1
+      text: >-
+        A pitch quoted inside a video's own content (31.5 s clean, 30.1 s noisy). One disclaimer read as an ad
+        (19.3 s). A reminder after a read on noisy text (20.6 s). On noisy text without word timing, ends can overshoot
+        by a few seconds.
+  regression_rows:           # README "Evaluation": verified (13 rows), transcript-labeled (5 rows), snapshot (11 rows)
+    verified: 13
+    transcript_labeled: 5
+    snapshot: 11
+    total: 29
+  speed:                     # README "Evaluation", the two speed tables: time to the first published skip
+    first_skip_s_min: 33     # live first visits: 38 s and 33 s; replays at 2/2/1: 59 s, 44 s, 39 s
+    first_skip_s_max: 59
+    first_build_first_skip_s_min: 95     # baseline 1/1/1: 140 s, 166 s, 95 s
+    first_build_first_skip_s_max: 166
+  real_heldout_status: not run           # README "Evaluation": "The held-out evaluation has not been run."
+
+interface:                   # README "UI"
+  legend:
+    - Filled · will skip
+    - Outline · integration, plays
+    - Dim · label only, or already skipped
+    - Hatched · low confidence
+  text:
+    - The player gets one 4 px lane above the progress bar, never on it. Meaning is carried by shape as well as tone.
+    - >-
+      After a skip, a toast shows the brand, the seconds skipped and the quote it acted on, with Undo and Wrong skip.
+      Wrong skip files a report with the segment and its evidence.
+    - >-
+      The popup opens on time saved, then what happened on the current video, including the offer code from the read,
+      so skipping the ad doesn't mean losing the deal. A local dashboard breaks the same data down by brand, creator
+      and category.
+
+limits:                      # README "Limitations"
+  - title: YouTube internals
+    text: >-
+      Caption capture depends on the player object, the caption request and its token, and the CC button. None of
+      them is an API; when one changes, the extension reads nothing until it is fixed.
+  - title: No captions
+    text: A video without a caption track is not analyzed at all.
+  - title: One model, one laptop
+    text: One 14B model handles one call at a time, and its output varies between runs on the same input.
+  - title: Small test base
+    text: Tested by one person on a small set of channels. The real-video held-out run is still to come.
+
+images:                      # rendered by scripts/mockups/render.js; every caption says "Mockup with illustrative data."
+  hero: docs/img/player-hero.png
+  popup: docs/img/popup.png
+  dashboard: docs/img/dashboard-stats.png
+  demo: docs/demo.gif

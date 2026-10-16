@@ -6,3 +6,6 @@ server/testset.inputs.local.json
 
 # synthetic suite run outputs (per-run logs and scores)
 scripts/synth/results/
+
+# the project page's approved design sample (local reference, not published on Pages)
+docs/reference/project-page-sample.html
