@@ -7,7 +7,12 @@ The README is the source: each number is read from it by the README's own wordin
 the page (by the page's wording) and in project.yml (by field). Covered: synthetic pass rates and DEV pass, reads
 missed, runs and seconds that cut content (also the per-scenario seconds the page names), median start/end error,
 regression rows, speed, the lead-in caps. A number the page or project.yml states differently, or no longer states
-where it should, is a failure. Stdlib only.
+where it should, is a failure.
+
+Structure, before any number: the README must have every expected section heading (outside code blocks), and the page
+every expected section; neither may leave a <!--, <details> or <picture> open, the README no code fence, and the page
+must end with </html>. An unclosed fence or comment renders the rest of the file as code or not at all, and the
+number checks would still pass on the raw text. Stdlib only.
 """
 import html
 import os
@@ -38,6 +43,80 @@ def same(name, want, got, where):
     if norm(want) != norm(got):
         problems.append(f"{where}: {name} is {got!r}, the README says {want!r}")
 
+
+# ---------------------------------------------------------------- structure
+README_HEADINGS = ["# Second Read", "## How it works", "## Coverage", "## UI", "## Evaluation",
+                   "### Behavioral tests (synthetic)", "## Local setup", "## Permissions and privacy",
+                   "## Project layout", "## Limitations", "## Status"]
+PAGE_SECTIONS = ["why", "how", "results", "interface", "limits"]
+OPENERS = (("<!--", "-->", "<!--"), (r"<details\b", r"</details\s*>", "<details>"), (r"<picture\b", r"</picture\s*>", "<picture>"))
+
+
+def unclosed(lines, where):
+    """Report every <!--, <details> or <picture> in these (line number, text) pairs that is never closed."""
+    text = "\n".join(t for _, t in lines)
+    starts = [n for n, _ in lines]
+    offsets, pos = [], 0
+    for _, t in lines:
+        offsets.append(pos)
+        pos += len(t) + 1
+    line_of = lambda off: starts[max(i for i, o in enumerate(offsets) if o <= off)] if lines else 0
+    m = re.search(r"<!--", text)
+    while m:   # comments do not nest: each <!-- needs a --> after it
+        end = text.find("-->", m.end())
+        if end < 0:
+            problems.append(f"{where}:{line_of(m.start())}: <!-- is never closed (everything after it is hidden)")
+            break
+        m = re.compile(r"<!--").search(text, end + 3)
+    for open_re, close_re, name in OPENERS[1:]:
+        depth = []
+        for t in sorted([(o.start(), 1) for o in re.finditer(open_re, text)] + [(c.start(), -1) for c in re.finditer(close_re, text)]):
+            if t[1] > 0:
+                depth.append(t[0])
+            elif depth:
+                depth.pop()
+            else:
+                problems.append(f"{where}:{line_of(t[0])}: </{name[1:]} without an opening {name}")
+        for off in depth:
+            problems.append(f"{where}:{line_of(off)}: {name} is never closed")
+
+
+def readme_structure(text, where="README.md"):
+    """Walk the README as CommonMark does for fences: returns nothing, appends problems."""
+    fence, fence_line, outside, headings = None, 0, [], set()
+    for n, line in enumerate(text.splitlines(), 1):
+        m = re.match(r" {0,3}(`{3,}|~{3,})(.*)$", line)
+        if fence:
+            if m and m[1][0] == fence[0] and len(m[1]) >= len(fence) and not m[2].strip():
+                fence = None
+            continue
+        if m and not (m[1][0] == "`" and "`" in m[2]):
+            fence, fence_line = m[1], n
+            continue
+        if re.match(r"#{1,6} ", line):
+            headings.add(line.rstrip())
+        outside.append((n, re.sub(r"(`+)(?!`).+?(?<!`)\1(?!`)", "", line)))   # inline code shows tags as text
+    if fence:
+        problems.append(f"{where}:{fence_line}: code fence {fence} is never closed (the rest of the file renders as code)")
+    for h in README_HEADINGS:
+        if h not in headings:
+            problems.append(f"{where}: section heading missing: {h}")
+    unclosed(outside, where)
+
+
+def page_structure(text, where="docs/index.html"):
+    # script and style bodies are not markup; blank them but keep their newlines for the line numbers
+    body = re.sub(r"(<(script|style)\b[^>]*>)(.*?)(</\2>)", lambda m: m[1] + re.sub(r"[^\n]", " ", m[3]) + m[4], text, flags=re.S | re.I)
+    unclosed(list(enumerate(body.splitlines(), 1)), where)
+    for s in PAGE_SECTIONS:
+        if not re.search(rf'<section\b[^>]*\bid="{s}"', body):
+            problems.append(f'{where}: section missing: <section id="{s}">')
+    if not text.rstrip().lower().endswith("</html>"):
+        problems.append(f"{where}: does not end with </html> (truncated?)")
+
+
+readme_structure(read("README.md"))
+page_structure(read("docs/index.html"))
 
 # ---------------------------------------------------------------- the README's numbers
 readme = re.sub(r"\s+", " ", read("README.md"))
@@ -217,4 +296,5 @@ if problems:
     for p in problems:
         print("  " + p)
     sys.exit(1)
-print(f"check_page: {checked} numbers agree between README.md, docs/index.html and project.yml")
+print(f"check_page: structure ok ({len(README_HEADINGS)} README headings, {len(PAGE_SECTIONS)} page sections, nothing left open); "
+      f"{checked} numbers agree between README.md, docs/index.html and project.yml")
