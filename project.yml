@@ -11,10 +11,11 @@ lede: >-
   Second Read reads a YouTube video's own captions, asks a model running on the laptop which lines are a paid
   sponsor read, and skips only the part it can quote word for word. When the creator actually uses the product to do
   the video's task, it plays.
-why: >-
-  The segue, the brand, the offer, the code. Most skippers depend on viewers submitting timestamps, so a new video
-  has nothing until someone tags it. Second Read works on the first view of any captioned video, decides from the
-  words themselves, and keeps everything on the machine.
+why: >-   # SponsorBlock facts: its own category text (ajayyy/ExtensionTranslations en/messages.json) and wiki
+  The segue, the brand, the offer, the code. SponsorBlock skips from timestamps that viewers submit and vote on, so a
+  new video has nothing until someone tags it, and its sponsor category counts any paid promotion, a scripted read
+  and a creator actually using the product alike. Second Read decides on the first view of any captioned video, from
+  the words themselves, skips only the scripted read, and keeps everything on the machine.
 role: Solo project
 dates: October 2026
 stack:                       # README intro, "Stack"
