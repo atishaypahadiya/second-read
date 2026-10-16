@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Second Read</title>
+<meta name="description" content="A Chrome extension that skips scripted YouTube sponsor reads and lets integrated sponsors play. Local model, captions only.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@300;400;500&display=swap">
+<style>
+/* Layout: one reading column (~720px) under a wider hero band that holds the player mockup; sections are quiet bands split by hairlines, following the project's own DESIGN.md (monochrome + one accent that only ever means "skip"). */
+:root{
+  --bg:#F1F1EF; --surface:#FFFFFF; --fg:#111111;
+  --muted:rgba(17,17,17,.64); --faint:rgba(17,17,17,.40); --line:rgba(17,17,17,.12); --tint:rgba(17,17,17,.05);
+  --accent:#FF4A1C; --accent-text:#C2330D;
+  --deep-a:#444444; --deep-b:#5A5A5A; --deep-fg:#FFFFFF;
+  --pop-bg:#F0F0F0; --pop-fg:#000000; --pop-muted:rgba(0,0,0,.6); --pop-tint:rgba(0,0,0,.06);
+  --ok:#2F7A4E; --warn:#9A6A12; --bad:#C2330D;
+  --sans:'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --mono:'Geist Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E0E0E; --surface:#171717; --fg:#ECECEC;
+    --muted:rgba(236,236,236,.66); --faint:rgba(236,236,236,.42); --line:rgba(236,236,236,.12); --tint:rgba(236,236,236,.05);
+    --accent:#FF5A2E; --accent-text:#FF8A63;
+    --deep-a:#2B2B2B; --deep-b:#3B3B3B;
+    --ok:#62C48D; --warn:#E2B04F; --bad:#FF8A63;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E0E0E; --surface:#171717; --fg:#ECECEC;
+  --muted:rgba(236,236,236,.66); --faint:rgba(236,236,236,.42); --line:rgba(236,236,236,.12); --tint:rgba(236,236,236,.05);
+  --accent:#FF5A2E; --accent-text:#FF8A63;
+  --deep-a:#2B2B2B; --deep-b:#3B3B3B;
+  --ok:#62C48D; --warn:#E2B04F; --bad:#FF8A63;
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+body{
+  background:var(--bg); color:var(--fg);
+  font:16px/1.6 var(--sans);
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px));
+  padding-block:0 64px;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:inherit; text-underline-offset:3px; text-decoration-thickness:1px}
+a:focus-visible, button:focus-visible{outline:2px solid var(--fg); outline-offset:3px; border-radius:6px}
+.col{max-width:720px; margin-inline:auto}
+.wide{max-width:1040px; margin-inline:auto}
+.mono{font-family:var(--mono)}
+.eyebrow{font:500 12px/1 var(--mono); letter-spacing:.06em; text-transform:lowercase; color:var(--faint)}
+h1,h2,h3{text-wrap:balance; margin:0}
+h2{font:600 28px/1.15 var(--sans); letter-spacing:-.02em}
+h3{font:600 17px/1.3 var(--sans); letter-spacing:-.01em}
+p{margin:0}
+
+/* top bar */
+.top{display:flex; align-items:center; justify-content:space-between; gap:16px; padding-block:22px}
+.word{font:500 16px/1 var(--sans); letter-spacing:-.01em; display:flex; align-items:center; gap:10px}
+.word i{width:8px; height:8px; border-radius:50%; background:var(--accent); display:inline-block}
+.top a{font:400 14px/1 var(--sans); color:var(--muted); text-decoration:none}
+.top a:hover{color:var(--fg)}
+
+/* hero */
+.hero{display:flex; flex-direction:column; gap:20px; padding-block:40px 32px}
+.hero h1{font:600 clamp(36px, 6.4vw, 64px)/1.02 var(--sans); letter-spacing:-.035em; max-width:13ch}
+.hero h1 em{font-style:normal; color:var(--muted)}
+.lede{font-size:clamp(17px, 2vw, 19px); line-height:1.55; color:var(--muted); max-width:60ch}
+.facts{display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:16px; padding-top:20px; border-top:1px solid var(--line); margin-top:8px}
+.facts div{display:flex; flex-direction:column; gap:6px; min-width:0}
+.facts dt{font:500 11px/1 var(--mono); letter-spacing:.06em; color:var(--faint)}
+.facts dd{margin:0; font-size:14px; line-height:1.45}
+@media (max-width:720px){ .facts{grid-template-columns:repeat(2, minmax(0,1fr))} }
+
+/* player mockup */
+.stage{padding-block:8px 8px}
+.player-wrap{display:flex; flex-direction:column; gap:10px}
+.player{position:relative; width:100%; max-width:100%; aspect-ratio:16/9; border-radius:22px; overflow:hidden; background:#0B0C0E; isolation:isolate}
+.player svg.scene{position:absolute; inset:0; width:100%; height:100%; display:block}
+.shade{position:absolute; inset:auto 0 0 0; height:46%; background:linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,.78))}
+.lane, .bar{position:absolute; left:3%; right:3%; height:4px; border-radius:4px}
+.lane{bottom:calc(12% + 14px)}
+.bar{bottom:12%; background:rgba(255,255,255,.24)}
+.seg{position:absolute; top:0; bottom:0; border-radius:4px}
+.seg.skip{background:#FF4A1C; transition:background-color 180ms ease}
+.seg.skip.done{background:rgba(255,255,255,.34)}
+.seg.keep{box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.88)}
+.seg.label{background:rgba(255,255,255,.34)}
+.seg.low{background:repeating-linear-gradient(135deg, rgba(255,255,255,.72) 0 3px, rgba(255,255,255,.12) 3px 6px)}
+.fill{position:absolute; left:0; top:0; bottom:0; border-radius:4px; background:rgba(255,255,255,.92)}
+.knob{position:absolute; top:50%; width:13px; height:13px; margin:-6.5px 0 0 -6.5px; border-radius:50%; background:#FFFFFF; box-shadow:0 0 0 3px rgba(0,0,0,.25)}
+.ctrl{position:absolute; left:3%; right:3%; bottom:3.2%; height:7%; display:flex; align-items:center; gap:clamp(10px,2vw,20px); color:#FFFFFF; font:300 clamp(10px,1.3vw,13px)/1 var(--mono); font-variant-numeric:tabular-nums}
+.ctrl svg{width:clamp(14px,1.8vw,20px); height:auto; flex:none}
+.ctrl .sp{flex:1}
+.toast{position:absolute; left:3%; bottom:calc(12% + 34px); width:min(390px, 48%); padding:14px; border-radius:18px; background:rgba(26,26,26,.66); -webkit-backdrop-filter:blur(18px) saturate(140%); backdrop-filter:blur(18px) saturate(140%); color:#FFFFFF; display:flex; flex-direction:column; gap:10px; transition:opacity 260ms ease, transform 260ms ease}
+.toast.off{opacity:0; transform:translateY(8px); pointer-events:none}
+.t-row{display:flex; align-items:center; gap:8px; min-width:0}
+.t-row .dot{width:9px; height:9px; border-radius:50%; background:#FF4A1C; flex:none}
+.t-brand{font:500 15px/1.2 var(--sans); white-space:nowrap}
+.chip{height:20px; padding:0 8px; border-radius:999px; background:rgba(255,255,255,.2); font:400 11px/20px var(--sans); white-space:nowrap}
+.t-row .sp{flex:1}
+.t-sec{font:300 12px/1 var(--mono); color:rgba(255,255,255,.75); white-space:nowrap}
+.hair{position:relative; height:2px; border-radius:2px; background:rgba(255,255,255,.3)}
+.hair span{position:absolute; top:0; bottom:0; left:33.5%; width:5.3%; background:#FFFFFF; border-radius:2px}
+.t-quote{font:300 12.5px/1.45 var(--mono); color:rgba(255,255,255,.8)}
+.t-btns{display:flex; gap:6px; align-items:center}
+.t-btns span{height:36px; display:inline-flex; align-items:center; padding:0 18px; border-radius:999px; font:500 14px/1 var(--sans)}
+.t-btns .u{background:#FFFFFF; color:#000000}
+.t-btns .w{color:rgba(255,255,255,.75); padding:0 10px}
+@media (max-width:640px){
+  .toast{position:static; width:auto; background:#232323; transform:none}
+  .toast.off{opacity:1; transform:none}
+  .lane{bottom:calc(14% + 10px)} .bar{bottom:14%}
+}
+.cap{font:400 12px/1.4 var(--mono); color:var(--faint)}
+.player img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block}
+.shot{display:block; width:100%; height:auto; border-radius:18px; border:1px solid var(--line); background:var(--surface)}
+.shot-popup{max-width:340px; border-radius:22px; box-shadow:0 1px 0 rgba(0,0,0,.04), 0 18px 40px -18px rgba(0,0,0,.35)}
+.dash{margin:32px 0 0; display:flex; flex-direction:column; gap:10px}
+
+/* sections */
+section{padding-block:56px 0}
+.sec-head{display:flex; flex-direction:column; gap:10px; margin-bottom:22px}
+.prose{display:flex; flex-direction:column; gap:14px; color:var(--fg)}
+.prose p{max-width:65ch}
+.muted{color:var(--muted)}
+.goals{display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:16px; overflow:hidden; margin-top:22px}
+.goals div{background:var(--surface); padding:18px; display:flex; flex-direction:column; gap:6px; min-width:0}
+.goals b{font:600 15px/1.3 var(--sans)}
+.goals span{font-size:14px; color:var(--muted); line-height:1.5}
+@media (max-width:560px){ .goals{grid-template-columns:1fr} }
+
+.steps{list-style:none; margin:0; padding:0; display:flex; flex-direction:column}
+.steps li{display:grid; grid-template-columns:56px minmax(0,1fr); gap:16px; padding-block:18px; border-top:1px solid var(--line)}
+.steps li:last-child{border-bottom:1px solid var(--line)}
+.steps .n{font:400 13px/1.9 var(--mono); color:var(--faint); font-variant-numeric:tabular-nums}
+.steps h3{margin-bottom:6px}
+.steps p{color:var(--muted); font-size:15px; max-width:62ch}
+.steps code, .prose code{font:400 .88em var(--mono); background:var(--tint); padding:.08em .35em; border-radius:5px}
+
+.rules{margin-top:28px; border-radius:24px; padding:24px; background:linear-gradient(to bottom, var(--deep-a), var(--deep-b)); color:var(--deep-fg); display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:24px}
+.rules div{display:flex; flex-direction:column; gap:8px; min-width:0}
+.rules .eyebrow{color:rgba(255,255,255,.6)}
+.rules p{font-size:15px; line-height:1.55; color:rgba(255,255,255,.88)}
+.rules h3{color:#FFFFFF}
+@media (max-width:620px){ .rules{grid-template-columns:1fr} }
+
+/* results */
+.card{background:var(--surface); border:1px solid var(--line); border-radius:18px; padding:22px; display:flex; flex-direction:column; gap:14px; min-width:0}
+.card + .card{margin-top:14px}
+.card .top-line{display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap}
+.tag{font:500 11px/1 var(--mono); letter-spacing:.05em; padding:6px 9px; border-radius:999px; background:var(--tint); color:var(--muted); white-space:nowrap}
+.tag.pending{color:var(--accent-text); background:color-mix(in srgb, var(--accent) 12%, transparent)}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse; width:100%; min-width:440px; font-variant-numeric:tabular-nums}
+th, td{text-align:left; padding:11px 10px; border-bottom:1px solid var(--line); font-size:14.5px; vertical-align:baseline}
+th{font:500 11px/1 var(--mono); letter-spacing:.06em; color:var(--faint); padding-top:4px}
+td.num{font:400 14px var(--mono); white-space:nowrap}
+td.num small{color:var(--faint); font-size:12px}
+tr:last-child td{border-bottom:0}
+.note{font-size:14px; color:var(--muted); line-height:1.55; max-width:65ch}
+
+.groups{display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:14px; margin-top:14px}
+.group{background:var(--surface); border:1px solid var(--line); border-radius:18px; padding:18px; display:flex; flex-direction:column; gap:10px; min-width:0}
+.group .head{display:flex; align-items:center; gap:8px; font:600 14.5px/1.3 var(--sans)}
+.mark{width:22px; height:22px; border-radius:50%; display:inline-grid; place-items:center; font:600 12px/1 var(--mono); flex:none}
+.g-ok .mark{background:color-mix(in srgb, var(--ok) 16%, transparent); color:var(--ok)}
+.g-warn .mark{background:color-mix(in srgb, var(--warn) 18%, transparent); color:var(--warn)}
+.g-bad .mark{background:color-mix(in srgb, var(--bad) 15%, transparent); color:var(--bad)}
+.group p{font-size:14px; color:var(--muted); line-height:1.55}
+.group .sub{font:400 11.5px/1.4 var(--mono); color:var(--faint)}
+@media (max-width:780px){ .groups{grid-template-columns:1fr} }
+
+.split{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:14px; align-items:stretch}
+.split .card + .card{margin-top:0}
+.split + .card{margin-top:14px}
+@media (max-width:620px){ .split{grid-template-columns:1fr} }
+.big{font:300 34px/1.05 var(--mono); letter-spacing:-.02em; font-variant-numeric:tabular-nums}
+.big small{font-size:15px; color:var(--muted); letter-spacing:0}
+
+/* interface */
+.ui{display:grid; grid-template-columns:minmax(0, 340px) minmax(0,1fr); gap:32px; align-items:start}
+@media (max-width:760px){ .ui{grid-template-columns:1fr} }
+.popup{background:var(--pop-bg); color:var(--pop-fg); border-radius:22px; padding:18px; display:flex; flex-direction:column; gap:14px; width:100%; max-width:340px; box-shadow:0 1px 0 rgba(0,0,0,.04), 0 18px 40px -18px rgba(0,0,0,.35); border:1px solid rgba(0,0,0,.06)}
+.p-head{display:flex; align-items:center; gap:8px}
+.p-head b{font:500 15px/1 var(--sans); flex:1}
+.p-chip{height:24px; padding:0 10px 0 8px; border-radius:999px; background:var(--pop-tint); display:inline-flex; align-items:center; gap:6px; font:400 11px/1 var(--sans); color:var(--pop-muted)}
+.p-chip i{width:6px; height:6px; border-radius:50%; background:var(--pop-fg)}
+.p-hero{border-radius:28px; padding:20px; background:linear-gradient(to bottom, #444444, #5A5A5A); color:#FFFFFF; display:flex; flex-direction:column; gap:6px}
+.p-hero .t{font:300 40px/1.05 var(--mono); font-variant-numeric:tabular-nums; letter-spacing:-.01em}
+.p-hero .l{font-size:13px; color:rgba(255,255,255,.75)}
+.p-hero .c{align-self:flex-start; margin-top:8px; height:22px; padding:0 9px; border-radius:999px; background:rgba(255,255,255,.22); font:400 11px/22px var(--mono)}
+.p-hero .s{font:300 11px/1.4 var(--mono); color:rgba(255,255,255,.75); margin-top:2px}
+.p-vid{display:flex; flex-direction:column; gap:8px}
+.p-lab{font:400 11px/1 var(--mono); color:rgba(0,0,0,.55)}
+.p-line{position:relative; height:4px; border-radius:4px; background:rgba(0,0,0,.1)}
+.p-line span{position:absolute; top:0; bottom:0; border-radius:4px}
+.p-row{display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:13px}
+.p-row .m{font:300 11.5px var(--mono); color:var(--pop-muted); white-space:nowrap}
+.p-code{display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:14px; background:#FFFFFF; border:1px solid rgba(0,0,0,.07)}
+.p-code .k{font:500 13px/1 var(--mono); letter-spacing:.02em}
+.p-code .o{font-size:12px; color:var(--pop-muted); flex:1; min-width:0}
+.p-code .cp{font:500 12px/1 var(--sans); padding:7px 11px; border-radius:999px; background:#000000; color:#FFFFFF}
+.p-foot{display:flex; justify-content:space-between; gap:8px; font-size:12px; color:var(--pop-muted); padding-top:4px; border-top:1px solid rgba(0,0,0,.08); padding-top:12px}
+.legend{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:12px}
+.legend li{display:grid; grid-template-columns:64px minmax(0,1fr); gap:14px; align-items:center; font-size:14.5px}
+.legend .sw{height:6px; border-radius:4px; background:#2A2A2A; position:relative}
+.sw-skip{background:#FF4A1C !important}
+.sw-keep{background:transparent !important; box-shadow:inset 0 0 0 1.5px var(--fg)}
+.sw-dim{background:color-mix(in srgb, var(--fg) 30%, transparent) !important}
+.sw-low{background:repeating-linear-gradient(135deg, color-mix(in srgb, var(--fg) 70%, transparent) 0 3px, color-mix(in srgb, var(--fg) 14%, transparent) 3px 6px) !important}
+.legend b{font-weight:600}
+
+.limits{list-style:none; margin:0; padding:0; border-top:1px solid var(--line)}
+.limits li{padding:14px 0; border-bottom:1px solid var(--line); color:var(--muted); font-size:15px; display:grid; grid-template-columns:minmax(0, 180px) minmax(0,1fr); gap:16px}
+.limits li b{color:var(--fg); font-weight:600}
+@media (max-width:560px){ .limits li{grid-template-columns:1fr; gap:4px} }
+
+footer{margin-top:64px; padding-top:20px; border-top:1px solid var(--line); display:flex; flex-wrap:wrap; gap:12px 24px; justify-content:space-between; font-size:13.5px; color:var(--muted)}
+
+@media (prefers-reduced-motion: reduce){
+  .toast, .seg.skip{transition:none}
+}
+</style>
+</head>
+<body>
+
+<div class="wide">
+  <header class="top">
+    <span class="word"><i aria-hidden="true"></i>second read</span>
+    <a href="https://github.com/atishaypahadiya/second-read">Source on GitHub ↗</a>
+  </header>
+</div>
+
+<div class="col">
+  <div class="hero">
+    <span class="eyebrow">chrome extension · local model · v1.0</span>
+    <h1>Skip the scripted read. <em>Keep the video.</em></h1>
+    <p class="lede">Second Read reads a YouTube video's own captions, asks a model running on the laptop which lines are a paid sponsor read, and skips only the part it can quote word for word. When the creator actually uses the product to do the video's task, it plays.</p>
+    <dl class="facts">
+      <div><dt>role</dt><dd>Solo project</dd></div>
+      <div><dt>when</dt><dd>October 2026</dd></div>
+      <div><dt>stack</dt><dd>Chrome MV3 JavaScript, Python standard library, SQLite</dd></div>
+      <div><dt>model</dt><dd>qwen3:14b via Ollama, on a 24 GB M4 Pro</dd></div>
+    </dl>
+  </div>
+</div>
+
+<div class="wide stage">
+  <figure class="player-wrap" style="margin:0">
+    <div class="player">
+      <picture>
+        <source srcset="img/player-hero.png" media="(prefers-reduced-motion: reduce)">
+        <img src="demo.gif" width="1280" height="720" alt="The extension on a video player: playback reaches a sponsor read, the player jumps to its end, a toast reports 0:58 skipped with Undo and Wrong skip, and the read's marker on the lane above the progress bar goes from accent to dim. An integration further along is outlined, the next read is filled, a self-promo label near the end is dim.">
+      </picture>
+    </div>
+    <figcaption class="cap">Mockup with illustrative data. The brand, video and numbers are invented.</figcaption>
+  </figure>
+</div>
+
+<div class="col">
+
+  <section id="why">
+    <div class="sec-head">
+      <span class="eyebrow">why</span>
+      <h2>Sponsor reads follow a script you can hear coming.</h2>
+    </div>
+    <div class="prose">
+      <p>The segue, the brand, the offer, the code. Most skippers depend on viewers submitting timestamps, so a new video has nothing until someone tags it. Second Read works on the first view of any captioned video, decides from the words themselves, and keeps everything on the machine.</p>
+    </div>
+    <div class="goals">
+      <div><b>Text only</b><span>It reads the caption track YouTube already serves. No audio is downloaded or transcribed.</span></div>
+      <div><b>Local</b><span>The model runs on the laptop. No third-party datasets, no SponsorBlock, no API keys.</span></div>
+      <div><b>Never cut content</b><span>Every doubt resolves toward letting the ad play. A late skip is a nuisance; a cut sentence is a bug.</span></div>
+      <div><b>Integrations play</b><span>A creator using the product to do the video's actual task is content, so it gets an outline, not a skip.</span></div>
+    </div>
+  </section>
+
+  <section id="how">
+    <div class="sec-head">
+      <span class="eyebrow">how it works</span>
+      <h2>Four steps from captions to a cut.</h2>
+    </div>
+    <ol class="steps">
+      <li><span class="n">01</span><div><h3>Read the captions</h3><p>The player only serves captions with a proof-of-origin token, so the extension switches captions on for a moment, reuses the player's own request and switches them off again. Word timing comes from the track's <code>tOffsetMs</code> values. A revisit loads the stored result before anything is read.</p></div></li>
+      <li><span class="n">02</span><div><h3>Find candidates</h3><p>A keyword prefilter keeps only the 240-second windows that contain a sponsor cue. Sponsor lines and chapters in the description become hints. The model labels a line range, then a second pass asks for the read's full extent.</p></div></li>
+      <li><span class="n">03</span><div><h3>Prove it</h3><p>A skip needs an evidence quote that appears in the transcript word for word and contains a sponsor cue, at 0.85 confidence or more. Anything weaker becomes a label on the progress bar.</p></div></li>
+      <li><span class="n">04</span><div><h3>Cut inward</h3><p>Boundaries land on word timing, rounded 0.3 s inward and snapped to sentence starts. A lead-in check can move the start back over the segue, by whole sentences and by at most 6 seconds; a podcast's break announcement, by rule, by at most 15.</p></div></li>
+    </ol>
+    <div class="rules">
+      <div><span class="eyebrow">rule one</span><h3>Content is never cut on a guess.</h3><p>Every fallback moves the cut inward. A post-filter can remove a label but never add a skip.</p></div>
+      <div><span class="eyebrow">rule two</span><h3>Missing data means unknown.</h3><p>A read is called undisclosed only when both disclosure signals arrived and both say no. The dashboard never accuses a creator over a field that failed to load.</p></div>
+    </div>
+  </section>
+
+  <section id="results">
+    <div class="sec-head">
+      <span class="eyebrow">results</span>
+      <h2>Measured where it can be, and marked where it can't.</h2>
+      <p class="note">Three kinds of numbers are kept apart. Only held-out runs measure accuracy. The regression set only proves nothing broke.</p>
+    </div>
+
+    <div class="card">
+      <div class="top-line"><h3>Synthetic held-out run, v1.0</h3><span class="tag">75 scripts · run once</span></div>
+      <p class="note">75 scripted transcripts across 25 situations, written by separate writers and never read while tuning. Each also ran as a noisy twin: lowercase, no punctuation, misheard brand names and no word timing, which is harsher than most real auto captions.</p>
+      <div class="tbl">
+        <table>
+          <thead><tr><th>measure</th><th>clean text</th><th>noisy text</th></tr></thead>
+          <tbody>
+            <tr><td>Runs passing</td><td class="num">54 / 75</td><td class="num">37 / 75</td></tr>
+            <tr><td>Sponsor reads missed</td><td class="num">4 <small>of 63</small></td><td class="num">8 <small>of 63</small></td></tr>
+            <tr><td>Runs that cut any content</td><td class="num">6 <small>· 60.4 s total</small></td><td class="num">30 <small>· 90.1 s total</small></td></tr>
+            <tr><td>Median start / end error</td><td class="num">0.0 / 0.0 s</td><td class="num">+0.8 / 0.0 s</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">The same code passes 64 / 78 on the development scripts it was tuned on. The ten-point drop on unseen scripts is overfitting, and it is reported as is.</p>
+    </div>
+
+    <div class="groups">
+      <div class="group g-ok">
+        <div class="head"><span class="mark" aria-hidden="true">✓</span>Holds on clean text</div>
+        <p>Classic mid-roll reads, ads in the first 30 seconds, back-to-back sponsors, misheard brand names. It leaves alone the creator's own brand work, videos about the brand, disclaimers in the description, "sponsors" in conversation and affiliate links.</p>
+      </div>
+      <div class="group g-warn">
+        <div class="head"><span class="mark" aria-hidden="true">~</span>The ad plays</div>
+        <p>Soft and question segues start 7 to 13 seconds late. Reads with no disclosure words, and long reads that cross a window edge, are sometimes missed or cut short.</p>
+        <span class="sub">safe direction: nothing is cut</span>
+      </div>
+      <div class="group g-bad">
+        <div class="head"><span class="mark" aria-hidden="true">!</span>Still cuts content</div>
+        <p>A pitch quoted inside a video's own content (31.5 s clean, 30.1 s noisy). One disclaimer read as an ad (19.3 s). A reminder after a read on noisy text (20.6 s). On noisy text without word timing, ends can overshoot by a few seconds.</p>
+        <span class="sub">open items for v1.1</span>
+      </div>
+    </div>
+
+    <div class="split" style="margin-top:14px">
+      <div class="card">
+        <div class="top-line"><h3>Real videos</h3><span class="tag">regression</span></div>
+        <div class="big">29 <small>rows</small></div>
+        <p class="note">Replayed from stored model outputs before every commit, in three tiers: 13 checked by ear, 5 read from the transcript, and 11 snapshots of current output. It catches regressions. It is not an accuracy figure.</p>
+      </div>
+      <div class="card">
+        <div class="top-line"><h3>Speed</h3><span class="tag">first visit</span></div>
+        <div class="big">33–59 <small>s to first skip</small></div>
+        <p class="note">Down from 95 to 166 seconds in the first build. Revisits load the stored result before the captions are read.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="top-line"><h3>Real-video held-out evaluation</h3><span class="tag pending">not run yet</span></div>
+      <p class="note">Twenty unseen videos from channels outside the test set, labeled by ear before the pipeline sees them, run once on a frozen tag. Until that run exists, no accuracy figure is claimed for real YouTube videos.</p>
+    </div>
+  </section>
+
+  <section id="interface">
+    <div class="sec-head">
+      <span class="eyebrow">interface</span>
+      <h2>Quiet on the player, detailed on request.</h2>
+    </div>
+    <div class="ui">
+      <figure style="margin:0; display:flex; flex-direction:column; gap:10px">
+        <img class="shot shot-popup" src="img/popup.png" width="360" height="791" loading="lazy" alt="The extension popup: 3:12:40 saved all-time, today 4:12, 214 skips, 3 undone, 17 integrations left playing. Under it, this video's timeline: Northwind VPN 0:58 skipped, Frameline integration plays, Pinecrest Coffee skips at 15:20, and the code ATLAS with a Copy button. Then the channel, the category settings and the on switch.">
+        <figcaption class="cap">Mockup with illustrative data.</figcaption>
+      </figure>
+
+      <div class="prose">
+        <p>The player gets one 4 px lane above the progress bar, never on it. Meaning is carried by shape as well as tone:</p>
+        <ul class="legend">
+          <li><span class="sw sw-skip"></span><span><b>Filled</b> · will skip</span></li>
+          <li><span class="sw sw-keep"></span><span><b>Outline</b> · integration, plays</span></li>
+          <li><span class="sw sw-dim"></span><span><b>Dim</b> · label only, or already skipped</span></li>
+          <li><span class="sw sw-low"></span><span><b>Hatched</b> · low confidence</span></li>
+        </ul>
+        <p class="muted">After a skip, a toast shows the brand, the seconds skipped and the quote it acted on, with Undo and Wrong skip. Wrong skip files a report with the segment and its evidence.</p>
+        <p class="muted">The popup opens on time saved, then what happened on the current video, including the offer code from the read, so skipping the ad doesn't mean losing the deal. A local dashboard breaks the same data down by brand, creator and category.</p>
+      </div>
+    </div>
+    <figure class="dash">
+      <a href="img/dashboard-stats.png"><img class="shot" src="img/dashboard-stats.png" width="1280" height="1137" loading="lazy" alt="The local dashboard's stats tab: 3:12:40 time saved, 214 skips with 3 undone, 270 videos analyzed, 78% with a sponsor, the position of ads within videos, a hall of shame and a hall of fame by brand, and a table by category."></a>
+      <figcaption class="cap">The local dashboard (open the image for full size). Mockup with illustrative data.</figcaption>
+    </figure>
+  </section>
+
+  <section id="limits">
+    <div class="sec-head">
+      <span class="eyebrow">limits</span>
+      <h2>What it doesn't do yet.</h2>
+    </div>
+    <ul class="limits">
+      <li><b>YouTube internals</b><span>Caption capture depends on the player object, the caption request and its token, and the CC button. None of them is an API; when one changes, the extension reads nothing until it is fixed.</span></li>
+      <li><b>No captions</b><span>A video without a caption track is not analyzed at all.</span></li>
+      <li><b>One model, one laptop</b><span>One 14B model handles one call at a time, and its output varies between runs on the same input.</span></li>
+      <li><b>Small test base</b><span>Tested by one person on a small set of channels. The real-video held-out run is still to come.</span></li>
+    </ul>
+  </section>
+
+  <footer>
+    <span>Second Read · built by Atishay</span>
+    <span><a href="https://github.com/atishaypahadiya/second-read">Source and full README on GitHub ↗</a></span>
+  </footer>
+</div>
+
+<script>
+// ?theme=dark or ?theme=light pins a theme (for previews); otherwise the page follows the system setting
+try { var th = new URLSearchParams(location.search).get('theme'); if (th === 'dark' || th === 'light') document.documentElement.setAttribute('data-theme', th); } catch (e) {}
+</script>
+</body>
+</html>
