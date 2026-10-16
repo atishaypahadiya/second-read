@@ -226,6 +226,13 @@ footer{margin-top:64px; padding-top:20px; border-top:1px solid var(--line); disp
 @media (prefers-reduced-motion: reduce){
   .toast, .seg.skip{transition:none}
 }
+
+/* print: these carry meaning in their fill, so they keep it with "background graphics" off; cards stay whole */
+.rules, .legend .sw, .player, .shot{-webkit-print-color-adjust:exact; print-color-adjust:exact}
+@media print{
+  .card, .group, .goals, .rules, .split, .steps li, .limits li, .legend, figure{break-inside:avoid}
+  .sec-head{break-inside:avoid; break-after:avoid}
+}
 </style>
 </head>
 <body>
