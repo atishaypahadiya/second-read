@@ -333,7 +333,7 @@ noisy (lowercase, no punctuation, a misheard brand, 8 s lines, no word
 timing), sends both to a second server instance running the real model, and
 scores them against the scripted truth.
 
-HELD, run once on `v1.0-candidate` (`102467c`, behavior-identical to `v1.0`), 2026-10-14, 150 runs,
+HELD, run once on `v1.0-candidate` (`4355a52`, behavior-identical to `v1.0`), 2026-10-14, 150 runs,
 HELD sha256 `d02137…6507`:
 
 | | Clean | Noisy |
@@ -343,7 +343,7 @@ HELD sha256 `d02137…6507`:
 | Median start / end error, reads found (+ = later) | 0.0 s / 0.0 s | +0.8 s / 0.0 s |
 | Runs passing | 54/75 | 37/75 |
 
-Previous run, on the old HELD set (`742699…f65a`, commit `52e9e3a`): 7 / 31 runs cut content,
+Previous run, on the old HELD set (`742699…f65a`, commit `73a1718`): 7 / 31 runs cut content,
 103.9 s / 163.1 s; 4 / 8 reads missed; 49/75 clean, 34/75 noisy. Three of its files (the
 content cuts in s10, s14, s22) were then moved to DEV and fixed there, and fresh ones replaced
 them; the other 72 files are the same in both sets.
@@ -614,7 +614,7 @@ without a sponsor.
 Built, not yet checked against a video by a human: everything else in the
 Coverage table and the items under Limitations.
 
-Release: `v1.0` is `d4af8de`. It differs from `v1.0-candidate` (`102467c`, the code the
+Release: `v1.0` is `fe9485d`. It differs from `v1.0-candidate` (`4355a52`, the code the
 synthetic HELD run used) only by a type-narrowing guard in `cue_word_times` and a renamed
 test helper, and replays identically: with stored model outputs only, every segment
 (start, end, action, category, brand) of all 156 DEV runs and of 24 of the 28 cached real
